@@ -25,7 +25,6 @@ public sealed class UiShell
 
         _bar.DataContext = _viewModel;
         _list.DataContext = _viewModel;
-        _list.Owner = _bar;
 
         _bar.LocationChanged += (_, _) =>
         {
@@ -44,8 +43,22 @@ public sealed class UiShell
     {
         RestoreOrPlaceBar();
         _bar.Show();
+        AttachListOwner();
         PositionList();
         ApplyExpandedState();
+    }
+
+    private void AttachListOwner()
+    {
+        if (!_bar.IsLoaded && !_bar.IsVisible)
+        {
+            return;
+        }
+
+        if (!ReferenceEquals(_list.Owner, _bar))
+        {
+            _list.Owner = _bar;
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -60,6 +73,7 @@ public sealed class UiShell
     {
         if (_viewModel.IsExpanded)
         {
+            AttachListOwner();
             PositionList();
             if (!_list.IsVisible)
             {

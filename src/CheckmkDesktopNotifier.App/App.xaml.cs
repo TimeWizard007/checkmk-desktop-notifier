@@ -41,9 +41,9 @@ public partial class App : Application
         var clock = _host.Services.GetRequiredService<TimeProvider>();
         await DemoBootstrapper.InitializeAsync(client, alerts, clock).ConfigureAwait(true);
 
-        var shell = _host.Services.GetRequiredService<UiShell>();
         var bar = _host.Services.GetRequiredService<CompactBarWindow>();
         MainWindow = bar;
+        var shell = _host.Services.GetRequiredService<UiShell>();
         shell.Show();
     }
 
