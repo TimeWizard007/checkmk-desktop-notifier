@@ -102,17 +102,50 @@ CRIT: 111
 UNKNOWN: 3
 ```
 
-### Host status collection exists (read)
+### Host status collection (read) — Phase 3B complete
 
 ```
 GET /domain-types/host/collections/all
 ```
 
-Returns a **monitoring** host collection under `value`.
+This is **not** `host_config`. There is **no** host POST.
 
-This is **not** `host_config`.
+Live-tested from Windows 11 over VPN against CRE/RAW `2.4.0p34`:
 
-**Phase 3A does not call this endpoint.** Host monitoring is Phase 3B and must not start until remaining host GET facts below are verified.
+Unfiltered GET (no query string, no body):
+
+- HTTP `200`
+- `domainType`: `"host"`
+- Collection under `value[]`
+- Identity: `value[].extensions.name`
+- Host objects: **263**
+- Only `name` present; monitoring columns are **absent**
+
+GET with documented repeated `columns=` query-string parameters (no JSON body):
+
+- HTTP `200`
+- Host objects: **263**
+- UP: **262**, DOWN: **1**, UNREACHABLE: **0**
+- All expected monitoring columns present under `extensions`
+- Identity: `extensions.name`
+
+Application host monitoring uses the **`columns=` GET**, not the name-only GET.
+
+Verified host `state`:
+
+| Value | Meaning | Core mapping |
+|------:|---------|--------------|
+| 0 | UP | not a problem |
+| 1 | DOWN | Critical |
+| 2 | UNREACHABLE | Unknown |
+
+Verified `state_type`: 0 SOFT, 1 HARD. V1 incidents use HARD only.
+
+Host recurrence marker: `last_time_up`.
+
+ACK (`acknowledged`) and downtime (`scheduled_downtime_depth`) are read-only metadata.
+
+Do **not** implement `POST /domain-types/host/collections/all`. Do **not** use `host_config`.
 
 ### Not monitoring
 
@@ -148,6 +181,8 @@ Time columns are Unix timestamps.
 | `acknowledged` | 0/1 |
 | `scheduled_downtime_depth` | In downtime if `> 0` |
 | `num_services_hard_crit` | Count for later grouping copy |
+| `num_services_hard_warn` | Count for later grouping copy |
+| `num_services_hard_unknown` | Count for later grouping copy |
 
 ### Services table (unprefixed; matches verified POST names)
 
@@ -162,26 +197,22 @@ Collection adds `value: [ ... ]`.
 
 ## UNVERIFIED
 
-Do **not** implement host HTTP until these are confirmed on the real site.
-
-- Whether **host GET** accepts `columns`
-- Whether **host GET** accepts `query` (including server-side DOWN/UNREACH filter)
-- Exact host GET item JSON (flattened vs `extensions`)
-- `POST /domain-types/host/collections/all` — **do not claim this exists** until verified. Phase 3B must use verified **GET** host collection unless a POST is later proven.
+- Whether **host GET** accepts a `query` filter (including server-side DOWN/UNREACH). Not sent; the client currently maps HARD non-UP hosts after fetching the `columns=` collection.
 - Server-side `state_type = 1` on the service POST body (V1 still filters HARD in Core)
 - Putting `host_state` in the verified service POST `columns` list
 - Pagination / size limits
 - Distributed-monitoring `site` column
 - Least-privilege automation role that can **only** read these collections (Normal monitoring user + Everything contact group is verified to work; a narrower role is untested)
+- `POST /domain-types/host/collections/all` — **does not exist in this project’s verified contract**. Do not implement it.
 
 ---
 
 ## Application rules for the client
 
-- Phase 3A (complete): POST service collection only, as verified.
-- Phase 3B (not started): GET host collection as verified; do not guess.
+- Phase 3A (complete): POST service collection, as verified.
+- Phase 3B (complete): GET host collection with repeated `columns=` query parameters; map HARD DOWN/UNREACHABLE into Core; do not guess a host POST.
 - No acknowledge, downtime, comment, or config write endpoints on `ICheckmkClient`.
 - Map into Core DTOs in Infrastructure, not in Core.
 - Filter WARN/CRIT/UNKNOWN **server-side** for services.
-- V1 engine uses HARD states only (filter in the engine; mapper still records SOFT for completeness).
+- V1 engine uses HARD states only (filter in the engine; host adapter also supplies HARD-only host problems).
 - Local Seen remains completely separate from Checkmk ACK.

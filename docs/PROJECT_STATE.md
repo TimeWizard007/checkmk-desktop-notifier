@@ -4,17 +4,17 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**Phase 3A (service REST integration) — COMPLETE.**
+**Phase 3B (host REST integration) — COMPLETE.**
 
 Manually validated on Windows 11 over the corporate VPN against Checkmk CRE/RAW `2.4.0p34`.
 
-Phase 3B (host monitoring) has **not** started.
+Phase 3C (polling) has **not** started.
 
 ## Git checkpoint
 
+- Phase 3A completion: `7a108ff` — `Complete Phase 3A real Checkmk service integration`
 - Phase 2 completion: `2b85065` — `Mark Phase 2 as Windows-tested and complete`
-- Prior public checkpoint: `a42d0c1` — `Add Phase 1 core and Phase 2 mock WPF UI`
-- This record: Phase 3A implementation plus live service-REST validation
+- This record: Phase 3B host GET with `columns=` wired into the real client
 
 ## Phase 1 — complete
 
@@ -29,44 +29,13 @@ Phase 3B (host monitoring) has **not** started.
 
 ## Phase 2 — complete
 
-Implemented:
+WPF mock UI, Windows 11 self-contained win-x64, no Administrator privileges. Compact bar, expandable list, local Seen, ACK badge independent of Seen.
 
-- WPF app (`net8.0-windows`), MVVM, DI
-- Compact Always-on-Top bar
-- Expandable problem list (NEW, CRITICAL, WARNING, UNKNOWN)
-- Local eye / Mark all new as seen (never Checkmk ACK)
-- EN + PL resource strings
-- `DemoSnapshotFactory` + `DemoBootstrapper` mock scenario
-- `LastSuccessfulPollUtc` exposed for the compact bar
-- `Window.Owner` assigned only after `CompactBarWindow.Show()` (startup crash fix)
+## Phase 3A — complete (service REST)
 
-### Windows 11 manual validation (Phase 2)
+Verified `POST /domain-types/service/collections/all` mapped into Core. Mock remains default.
 
-Environment: self-contained **win-x64** executable, **no Administrator privileges**.
-
-Confirmed: compact bar stays running, Always-on-Top, mock counters, expandable list, NEW first, severity sections, host and service rows, plugin output, local Seen/eye, ACK badge independent of Seen, scrolling, Owner-before-Show crash gone.
-
-## Phase 3A — complete (service REST only)
-
-Implemented:
-
-- `CheckmkDesktopNotifier.Infrastructure` (`net8.0`): config, automation-user auth header, `HttpClient`, verified service POST, REST DTOs, mapping to Core `MonitoredProblem`
-- `CheckmkDesktopNotifier.ConnectionTest`: one-shot read-only POST; prints HTTP status and WARN/CRIT/UNKNOWN counts only
-- Mock/Real switch (`Mode`); default remains **Mock**; `MockCheckmkClient` kept
-- Local config file + environment variables; secrets are not committed (`config/checkmk.local.json` gitignored; example committed)
-- Infrastructure tests: JSON mapping, severity/state_type/ACK/downtime/unix timestamps, malformed JSON, HTTP errors, auth header, config validation, Core independence from REST DTOs
-
-Core was not changed for Phase 3A. `ICheckmkClient` already returns `ProblemSnapshot`.
-
-### Windows 11 live validation (Phase 3A)
-
-Environment: Windows 11, corporate VPN, dedicated Checkmk automation account, **no Administrator privileges**.
-
-Confirmed path:
-
-Windows 11 → VPN → Checkmk REST API → automation authentication → `POST /domain-types/service/collections/all` → non-OK service query → REST response mapping → Core `ProblemSnapshot`
-
-Sanitized live result from the one-shot connection test:
+Sanitized live result:
 
 ```
 HTTP status: 200
@@ -76,39 +45,64 @@ CRIT: 111
 UNKNOWN: 3
 ```
 
-Automation account (no secret recorded):
+Automation account: Normal monitoring user, Everything contact group, no Administrator privileges.
 
-- Authenticates with an automation secret
-- Role: **Normal monitoring user**
-- Contact group: **Everything**
-- Does not require Administrator privileges
+## Phase 3B — complete (host REST)
 
-Not in Phase 3A (still not started):
+Implemented:
 
-- Host GET collection / host monitoring
-- Background polling timer
-- Tray, toast, sound
-- Checkmk acknowledge / downtime / comment APIs
-- DPAPI credential store / settings UI
-- Removing mock mode
+- `CheckmkRestClient` (`ICheckmkClient` in Real mode): service POST + host GET, merged `ProblemSnapshot`
+- Host monitoring: `GET /domain-types/host/collections/all` with repeated `columns=` query-string parameters, no JSON body
+- Unfiltered host GET returns `name` only; monitoring uses the `columns=` GET
+- Map HARD DOWN → Critical, HARD UNREACHABLE → Unknown; identity `extensions.name`; recurrence `last_time_up`
+- Host Kind vs service Kind remain separate; ACK/downtime stay read-only metadata
+- `CheckmkDesktopNotifier.ConnectionTest --hosts` probe kept
+- No host POST, no `host_config`, no polling, no host-DOWN grouping
+
+### Windows 11 live validation (Phase 3B)
+
+Environment: Windows 11, corporate VPN, dedicated Checkmk automation account, **no Administrator privileges**.
+
+Unfiltered `GET /domain-types/host/collections/all`:
+
+```
+HTTP status: 200
+Host objects: 263
+Identity field: extensions.name
+Fields present: name
+```
+
+Same GET with documented repeated `columns=` query-string parameters:
+
+```
+HTTP status: 200
+Host objects: 263
+UP: 262
+DOWN: 1
+UNREACHABLE: 0
+Identity field: extensions.name
+Monitoring fields present: name, state, state_type, plugin_output, last_state_change, last_hard_state_change, last_time_up, last_time_down, last_time_unreachable, acknowledged, scheduled_downtime_depth, num_services_hard_crit, num_services_hard_warn, num_services_hard_unknown
+Monitoring fields missing: (none)
+```
+
+No host names, credentials, secrets, Authorization headers, or plugin outputs recorded.
 
 ## Tests
 
-Last automated run (Linux agent, after Phase 3A completion docs):
+Last automated run (Linux agent, after Phase 3B wiring):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 64 passed, 0 failed
+dotnet test  CheckmkDesktopNotifier.sln   → 86 passed, 0 failed
   Core.Tests:            20 passed
-  Infrastructure.Tests:  44 passed
+  Infrastructure.Tests:  66 passed
 ```
 
 Re-run after any further change. Record the new numbers here if they change.
 
 ## What is NOT implemented
 
-- Host monitoring (Phase 3B)
-- Polling timer (60s default is config only)
+- Polling timer (60s default is config only) — Phase 3C
 - System tray, toast, sound, mute
 - Windows startup / single-instance
 - Host-DOWN notification coalescing
@@ -119,4 +113,4 @@ Re-run after any further change. Record the new numbers here if they change.
 
 ## Immediate next steps
 
-Do **not** start Phase 3B (host GET) until remaining host facts in `docs/CHECKMK_API.md` are verified. Do not invent a host POST. Do not use `host_config`.
+Do **not** start Phase 3C (polling) until explicitly approved. Do not invent a host POST. Do not use `host_config`. Server-side host `query` filters remain unused.

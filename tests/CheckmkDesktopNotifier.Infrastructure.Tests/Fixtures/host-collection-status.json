@@ -1,0 +1,110 @@
+{
+  "id": "host",
+  "domainType": "host",
+  "value": [
+    {
+      "id": "host-up",
+      "domainType": "host",
+      "title": "host-up",
+      "extensions": {
+        "name": "host-up",
+        "state": 0,
+        "state_type": 1,
+        "plugin_output": "UP",
+        "last_state_change": 1704067200,
+        "last_hard_state_change": 1704067200,
+        "last_time_up": 1704067200,
+        "last_time_down": 0,
+        "last_time_unreachable": 0,
+        "acknowledged": 0,
+        "scheduled_downtime_depth": 0,
+        "num_services_hard_crit": 0,
+        "num_services_hard_warn": 0,
+        "num_services_hard_unknown": 0
+      }
+    },
+    {
+      "id": "host-down-hard",
+      "domainType": "host",
+      "title": "host-down-hard",
+      "extensions": {
+        "name": "host-down-hard",
+        "state": 1,
+        "state_type": 1,
+        "plugin_output": "Ping failed",
+        "last_state_change": 1704153600,
+        "last_hard_state_change": 1704157200,
+        "last_time_up": 1704067200,
+        "acknowledged": 0,
+        "scheduled_downtime_depth": 0,
+        "num_services_hard_crit": 4,
+        "num_services_hard_warn": 1,
+        "num_services_hard_unknown": 0
+      }
+    },
+    {
+      "id": "host-unreach-soft",
+      "domainType": "host",
+      "title": "host-unreach-soft",
+      "extensions": {
+        "name": "host-unreach-soft",
+        "state": 2,
+        "state_type": 0,
+        "plugin_output": "routing incomplete",
+        "last_state_change": 1704240000,
+        "last_hard_state_change": 0,
+        "last_time_up": 1704153600,
+        "acknowledged": 0,
+        "scheduled_downtime_depth": 0
+      }
+    },
+    {
+      "id": "host-down-soft",
+      "domainType": "host",
+      "title": "host-down-soft",
+      "extensions": {
+        "name": "host-down-soft",
+        "state": 1,
+        "state_type": 0,
+        "plugin_output": "soft ping fail",
+        "last_state_change": 1704240000,
+        "last_hard_state_change": 1704067200,
+        "last_time_up": 1703980800,
+        "acknowledged": 0,
+        "scheduled_downtime_depth": 0
+      }
+    },
+    {
+      "id": "host-unreach-hard",
+      "domainType": "host",
+      "title": "host-unreach-hard",
+      "extensions": {
+        "name": "host-unreach-hard",
+        "state": 2,
+        "state_type": 1,
+        "plugin_output": "no route",
+        "last_state_change": 1704326400,
+        "last_hard_state_change": 1704330000,
+        "last_time_up": 1704240000,
+        "acknowledged": 0,
+        "scheduled_downtime_depth": 2
+      }
+    },
+    {
+      "id": "host-down-ack",
+      "domainType": "host",
+      "title": "host-down-ack",
+      "extensions": {
+        "name": "host-down-ack",
+        "state": 1,
+        "state_type": 1,
+        "plugin_output": "acknowledged outage",
+        "last_state_change": 1704412800,
+        "last_hard_state_change": 1704412800,
+        "last_time_up": 1704326400,
+        "acknowledged": 1,
+        "scheduled_downtime_depth": 0
+      }
+    }
+  ]
+}

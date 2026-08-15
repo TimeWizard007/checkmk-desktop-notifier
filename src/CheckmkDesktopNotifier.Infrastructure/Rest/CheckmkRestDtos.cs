@@ -68,6 +68,48 @@ internal sealed class CheckmkCollectionResponse
 
 internal sealed class CheckmkCollectionItemDto
 {
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+
+    [JsonPropertyName("domainType")]
+    public string? DomainType { get; set; }
+
     [JsonPropertyName("extensions")]
     public JsonElement Extensions { get; set; }
+}
+
+internal static class CheckmkHostCollectionContract
+{
+    public const string HostCollectionPath = "domain-types/host/collections/all";
+
+    public static readonly string[] ExpectedMonitoringFields =
+    [
+        "name",
+        "state",
+        "state_type",
+        "plugin_output",
+        "last_state_change",
+        "last_hard_state_change",
+        "last_time_up",
+        "last_time_down",
+        "last_time_unreachable",
+        "acknowledged",
+        "scheduled_downtime_depth",
+        "num_services_hard_crit",
+        "num_services_hard_warn",
+        "num_services_hard_unknown"
+    ];
+
+    public static readonly string[] DocumentedColumnsQueryParameters = ExpectedMonitoringFields;
+
+    public static string CreateDocumentedColumnsRelativeUri()
+    {
+        var query = string.Join(
+            "&",
+            DocumentedColumnsQueryParameters.Select(column => "columns=" + Uri.EscapeDataString(column)));
+        return HostCollectionPath + "?" + query;
+    }
 }

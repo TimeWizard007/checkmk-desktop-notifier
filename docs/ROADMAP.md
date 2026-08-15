@@ -40,11 +40,21 @@ UNKNOWN: 3
 
 Automation account used **Normal monitoring user** + **Everything** contact group; no Administrator privileges.
 
-Out of Phase 3A (still later): host GET, polling timer, tray/toast/sound, Checkmk ACK.
+Out of Phase 3A: polling timer, tray/toast/sound, Checkmk ACK.
 
-## Phase 3B — not started
+## Phase 3B — complete
 
-Host monitoring. Do not start until host GET `columns` / `query` / item JSON are verified. Do not invent `POST /domain-types/host/collections/all`. Do not use `host_config`.
+Real Checkmk **host** REST (CRE/RAW 2.4.0p34), live-tested from Windows 11 over VPN:
+
+- `GET /domain-types/host/collections/all`
+- Unfiltered GET: 263 hosts, `extensions.name` only
+- `columns=` GET: 263 hosts, UP 262 / DOWN 1 / UNREACHABLE 0, all monitoring fields present
+- Wired into `CheckmkRestClient` (`ICheckmkClient`): HARD DOWN → Critical, HARD UNREACHABLE → Unknown, `last_time_up`
+- No host POST, no `host_config`, no polling, no notification grouping
+
+## Phase 3C — not started
+
+Polling (~60s), freeze on failure. Do not start until Phase 3B is complete.
 
 ## Phase 3 (remaining, later)
 

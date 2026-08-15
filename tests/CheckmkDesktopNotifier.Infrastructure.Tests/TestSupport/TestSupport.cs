@@ -30,6 +30,8 @@ internal static class FixtureReader
 
 internal sealed class RecordingHandler : HttpMessageHandler
 {
+    public List<HttpRequestMessage> Requests { get; } = [];
+
     public HttpRequestMessage? LastRequest { get; private set; }
 
     public string? LastBody { get; private set; }
@@ -41,6 +43,7 @@ internal sealed class RecordingHandler : HttpMessageHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
+        Requests.Add(request);
         LastRequest = request;
         if (request.Content is not null)
         {

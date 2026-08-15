@@ -22,10 +22,10 @@ public static class CheckmkClientServiceCollectionExtensions
             return services;
         }
 
-        services.AddHttpClient<ICheckmkClient, CheckmkServiceClient>((_, client) =>
+        services.AddHttpClient<ICheckmkClient, CheckmkRestClient>((_, client) =>
         {
             client.BaseAddress = options.CreateApiBaseUri();
-            client.Timeout = TimeSpan.FromSeconds(20);
+            client.Timeout = TimeSpan.FromSeconds(60);
             client.DefaultRequestHeaders.ExpectContinue = false;
         });
 

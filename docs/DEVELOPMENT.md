@@ -114,6 +114,55 @@ UNKNOWN: 3
 
 Do not log or commit the automation secret, Authorization header, or plugin outputs.
 
+## Host connection test (Phase 3B, complete)
+
+Performs a verified `GET /domain-types/host/collections/all` (no query string), then the live-confirmed `columns=` GET. Prints HTTP status, host object counts, UP/DOWN/UNREACH counts when `state` is present, and monitoring field names. Does not print secrets, Authorization, raw JSON, host names, or plugin output values.
+
+From the repository root, with `config/checkmk.local.json` set to `Mode: Real`:
+
+```powershell
+dotnet run --project src/CheckmkDesktopNotifier.ConnectionTest/CheckmkDesktopNotifier.ConnectionTest.csproj -- --hosts
+```
+
+Windows self-contained publish of the connection test (no admin):
+
+```powershell
+dotnet publish src/CheckmkDesktopNotifier.ConnectionTest/CheckmkDesktopNotifier.ConnectionTest.csproj `
+  -c Release `
+  -r win-x64 `
+  --self-contained true `
+  -o publish/win-x64-connectiontest
+```
+
+Run on Windows 11 over VPN:
+
+```powershell
+.\publish\win-x64-connectiontest\CheckmkDesktopNotifier.ConnectionTest.exe --hosts
+```
+
+### Windows 11 live validation (Phase 3B)
+
+Unfiltered GET:
+
+```
+HTTP status: 200
+Host objects: 263
+Identity field: extensions.name
+Fields present: name
+```
+
+GET with repeated `columns=` query-string parameters:
+
+```
+HTTP status: 200
+Host objects: 263
+UP: 262
+DOWN: 1
+UNREACHABLE: 0
+```
+
+Real mode in the WPF app now uses that `columns=` GET (HARD DOWN/UNREACHABLE only) together with the service POST. No polling yet. Do not start Phase 3C until approved.
+
 ## Windows — self-contained win-x64 publish
 
 No admin required. From the repository root:
@@ -139,7 +188,7 @@ dotnet test CheckmkDesktopNotifier.sln
 
 Core tests cover lifecycle, persistence, identities, recurrence, and the demo snapshot mix.
 
-Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, and Core independence from REST DTOs.
+Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, and merged service+host snapshots.
 
 There is no WPF UI test project yet.
 
@@ -161,4 +210,4 @@ Phase 3A uses a local JSON file or environment variables. DPAPI under `%LocalApp
 - Do not put incident logic in WPF code-behind.
 - Do not put Checkmk REST DTOs in Core.
 - Do not call Checkmk ACK from the eye button.
-- Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified as **GET**, not an invented POST. Do not start Phase 3B until remaining host GET facts are confirmed.
+- Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST. Do not start Phase 3C (polling) until approved.

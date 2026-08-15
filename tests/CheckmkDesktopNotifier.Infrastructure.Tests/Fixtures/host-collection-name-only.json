@@ -1,0 +1,22 @@
+{
+  "id": "host",
+  "domainType": "host",
+  "value": [
+    {
+      "id": "host-a",
+      "domainType": "host",
+      "title": "host-a",
+      "extensions": {
+        "name": "host-a"
+      }
+    },
+    {
+      "id": "host-b",
+      "domainType": "host",
+      "title": "host-b",
+      "extensions": {
+        "name": "host-b"
+      }
+    }
+  ]
+}

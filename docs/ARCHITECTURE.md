@@ -11,7 +11,7 @@ CheckmkDesktopNotifier.sln
   src/CheckmkDesktopNotifier.Core              net8.0 class library
   src/CheckmkDesktopNotifier.Infrastructure    net8.0 class library (Checkmk REST)
   src/CheckmkDesktopNotifier.App               net8.0-windows WPF (WinExe)
-  src/CheckmkDesktopNotifier.ConnectionTest    net8.0 console (one-shot service POST)
+  src/CheckmkDesktopNotifier.ConnectionTest    net8.0 console (one-shot service POST or `--hosts` GET)
   tests/CheckmkDesktopNotifier.Core.Tests      xUnit, net8.0
   tests/CheckmkDesktopNotifier.Infrastructure.Tests  xUnit, net8.0
 ```
@@ -32,16 +32,18 @@ App references Core and Infrastructure. Tests: Core.Tests → Core only. Infrast
 
 Core must stay independently testable.
 
-## Infrastructure responsibilities (Phase 3A)
+## Infrastructure responsibilities
 
 - `CheckmkOptions` / loader / validation (`Mode`, `BaseUrl`, `Site`, `Username`, `Secret`, `PollIntervalSeconds`)
 - Automation-user header: `Authorization: Bearer <username> <automation_secret>`
-- `CheckmkServiceClient` : `ICheckmkClient` — verified `POST /domain-types/service/collections/all` only
+- `CheckmkRestClient` : `ICheckmkClient` (Real mode) — service POST + host GET with `columns=`, merged snapshot
+- `CheckmkServiceClient` — verified `POST /domain-types/service/collections/all`
+- `CheckmkHostClient` — verified `GET /domain-types/host/collections/all` (name-only or `columns=`)
 - REST request/response DTOs (Infrastructure only)
-- `ServiceProblemMapper` → Core `MonitoredProblem`
+- `ServiceProblemMapper` / `HostProblemMapper` → Core `MonitoredProblem`
 - Failed HTTP/JSON → `ProblemSnapshot.Failure` (`Unavailable` / `Authentication` / `Protocol` / `Configuration`)
 
-Phase 3A does **not** implement host GET, acknowledge APIs, or a polling timer.
+Phase 3A/3B do **not** implement acknowledge APIs or a polling timer.
 
 ## App responsibilities
 
@@ -62,7 +64,7 @@ Views  →  ShellViewModel  →  IAlertStateService  →  in-memory/JSON state
                 │
                 └── ICheckmkClient
                       ├── MockCheckmkClient          (Mode=Mock, default)
-                      └── CheckmkServiceClient       (Mode=Real, services only)
+                      └── CheckmkRestClient          (Mode=Real: services + HARD host DOWN/UNREACH)
 ```
 
 Startup:

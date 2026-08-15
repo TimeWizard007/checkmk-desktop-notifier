@@ -21,7 +21,8 @@ public sealed class CoreIndependenceTests
     public void Checkmk_client_port_is_defined_in_core()
     {
         Assert.Equal("CheckmkDesktopNotifier.Core", typeof(ICheckmkClient).Assembly.GetName().Name);
-        Assert.Equal("CheckmkDesktopNotifier.Infrastructure", typeof(CheckmkServiceClient).Assembly.GetName().Name);
+        Assert.Equal("CheckmkDesktopNotifier.Infrastructure", typeof(CheckmkRestClient).Assembly.GetName().Name);
+        Assert.Contains(typeof(ICheckmkClient), typeof(CheckmkRestClient).GetInterfaces());
         Assert.Contains(typeof(ICheckmkClient), typeof(CheckmkServiceClient).GetInterfaces());
     }
 
