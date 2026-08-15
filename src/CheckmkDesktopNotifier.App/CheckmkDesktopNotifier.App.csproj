@@ -15,6 +15,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CheckmkDesktopNotifier.Core\CheckmkDesktopNotifier.Core.csproj" />
+    <ProjectReference Include="..\CheckmkDesktopNotifier.Infrastructure\CheckmkDesktopNotifier.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\config\checkmk.local.json.example" Link="config\checkmk.local.json.example" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

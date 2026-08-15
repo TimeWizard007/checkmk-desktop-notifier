@@ -12,7 +12,7 @@ public static class DemoBootstrapper
     {
         if (client is not MockCheckmkClient mock)
         {
-            throw new InvalidOperationException("Phase 2 is limited to MockCheckmkClient.");
+            throw new InvalidOperationException("DemoBootstrapper requires MockCheckmkClient.");
         }
 
         mock.NextSnapshot = DemoSnapshotFactory.Create(clock.GetUtcNow());

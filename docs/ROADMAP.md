@@ -18,15 +18,38 @@ Mock WPF UI on Core, manually validated on Windows 11 with a self-contained win-
 
 Accepted leftovers (not Phase 3): in-memory window position, in-memory Seen store in the UI host, no in-app language switcher, no automated WPF tests.
 
-## Phase 3 — not started
+## Phase 3A — complete
 
-Real Checkmk integration (do not start until explicitly approved):
+Real Checkmk **service** REST only (CRE/RAW 2.4.0p34), live-tested from Windows 11 over the corporate VPN:
 
-- Confirm remaining host GET facts (`docs/CHECKMK_API.md` UNVERIFIED)
-- Read-only REST adapter mapping `value` → Core DTOs
-- Automation-user credentials in DPAPI (not in git)
+- Infrastructure adapter behind `ICheckmkClient`
+- Automation-user auth, local config / env (no committed secrets)
+- Map `value[].extensions` → Core `MonitoredProblem`
+- Keep `MockCheckmkClient`; switch via `Mode`
+- One-shot connection test console
+
+Sanitized live result:
+
+```
+HTTP status: 200
+Service problems: 129
+WARN: 15
+CRIT: 111
+UNKNOWN: 3
+```
+
+Automation account used **Normal monitoring user** + **Everything** contact group; no Administrator privileges.
+
+Out of Phase 3A (still later): host GET, polling timer, tray/toast/sound, Checkmk ACK.
+
+## Phase 3B — not started
+
+Host monitoring. Do not start until host GET `columns` / `query` / item JSON are verified. Do not invent `POST /domain-types/host/collections/all`. Do not use `host_config`.
+
+## Phase 3 (remaining, later)
+
 - Polling (~60s), freeze on failure
-- Settings for URL / site / user / interval / language
+- DPAPI credentials / settings UI for URL / site / user / interval / language
 - Replace mock bootstrap in production builds; keep mock for tests
 
 ## Phase 4 — not started

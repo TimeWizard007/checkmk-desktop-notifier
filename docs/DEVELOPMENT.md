@@ -4,7 +4,7 @@
 
 - .NET 8 SDK
 - For **running** the WPF app: Windows 10/11
-- Linux can **build** Core, tests, and (with Windows targeting) the WPF project
+- Linux can **build** Core, Infrastructure, tests, ConnectionTest, and (with Windows targeting) the WPF project
 - No Administrator privileges required for build, test, or running the per-user app
 
 ## Repository structure
@@ -13,9 +13,13 @@
 checkmk-desktop-notifier/
   CheckmkDesktopNotifier.sln
   docs/                          ← durable project memory (read this first)
+  config/checkmk.local.json.example
   src/CheckmkDesktopNotifier.Core/
+  src/CheckmkDesktopNotifier.Infrastructure/
   src/CheckmkDesktopNotifier.App/
+  src/CheckmkDesktopNotifier.ConnectionTest/
   tests/CheckmkDesktopNotifier.Core.Tests/
+  tests/CheckmkDesktopNotifier.Infrastructure.Tests/
 ```
 
 ## Linux — build and test
@@ -30,6 +34,8 @@ dotnet test CheckmkDesktopNotifier.sln
 The App project sets `EnableWindowsTargeting` so WPF can compile on non-Windows agents. That does **not** make the UI runnable on Linux.
 
 ## Windows — run the mock UI
+
+Default `Mode` is **Mock**. No Checkmk server required:
 
 ```powershell
 dotnet run --project src/CheckmkDesktopNotifier.App/CheckmkDesktopNotifier.App.csproj
@@ -48,6 +54,65 @@ UI language follows Windows UI culture (`en` default, `pl` when UI culture is Po
 5. NEW section first; eye only on NEW; Mark all new as seen works locally.
 6. Seen rows remain under real severity. ACK and downtime are badges, not Seen.
 7. Closing the list collapses it; closing the bar exits the app.
+
+## Local Checkmk configuration (Phase 3A)
+
+Never commit `config/checkmk.local.json`. Copy the example:
+
+```bash
+cp config/checkmk.local.json.example config/checkmk.local.json
+```
+
+Edit the `Checkmk` object:
+
+| Field | Notes |
+|-------|--------|
+| `Mode` | `Mock` (default) or `Real` |
+| `BaseUrl` | Origin only, e.g. `https://checkmk.example.invalid` — no site path, no credentials |
+| `Site` | Site name, e.g. `itssrv` |
+| `Username` | Automation user |
+| `Secret` | Automation secret (never commit) |
+| `PollIntervalSeconds` | Default `60` (stored only; no timer in Phase 3A) |
+
+Environment variables override the file: `CHECKMK_MODE`, `CHECKMK_BASE_URL`, `CHECKMK_SITE`, `CHECKMK_USERNAME`, `CHECKMK_SECRET`, `CHECKMK_POLL_INTERVAL_SECONDS`. Optional path: `CHECKMK_CONFIG`.
+
+The loader also searches `%LocalAppData%/CheckmkDesktopNotifier/checkmk.local.json` and walks up from the current directory looking for `config/checkmk.local.json`.
+
+API URI built from config: `{BaseUrl}/{Site}/check_mk/api/1.0/`.
+
+## One-shot connection test (read-only)
+
+Performs **one** `POST /domain-types/service/collections/all` and prints only HTTP status and problem counts (no secret, no Authorization header, no raw JSON, no plugin output).
+
+From the repository root, with `config/checkmk.local.json` set to `Mode: Real`:
+
+```bash
+dotnet run --project src/CheckmkDesktopNotifier.ConnectionTest/CheckmkDesktopNotifier.ConnectionTest.csproj
+```
+
+Expected output shape:
+
+```
+HTTP status: 200
+Service problems: N
+WARN: N
+CRIT: N
+UNKNOWN: N
+```
+
+### Windows 11 live validation (Phase 3A)
+
+Confirmed over the corporate VPN with a dedicated automation account (Normal monitoring user, Everything contact group, no Administrator privileges). Sanitized result:
+
+```
+HTTP status: 200
+Service problems: 129
+WARN: 15
+CRIT: 111
+UNKNOWN: 3
+```
+
+Do not log or commit the automation secret, Authorization header, or plugin outputs.
 
 ## Windows — self-contained win-x64 publish
 
@@ -72,7 +137,11 @@ Run `publish\win-x64\CheckmkDesktopNotifier.exe` on Windows 11.
 dotnet test CheckmkDesktopNotifier.sln
 ```
 
-Core tests cover lifecycle, persistence, identities, recurrence, and the demo snapshot mix. There is no WPF UI test project yet.
+Core tests cover lifecycle, persistence, identities, recurrence, and the demo snapshot mix.
+
+Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, and Core independence from REST DTOs.
+
+There is no WPF UI test project yet.
 
 ## Secrets
 
@@ -83,12 +152,13 @@ Never commit:
 - `.bin` DPAPI blobs
 - production URLs with embedded credentials
 - Event Log dumps that contain Authorization headers
+- `config/checkmk.local.json` (gitignored)
 
-Phase 2 has no credential store. When Phase 3 adds one, keep it under `%LocalAppData%` and out of git.
+Phase 3A uses a local JSON file or environment variables. DPAPI under `%LocalAppData%` is later.
 
 ## Architecture reminders
 
 - Do not put incident logic in WPF code-behind.
 - Do not put Checkmk REST DTOs in Core.
 - Do not call Checkmk ACK from the eye button.
-- Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified as **GET**, not an invented POST.
+- Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified as **GET**, not an invented POST. Do not start Phase 3B until remaining host GET facts are confirmed.

@@ -1,0 +1,10 @@
+{
+  "Checkmk": {
+    "Mode": "Mock",
+    "BaseUrl": "https://checkmk.example.invalid",
+    "Site": "mysite",
+    "Username": "automation",
+    "Secret": "replace-with-automation-secret",
+    "PollIntervalSeconds": 60
+  }
+}

@@ -1,12 +1,14 @@
+using System.Text.Json;
 using System.Windows;
 using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.App.Mock;
 using CheckmkDesktopNotifier.App.ViewModels;
 using CheckmkDesktopNotifier.App.Views;
 using CheckmkDesktopNotifier.Core.Abstractions;
-using CheckmkDesktopNotifier.Core.Mock;
 using CheckmkDesktopNotifier.Core.Persistence;
 using CheckmkDesktopNotifier.Core.State;
+using CheckmkDesktopNotifier.Infrastructure;
+using CheckmkDesktopNotifier.Infrastructure.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -20,13 +22,30 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        CheckmkOptions options;
+        try
+        {
+            options = CheckmkOptionsLoader.Load();
+            CheckmkOptionsValidator.Validate(options);
+        }
+        catch (Exception ex) when (ex is CheckmkOptionsValidationException or JsonException or System.IO.IOException)
+        {
+            MessageBox.Show(
+                ex.Message,
+                "Checkmk Desktop Notifier",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+            return;
+        }
+
         _host = Host.CreateDefaultBuilder()
-            .ConfigureServices(static services =>
+            .ConfigureServices(services =>
             {
                 services.AddSingleton(TimeProvider.System);
                 services.AddSingleton<IAlertStateStore, InMemoryAlertStateStore>();
                 services.AddSingleton<IAlertStateService, AlertStateService>();
-                services.AddSingleton<ICheckmkClient, MockCheckmkClient>();
+                services.AddCheckmkClient(options);
                 services.AddSingleton<ILocalizationService, LocalizationService>();
                 services.AddSingleton<WindowSessionState>();
                 services.AddSingleton<ShellViewModel>();
@@ -39,7 +58,16 @@ public partial class App : Application
         var client = _host.Services.GetRequiredService<ICheckmkClient>();
         var alerts = _host.Services.GetRequiredService<IAlertStateService>();
         var clock = _host.Services.GetRequiredService<TimeProvider>();
-        await DemoBootstrapper.InitializeAsync(client, alerts, clock).ConfigureAwait(true);
+
+        if (options.Mode == ClientMode.Mock)
+        {
+            await DemoBootstrapper.InitializeAsync(client, alerts, clock).ConfigureAwait(true);
+        }
+        else
+        {
+            var snapshot = await client.GetCurrentProblemsAsync().ConfigureAwait(true);
+            alerts.ApplySnapshot(snapshot);
+        }
 
         var bar = _host.Services.GetRequiredService<CompactBarWindow>();
         MainWindow = bar;

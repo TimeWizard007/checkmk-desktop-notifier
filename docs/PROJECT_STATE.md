@@ -4,16 +4,17 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**Phase 2 (mock WPF UI) — COMPLETE.**
+**Phase 3A (service REST integration) — COMPLETE.**
 
-Manually validated on Windows 11 with a self-contained win-x64 publish (no Administrator privileges).
+Manually validated on Windows 11 over the corporate VPN against Checkmk CRE/RAW `2.4.0p34`.
 
-Phase 3 (real Checkmk HTTP) has **not** started.
+Phase 3B (host monitoring) has **not** started.
 
 ## Git checkpoint
 
-- Prior public checkpoint: `a42d0c1` (`a42d0c12c8f533fed61a08ed5fa850b31e5c572d`) — `Add Phase 1 core and Phase 2 mock WPF UI`
-- After that commit: Owner-before-Show crash fix, `docs/` added, then this Phase 2 completion record
+- Phase 2 completion: `2b85065` — `Mark Phase 2 as Windows-tested and complete`
+- Prior public checkpoint: `a42d0c1` — `Add Phase 1 core and Phase 2 mock WPF UI`
+- This record: Phase 3A implementation plus live service-REST validation
 
 ## Phase 1 — complete
 
@@ -39,58 +40,83 @@ Implemented:
 - `LastSuccessfulPollUtc` exposed for the compact bar
 - `Window.Owner` assigned only after `CompactBarWindow.Show()` (startup crash fix)
 
-### Windows 11 manual validation
+### Windows 11 manual validation (Phase 2)
 
 Environment: self-contained **win-x64** executable, **no Administrator privileges**.
 
-Confirmed:
+Confirmed: compact bar stays running, Always-on-Top, mock counters, expandable list, NEW first, severity sections, host and service rows, plugin output, local Seen/eye, ACK badge independent of Seen, scrolling, Owner-before-Show crash gone.
 
-- Process starts and does not exit immediately
-- `CompactBarWindow` opens and remains running
-- Always-on-Top compact bar is visible
-- Mock counters display correctly
-- Clicking the compact bar opens `ProblemListWindow`
-- NEW section is displayed first
-- CRITICAL / WARNING / UNKNOWN sections are displayed
-- Host and service problems render correctly
-- Plugin output is displayed
-- Seen / eye controls are available for NEW incidents
-- ACK badge is displayed independently from Seen
-- Scrolling works
-- Previous Owner-before-Show Event Log crash is gone
+## Phase 3A — complete (service REST only)
 
-Known Phase 2 limitations (accepted, not blockers):
+Implemented:
 
-- Window position is in-memory only
-- UI language follows OS culture (no in-app switcher)
-- App uses `InMemoryAlertStateStore` (Seen resets on restart)
-- No automated WPF UI tests
+- `CheckmkDesktopNotifier.Infrastructure` (`net8.0`): config, automation-user auth header, `HttpClient`, verified service POST, REST DTOs, mapping to Core `MonitoredProblem`
+- `CheckmkDesktopNotifier.ConnectionTest`: one-shot read-only POST; prints HTTP status and WARN/CRIT/UNKNOWN counts only
+- Mock/Real switch (`Mode`); default remains **Mock**; `MockCheckmkClient` kept
+- Local config file + environment variables; secrets are not committed (`config/checkmk.local.json` gitignored; example committed)
+- Infrastructure tests: JSON mapping, severity/state_type/ACK/downtime/unix timestamps, malformed JSON, HTTP errors, auth header, config validation, Core independence from REST DTOs
+
+Core was not changed for Phase 3A. `ICheckmkClient` already returns `ProblemSnapshot`.
+
+### Windows 11 live validation (Phase 3A)
+
+Environment: Windows 11, corporate VPN, dedicated Checkmk automation account, **no Administrator privileges**.
+
+Confirmed path:
+
+Windows 11 → VPN → Checkmk REST API → automation authentication → `POST /domain-types/service/collections/all` → non-OK service query → REST response mapping → Core `ProblemSnapshot`
+
+Sanitized live result from the one-shot connection test:
+
+```
+HTTP status: 200
+Service problems: 129
+WARN: 15
+CRIT: 111
+UNKNOWN: 3
+```
+
+Automation account (no secret recorded):
+
+- Authenticates with an automation secret
+- Role: **Normal monitoring user**
+- Contact group: **Everything**
+- Does not require Administrator privileges
+
+Not in Phase 3A (still not started):
+
+- Host GET collection / host monitoring
+- Background polling timer
+- Tray, toast, sound
+- Checkmk acknowledge / downtime / comment APIs
+- DPAPI credential store / settings UI
+- Removing mock mode
 
 ## Tests
 
-Last automated run (Linux agent, after Phase 2 completion docs):
+Last automated run (Linux agent, after Phase 3A completion docs):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 20 passed, 0 failed
+dotnet test  CheckmkDesktopNotifier.sln   → 64 passed, 0 failed
+  Core.Tests:            20 passed
+  Infrastructure.Tests:  44 passed
 ```
 
 Re-run after any further change. Record the new numbers here if they change.
 
 ## What is NOT implemented
 
-- Real Checkmk REST client, credentials, DPAPI
-- Polling timer (60s default is a decision only)
+- Host monitoring (Phase 3B)
+- Polling timer (60s default is config only)
 - System tray, toast, sound, mute
 - Windows startup / single-instance
-- Host-DOWN notification coalescing (model allows it; UI/notify layer does not)
-- Settings UI
+- Host-DOWN notification coalescing
+- Settings UI / DPAPI
 - Persistent window position on disk
 - MIT `LICENSE`, `README.md`, `README.pl.md`, packaging/release (Phase 5)
 - Windows Service (out of V1 by decision)
 
 ## Immediate next steps
 
-Phase 3 is the next implementation phase, but it must not start until explicitly approved.
-
-When approved: verify remaining host GET facts in `docs/CHECKMK_API.md` (UNVERIFIED), then implement a read-only REST adapter behind `ICheckmkClient`.
+Do **not** start Phase 3B (host GET) until remaining host facts in `docs/CHECKMK_API.md` are verified. Do not invent a host POST. Do not use `host_config`.

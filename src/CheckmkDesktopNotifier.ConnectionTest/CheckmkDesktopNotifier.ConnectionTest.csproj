@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CheckmkDesktopNotifier.ConnectionTest</RootNamespace>
+    <AssemblyName>CheckmkDesktopNotifier.ConnectionTest</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CheckmkDesktopNotifier.Infrastructure\CheckmkDesktopNotifier.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\config\checkmk.local.json.example" Link="config\checkmk.local.json.example" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
