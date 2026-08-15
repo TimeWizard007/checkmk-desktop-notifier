@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using System.Windows;
 using CheckmkDesktopNotifier.App.Localization;
@@ -39,13 +40,28 @@ public partial class App : Application
             return;
         }
 
+        var appData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "CheckmkDesktopNotifier");
+        Directory.CreateDirectory(appData);
+
         _host = Host.CreateDefaultBuilder()
             .ConfigureServices(services =>
             {
                 services.AddSingleton(TimeProvider.System);
-                services.AddSingleton<IAlertStateStore, InMemoryAlertStateStore>();
+                if (CheckmkRuntimeProfile.UsePersistentAlertState(options.Mode))
+                {
+                    var statePath = Path.Combine(appData, "alert-state.json");
+                    services.AddSingleton<IAlertStateStore>(_ => new JsonAlertStateStore(statePath));
+                }
+                else
+                {
+                    services.AddSingleton<IAlertStateStore, InMemoryAlertStateStore>();
+                }
+
                 services.AddSingleton<IAlertStateService, AlertStateService>();
                 services.AddCheckmkClient(options);
+                services.AddCheckmkPolling(Path.Combine(appData, "last-poll.txt"));
                 services.AddSingleton<ILocalizationService, LocalizationService>();
                 services.AddSingleton<WindowSessionState>();
                 services.AddSingleton<ShellViewModel>();
@@ -59,19 +75,16 @@ public partial class App : Application
         var alerts = _host.Services.GetRequiredService<IAlertStateService>();
         var clock = _host.Services.GetRequiredService<TimeProvider>();
 
-        if (options.Mode == ClientMode.Mock)
+        if (CheckmkRuntimeProfile.UseDemoBootstrap(options.Mode))
         {
             await DemoBootstrapper.InitializeAsync(client, alerts, clock).ConfigureAwait(true);
-        }
-        else
-        {
-            var snapshot = await client.GetCurrentProblemsAsync().ConfigureAwait(true);
-            alerts.ApplySnapshot(snapshot);
         }
 
         var bar = _host.Services.GetRequiredService<CompactBarWindow>();
         MainWindow = bar;
         var shell = _host.Services.GetRequiredService<UiShell>();
+
+        await _host.StartAsync().ConfigureAwait(true);
         shell.Show();
     }
 

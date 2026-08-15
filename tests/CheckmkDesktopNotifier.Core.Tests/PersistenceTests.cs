@@ -37,9 +37,41 @@ public sealed class PersistenceTests
             Assert.Equal(Severity.Critical, open.Severity);
             Assert.True(open.IsSeen);
             Assert.Equal(lastTimeOk, open.BoundRecurrenceMarker);
+            Assert.Equal(clock.UtcNow, reloaded.LastSuccessfulPollUtc);
             Assert.Equal("CPU is 99%", open.LastSummary);
             Assert.True(open.IsAcknowledgedInCheckmk);
             Assert.True(File.Exists(path));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void Host_recurrence_marker_survives_json_reload()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "checkmk-desktop-notifier-tests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "alert-state.json");
+        var clock = new MutableTimeProvider(ProblemFactory.T0);
+        var lastTimeUp = ProblemFactory.T0.AddHours(-2);
+
+        try
+        {
+            var sut = new AlertStateService(new JsonAlertStateStore(path), clock);
+            sut.ApplySnapshot(ProblemFactory.Ok(
+                clock.UtcNow,
+                ProblemFactory.Host("web01", Severity.Critical, lastTimeUp: lastTimeUp)));
+            sut.MarkSeen(ProblemFactory.HostId("web01"));
+
+            var reloaded = new AlertStateService(new JsonAlertStateStore(path), clock);
+            var open = Assert.Single(reloaded.GetOpenIncidents());
+            Assert.True(open.IsSeen);
+            Assert.Equal(ObjectKind.Host, open.ObjectId.Kind);
+            Assert.Equal(lastTimeUp, open.BoundRecurrenceMarker);
         }
         finally
         {

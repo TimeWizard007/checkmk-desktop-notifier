@@ -42,8 +42,8 @@ Core must stay independently testable.
 - REST request/response DTOs (Infrastructure only)
 - `ServiceProblemMapper` / `HostProblemMapper` → Core `MonitoredProblem`
 - Failed HTTP/JSON → `ProblemSnapshot.Failure` (`Unavailable` / `Authentication` / `Protocol` / `Configuration`)
-
-Phase 3A/3B do **not** implement acknowledge APIs or a polling timer.
+- `CheckmkPoller` / `CheckmkPollingHostedService` — background polling while the desktop app is running (not a Windows Service)
+- `PollDiagnosticsWriter` — `%LocalAppData%/CheckmkDesktopNotifier/last-poll.txt` (counts and error kind only)
 
 ## App responsibilities
 
@@ -53,28 +53,37 @@ Phase 3A/3B do **not** implement acknowledge APIs or a polling timer.
 - Localization (`Strings.resx`, `Strings.pl.resx`, `ILocalizationService`)
 - Window chrome only in code-behind (drag, click vs drag)
 - Mock vs Real client selection via `AddCheckmkClient(options)`
-- Phase 2 demo bootstrap (`DemoBootstrapper`) **only when `Mode=Mock`**
+- Real-mode background polling via `AddCheckmkPolling` + `IHost.StartAsync()`
+- Mock-only demo bootstrap (`DemoBootstrapper`); Real never injects `DemoSnapshotFactory`
+- Connection status projection (`Connected` / `Refreshing` / `Connection error`) from `IProblemPoller`
 
 App must not implement NEW / SEEN / RECOVERED itself.
 
 ## Dependency flow
 
 ```
-Views  →  ShellViewModel  →  IAlertStateService  →  in-memory/JSON state
+Views  →  ShellViewModel  →  IAlertStateService  →  in-memory (Mock) / JSON (Real)
                 │
+                ├── IProblemPoller (StateChanged → Reload)
                 └── ICheckmkClient
-                      ├── MockCheckmkClient          (Mode=Mock, default)
+                      ├── MockCheckmkClient          (Mode=Mock, default; no REST polling)
                       └── CheckmkRestClient          (Mode=Real: services + HARD host DOWN/UNREACH)
 ```
 
 Startup:
 
-1. Load `CheckmkOptions` (file + environment). Validate.
-2. Build DI host. Register mock **or** real client, not both as the active `ICheckmkClient`.
-3. Mock: `DemoBootstrapper` sets `MockCheckmkClient.NextSnapshot`, `ApplySnapshot`, then local `MarkSeen` on one demo incident.
-   Real: one `GetCurrentProblemsAsync()` (no timer), then `ApplySnapshot`.
-4. Set `Application.MainWindow` to `CompactBarWindow`.
-5. `UiShell.Show()` shows the bar, then attaches `ProblemListWindow.Owner`.
+1. Load `CheckmkOptions` (file + environment). Validate (including `PollIntervalSeconds >= 10`).
+2. Build DI host.
+   - Mock: `InMemoryAlertStateStore`, `MockCheckmkClient`.
+   - Real: `JsonAlertStateStore` at `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json`, `CheckmkRestClient`.
+3. Register `CheckmkPoller` + `CheckmkPollingHostedService`. HTTP timeout is shorter than the poll interval.
+4. Mock: `DemoBootstrapper` sets `MockCheckmkClient.NextSnapshot`, `ApplySnapshot`, then local `MarkSeen` on one demo incident.
+   Real: do **not** call `DemoBootstrapper`.
+5. Resolve `CompactBarWindow`, set `Application.MainWindow`, resolve `UiShell` so `IProblemPoller.StateChanged` is subscribed.
+6. `IHost.StartAsync()`: Real mode polls immediately, then every `PollIntervalSeconds`. Mock hosted service is a no-op.
+7. `UiShell.Show()` shows the bar, then attaches `ProblemListWindow.Owner`.
+
+On exit: `IHost.StopAsync()` cancels the poll loop.
 
 ## Configuration and secrets
 
@@ -123,17 +132,36 @@ A host named `web01` and a service `web01` / `CPU` are different incidents. Host
 
 `AlertStateDocument` schema version 1. JSON store writes a private DTO (site id, kind, host name, …), not Checkmk REST `value`/`extensions` types. Atomic replace via temp file.
 
-Phase 2 UI uses `InMemoryAlertStateStore` (state dies with the process). Disk persistence exists in Core for tests and later phases.
+- **Mock:** `InMemoryAlertStateStore` (state dies with the process).
+- **Real:** `JsonAlertStateStore` at `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json`.
+
+Persisted: open incidents, local Seen, recurrence markers, `LastSuccessfulPollUtc`.
+
+Not persisted: automation secret, Authorization header, Checkmk URL/credentials (`config/checkmk.local.json` / environment remains separate).
 
 ## Mock client
 
 `ICheckmkClient.GetCurrentProblemsAsync` returns a `ProblemSnapshot`. `MockCheckmkClient` never performs HTTP. `DemoSnapshotFactory` builds the Phase 2 scenario (host + services, ACK, downtime, mix of severities). Local Seen is applied by the bootstrapper, not by the snapshot.
 
-Real mode does not call `DemoBootstrapper`. Mock remains available.
+Real mode does not call `DemoBootstrapper` and does not start from `DemoSnapshotFactory` data. Mock remains available for UI development. The Mock hosted poller does not call `ICheckmkClient`.
+
+## Polling
+
+`CheckmkPoller.RunLoopAsync`:
+
+1. Poll immediately (`RefreshAsync` → `ICheckmkClient.GetCurrentProblemsAsync` → `IAlertStateService.ApplySnapshot`).
+2. Wait `Interval - elapsed` (aligned from poll start). If the cycle ran longer than the interval, start the next poll immediately.
+3. Repeat until cancellation.
+
+Single-flight: `SemaphoreSlim(1,1)`. Timer/`RefreshAsync` uses `WaitAsync(0)` and **skips** if a cycle is already running. `RefreshWhenIdleAsync` waits, then polls (for a later manual refresh). Only one HTTP request cycle at a time. A failed snapshot is applied as failure (Core does not recover). The loop continues after failures.
+
+`CheckmkPollingHostedService` is a `BackgroundService` started with the WPF process. It runs the loop only when `CheckmkRuntimeProfile.UseBackgroundPolling` is true (`Mode=Real`). It is not a Windows Service. Phase 3C polling and JSON persistence were manually validated on Windows 11.
 
 ## WPF ViewModels
 
-`ShellViewModel` reads `GetOpenIncidents()` and `LastSuccessfulPollUtc`. It calls `MarkSeen` / `MarkAllNewAsSeen` / expand toggle.
+`ShellViewModel` reads `GetOpenIncidents()` and `LastSuccessfulPollUtc`. It calls `MarkSeen` / `MarkAllNewAsSeen` / expand toggle. After each poll, `IProblemPoller.StateChanged` reloads counters, the problem list, last-check time, and connection status on the WPF dispatcher. The UI does not implement NEW / SEEN / RECOVERED.
+
+Connection status (compact bar): `Connected`, `Refreshing`, `Connection error`. Last successful check remains `HH:mm` from Core (`LastSuccessfulPollUtc` updates only on success). A connection error does not replace the problem list. No exception stacks in the main UI.
 
 Sections:
 

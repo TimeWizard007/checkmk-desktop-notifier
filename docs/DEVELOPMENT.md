@@ -72,7 +72,7 @@ Edit the `Checkmk` object:
 | `Site` | Site name, e.g. `itssrv` |
 | `Username` | Automation user |
 | `Secret` | Automation secret (never commit) |
-| `PollIntervalSeconds` | Default `60` (stored only; no timer in Phase 3A) |
+| `PollIntervalSeconds` | Default `60`, minimum `10`. Used by the Real-mode background poller. |
 
 Environment variables override the file: `CHECKMK_MODE`, `CHECKMK_BASE_URL`, `CHECKMK_SITE`, `CHECKMK_USERNAME`, `CHECKMK_SECRET`, `CHECKMK_POLL_INTERVAL_SECONDS`. Optional path: `CHECKMK_CONFIG`.
 
@@ -161,7 +161,44 @@ DOWN: 1
 UNREACHABLE: 0
 ```
 
-Real mode in the WPF app now uses that `columns=` GET (HARD DOWN/UNREACHABLE only) together with the service POST. No polling yet. Do not start Phase 3C until approved.
+Real mode in the WPF app uses that `columns=` GET (HARD DOWN/UNREACHABLE only) together with the service POST. Background polling is Phase 3C (complete).
+
+## Phase 3C — background polling (complete)
+
+Polling runs only while the desktop app is running (`BackgroundService`, not a Windows Service).
+
+| Mode | Startup | Persistence | Polling |
+|------|---------|-------------|---------|
+| Mock | `DemoBootstrapper` + `DemoSnapshotFactory` | In-memory | Hosted service is a no-op (no REST) |
+| Real | No demo snapshot | `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json` | Immediate first poll, then every `PollIntervalSeconds` |
+
+Diagnostics file (no secrets, no Authorization, no host names, no plugin output):
+
+`%LocalAppData%\CheckmkDesktopNotifier\last-poll.txt`
+
+Example success:
+
+```
+TimeUtc: ...
+Success: true
+Problems: N
+Hosts: N
+Services: N
+```
+
+### Windows 11 live validation (Phase 3C)
+
+Confirmed on Windows 11 over the corporate VPN with a dedicated automation account (no Administrator privileges):
+
+- Real mode starts; immediate startup poll; status becomes **Connected**
+- Real host + service problems are displayed in the WPF UI
+- Background polling repeats approximately every 60 seconds
+- `last-poll.txt` updates after successful polling
+- Local Seen survives application restart via `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json`
+- Connectivity loss: **Refreshing** then **Connection error**; existing problems remain; Seen preserved; no false recoveries
+- After connectivity is restored, polling resumes normally
+
+Do not log or commit the automation secret, Authorization header, host names, or plugin outputs.
 
 ## Windows — self-contained win-x64 publish
 
@@ -173,6 +210,17 @@ dotnet publish src/CheckmkDesktopNotifier.App/CheckmkDesktopNotifier.App.csproj 
   -r win-x64 `
   --self-contained true `
   -p:PublishSingleFile=false `
+  -o publish/win-x64
+```
+
+From Linux (cross-compile the Windows app):
+
+```bash
+dotnet publish src/CheckmkDesktopNotifier.App/CheckmkDesktopNotifier.App.csproj \
+  -c Release \
+  -r win-x64 \
+  --self-contained true \
+  -p:PublishSingleFile=false \
   -o publish/win-x64
 ```
 
@@ -188,7 +236,7 @@ dotnet test CheckmkDesktopNotifier.sln
 
 Core tests cover lifecycle, persistence, identities, recurrence, and the demo snapshot mix.
 
-Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, and merged service+host snapshots.
+Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, merged service+host snapshots, polling (immediate first poll, interval, no overlap, cancellation, failed poll freeze, persistence reload), and Mock vs Real startup flags.
 
 There is no WPF UI test project yet.
 
@@ -210,4 +258,5 @@ Phase 3A uses a local JSON file or environment variables. DPAPI under `%LocalApp
 - Do not put incident logic in WPF code-behind.
 - Do not put Checkmk REST DTOs in Core.
 - Do not call Checkmk ACK from the eye button.
-- Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST. Do not start Phase 3C (polling) until approved.
+- Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
+- Phase 3C is complete. Do not start Phase 3D or Phase 4 until approved.

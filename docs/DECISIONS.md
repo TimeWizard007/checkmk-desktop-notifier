@@ -43,7 +43,19 @@ The engine keeps per-object incidents (host + each service). Later UI/toasts may
 
 ## Default poll interval: 60 seconds
 
-Configurable later. Suggested presets: 10s, 30s, 60s, 2 min, 5 min. Minimum floor 10s. No overlapping polls. Not implemented until Phase 3.
+Configurable via `PollIntervalSeconds` (file + `CHECKMK_POLL_INTERVAL_SECONDS`). Suggested presets: 10s, 30s, 60s, 2 min, 5 min. Minimum floor 10s.
+
+Implemented in Phase 3C as a desktop `BackgroundService` (`CheckmkPollingHostedService`), not a Windows Service. First poll is immediate. Subsequent waits use `Interval - elapsed`. `SemaphoreSlim` prevents overlapping request cycles; a busy `RefreshAsync` is skipped. HTTP timeout is shorter than the interval (`max(5, interval-2)` seconds). A full cycle is two HTTP calls (service POST + host GET) and may exceed the interval; the next wait is then skipped so polls never overlap.
+
+Failed polls continue the loop. Core still does not recover incidents from a failed snapshot.
+
+## Alert state JSON is per-user LocalAppData (Real mode)
+
+Real mode persists open incidents, Seen, recurrence markers, and `LastSuccessfulPollUtc` to `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json`. Mock mode stays in-memory.
+
+Secrets, Authorization headers, and Checkmk URL/credentials are **not** stored in that file. They remain in `checkmk.local.json` / environment variables.
+
+A diagnostic `last-poll.txt` in the same folder records success/failure and host/service **counts** only.
 
 ## No Windows Service in V1
 

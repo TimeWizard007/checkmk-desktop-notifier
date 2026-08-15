@@ -34,4 +34,7 @@ public interface ILocalizationService
     string SeverityCritical { get; }
     string SeverityWarning { get; }
     string SeverityUnknown { get; }
+    string ConnectionConnected { get; }
+    string ConnectionRefreshing { get; }
+    string ConnectionError { get; }
 }

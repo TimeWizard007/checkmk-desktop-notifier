@@ -1,6 +1,7 @@
 using CheckmkDesktopNotifier.Core.Abstractions;
 using CheckmkDesktopNotifier.Core.Mock;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Polling;
 using CheckmkDesktopNotifier.Infrastructure.Rest;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,10 +26,32 @@ public static class CheckmkClientServiceCollectionExtensions
         services.AddHttpClient<ICheckmkClient, CheckmkRestClient>((_, client) =>
         {
             client.BaseAddress = options.CreateApiBaseUri();
-            client.Timeout = TimeSpan.FromSeconds(60);
+            client.Timeout = options.CreateHttpTimeout();
             client.DefaultRequestHeaders.ExpectContinue = false;
         });
 
+        return services;
+    }
+
+    public static IServiceCollection AddCheckmkPolling(
+        this IServiceCollection services,
+        string? diagnosticsFilePath = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        if (!string.IsNullOrWhiteSpace(diagnosticsFilePath))
+        {
+            services.AddSingleton(new PollDiagnosticsWriter(diagnosticsFilePath));
+        }
+
+        services.AddSingleton<IProblemPoller>(sp =>
+            new CheckmkPoller(
+                sp.GetRequiredService<ICheckmkClient>(),
+                sp.GetRequiredService<IAlertStateService>(),
+                sp.GetRequiredService<CheckmkOptions>(),
+                sp.GetService<TimeProvider>(),
+                sp.GetService<PollDiagnosticsWriter>()));
+        services.AddHostedService<CheckmkPollingHostedService>();
         return services;
     }
 }

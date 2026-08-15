@@ -50,6 +50,9 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
     public string SeverityCritical => Get();
     public string SeverityWarning => Get();
     public string SeverityUnknown => Get();
+    public string ConnectionConnected => Get();
+    public string ConnectionRefreshing => Get();
+    public string ConnectionError => Get();
 
     private string Get([CallerMemberName] string? key = null)
     {

@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.Core.Abstractions;
 using CheckmkDesktopNotifier.Core.Domain;
+using CheckmkDesktopNotifier.Infrastructure.Polling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -10,16 +12,20 @@ namespace CheckmkDesktopNotifier.App.ViewModels;
 public sealed partial class ShellViewModel : ObservableObject
 {
     private readonly IAlertStateService _alerts;
+    private readonly IProblemPoller _poller;
     private readonly TimeProvider _clock;
 
     public ShellViewModel(
         IAlertStateService alerts,
         ILocalizationService text,
-        TimeProvider clock)
+        TimeProvider clock,
+        IProblemPoller poller)
     {
         _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
         Text = text ?? throw new ArgumentNullException(nameof(text));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _poller = poller ?? throw new ArgumentNullException(nameof(poller));
+        _poller.StateChanged += OnPollerStateChanged;
         Reload();
     }
 
@@ -53,6 +59,9 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty]
     private string _lastCheckText = string.Empty;
 
+    [ObservableProperty]
+    private string _connectionStatusText = string.Empty;
+
     public bool HasNewProblems => NewCount > 0;
 
     public void Reload()
@@ -73,6 +82,7 @@ public sealed partial class ShellViewModel : ObservableObject
         WarningCount = WarningItems.Count;
         UnknownCount = UnknownItems.Count;
         LastCheckText = FormatLastCheck(_alerts.LastSuccessfulPollUtc);
+        ConnectionStatusText = FormatConnectionStatus(_poller.Status);
         OnPropertyChanged(nameof(HasNewProblems));
     }
 
@@ -98,6 +108,18 @@ public sealed partial class ShellViewModel : ObservableObject
 
         _alerts.MarkSeen(item.ObjectId);
         Reload();
+    }
+
+    private void OnPollerStateChanged(object? sender, EventArgs e)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            Reload();
+            return;
+        }
+
+        dispatcher.BeginInvoke(Reload);
     }
 
     private ProblemItemViewModel ToItem(OpenIncident incident) =>
@@ -133,6 +155,16 @@ public sealed partial class ShellViewModel : ObservableObject
         var local = TimeZoneInfo.ConvertTime(retrievedAt.Value, _clock.LocalTimeZone);
         return local.ToString("HH:mm");
     }
+
+    private string FormatConnectionStatus(ConnectionStatus status) =>
+        status.Kind switch
+        {
+            ConnectionStatusKind.Refreshing => Text.ConnectionRefreshing,
+            ConnectionStatusKind.Error => Text.ConnectionError,
+            ConnectionStatusKind.Connected => Text.ConnectionConnected,
+            _ when _alerts.LastSuccessfulPollUtc is not null => Text.ConnectionConnected,
+            _ => string.Empty
+        };
 
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> items)
     {

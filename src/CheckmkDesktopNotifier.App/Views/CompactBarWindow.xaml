@@ -4,7 +4,7 @@
         Title="{Binding Text.CompactBarTitle}"
         Height="36"
         SizeToContent="Width"
-        MinWidth="520"
+        MinWidth="640"
         WindowStyle="None"
         ResizeMode="NoResize"
         Topmost="True"
@@ -68,6 +68,8 @@
                 <Run Text=": "/>
                 <Run Text="{Binding UnknownCount, Mode=OneWay}"/>
             </TextBlock>
+            <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
+            <TextBlock Style="{StaticResource MutedTextStyle}" Text="{Binding ConnectionStatusText, Mode=OneWay}"/>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
             <TextBlock Style="{StaticResource MutedTextStyle}">
                 <Run Text="{Binding Text.LastCheckLabel, Mode=OneWay}"/>

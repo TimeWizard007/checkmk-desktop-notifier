@@ -87,4 +87,13 @@
   <data name="SeverityUnknown" xml:space="preserve">
     <value>NIEZNANY</value>
   </data>
+  <data name="ConnectionConnected" xml:space="preserve">
+    <value>Połączono</value>
+  </data>
+  <data name="ConnectionRefreshing" xml:space="preserve">
+    <value>Odświeżanie</value>
+  </data>
+  <data name="ConnectionError" xml:space="preserve">
+    <value>Błąd połączenia</value>
+  </data>
 </root>
