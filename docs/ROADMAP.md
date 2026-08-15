@@ -4,23 +4,23 @@
 
 Domain, incident engine, mock `ICheckmkClient`, persistence abstraction, unit tests. No WPF, no HTTP.
 
-## Phase 2 — current
+## Phase 2 — complete
 
-Mock WPF UI on Core:
+Mock WPF UI on Core, manually validated on Windows 11 with a self-contained win-x64 publish (no Administrator privileges):
 
-- Compact Always-on-Top bar
-- Expanded problem list
-- Local Seen (eye, mark all)
+- Compact Always-on-Top bar stays running
+- Expanded problem list (NEW first, then CRITICAL / WARNING / UNKNOWN)
+- Local Seen (eye, mark all); ACK badge independent of Seen
+- Host and service rows, plugin output, scrolling
 - EN/PL resources
 - Demo snapshot
+- Owner-before-Show startup crash fixed and retested
 
-Post-checkpoint `a42d0c1`: fix Windows Owner crash; add `docs/`.
-
-Still Phase 2 polish (not Phase 3): confirm the win-x64 build stays running on Windows 11 after the Owner fix. Window position is in-memory only.
+Accepted leftovers (not Phase 3): in-memory window position, in-memory Seen store in the UI host, no in-app language switcher, no automated WPF tests.
 
 ## Phase 3 — not started
 
-Real Checkmk integration:
+Real Checkmk integration (do not start until explicitly approved):
 
 - Confirm remaining host GET facts (`docs/CHECKMK_API.md` UNVERIFIED)
 - Read-only REST adapter mapping `value` → Core DTOs

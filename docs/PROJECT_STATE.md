@@ -4,20 +4,16 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**Phase 2 (mock WPF UI)** — in progress, with a Windows startup crash **fixed after** git checkpoint `a42d0c1`.
+**Phase 2 (mock WPF UI) — COMPLETE.**
+
+Manually validated on Windows 11 with a self-contained win-x64 publish (no Administrator privileges).
 
 Phase 3 (real Checkmk HTTP) has **not** started.
 
 ## Git checkpoint
 
-- Commit: `a42d0c1` (`a42d0c12c8f533fed61a08ed5fa850b31e5c572d`)
-- Message: `Add Phase 1 core and Phase 2 mock WPF UI`
-- Branch: `main` (pushed to origin at that commit)
-
-Work after that checkpoint:
-
-- Windows startup crash fix (`UiShell` Owner assignment)
-- This `docs/` directory
+- Prior public checkpoint: `a42d0c1` (`a42d0c12c8f533fed61a08ed5fa850b31e5c572d`) — `Add Phase 1 core and Phase 2 mock WPF UI`
+- After that commit: Owner-before-Show crash fix, `docs/` added, then this Phase 2 completion record
 
 ## Phase 1 — complete
 
@@ -30,9 +26,9 @@ Work after that checkpoint:
 - `IAlertStateService` + JSON / in-memory persistence
 - Unit tests (no WPF, no HTTP)
 
-## Phase 2 — current
+## Phase 2 — complete
 
-Completed:
+Implemented:
 
 - WPF app (`net8.0-windows`), MVVM, DI
 - Compact Always-on-Top bar
@@ -41,16 +37,38 @@ Completed:
 - EN + PL resource strings
 - `DemoSnapshotFactory` + `DemoBootstrapper` mock scenario
 - `LastSuccessfulPollUtc` exposed for the compact bar
+- `Window.Owner` assigned only after `CompactBarWindow.Show()` (startup crash fix)
 
-Fixed after `a42d0c1`:
+### Windows 11 manual validation
 
-- **Windows 11 crash:** `System.InvalidOperationException: Cannot set Owner property to a Window that has not been shown previously.`
-- Cause: `ProblemListWindow.Owner = CompactBarWindow` in `UiShell` constructor, before the bar had an HWND.
-- Fix: assign `Owner` only after `CompactBarWindow.Show()`.
+Environment: self-contained **win-x64** executable, **no Administrator privileges**.
+
+Confirmed:
+
+- Process starts and does not exit immediately
+- `CompactBarWindow` opens and remains running
+- Always-on-Top compact bar is visible
+- Mock counters display correctly
+- Clicking the compact bar opens `ProblemListWindow`
+- NEW section is displayed first
+- CRITICAL / WARNING / UNKNOWN sections are displayed
+- Host and service problems render correctly
+- Plugin output is displayed
+- Seen / eye controls are available for NEW incidents
+- ACK badge is displayed independently from Seen
+- Scrolling works
+- Previous Owner-before-Show Event Log crash is gone
+
+Known Phase 2 limitations (accepted, not blockers):
+
+- Window position is in-memory only
+- UI language follows OS culture (no in-app switcher)
+- App uses `InMemoryAlertStateStore` (Seen resets on restart)
+- No automated WPF UI tests
 
 ## Tests
 
-At last full run after the Owner fix (Linux agent):
+Last automated run (Linux agent, after Phase 2 completion docs):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
@@ -67,14 +85,12 @@ Re-run after any further change. Record the new numbers here if they change.
 - Windows startup / single-instance
 - Host-DOWN notification coalescing (model allows it; UI/notify layer does not)
 - Settings UI
-- Persistent window position on disk (in-memory only)
+- Persistent window position on disk
 - MIT `LICENSE`, `README.md`, `README.pl.md`, packaging/release (Phase 5)
 - Windows Service (out of V1 by decision)
 
 ## Immediate next steps
 
-1. Re-publish self-contained win-x64 and confirm the compact bar stays open on Windows 11 (no Event Log crash).
-2. Manual UI checklist in `docs/DEVELOPMENT.md`.
-3. Only then start **Phase 3**: verify remaining host GET query/columns, then implement read-only REST behind `ICheckmkClient`.
+Phase 3 is the next implementation phase, but it must not start until explicitly approved.
 
-Do not start Phase 3 until the Windows startup fix is confirmed on a real Windows 11 run.
+When approved: verify remaining host GET facts in `docs/CHECKMK_API.md` (UNVERIFIED), then implement a read-only REST adapter behind `ICheckmkClient`.
