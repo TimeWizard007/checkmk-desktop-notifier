@@ -1,0 +1,28 @@
+# Build
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.nupkg
+*.snupkg
+
+# Test / coverage
+TestResults/
+coverage*.xml
+*.coverage
+*.coveragexml
+
+# OS / IDE
+.vs/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Local app state (not used in Phase 1, ignore if created later)
+artifacts/
+*.binlog

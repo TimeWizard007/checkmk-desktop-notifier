@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{86524F35-96CB-4E16-B63A-0E9554D27B60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.Core", "src\CheckmkDesktopNotifier.Core\CheckmkDesktopNotifier.Core.csproj", "{9E825EF4-40F4-4DD8-A39F-4B74250E6A5B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{4FE3F94D-9B8B-46C5-9E11-601F5833E36B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.Core.Tests", "tests\CheckmkDesktopNotifier.Core.Tests\CheckmkDesktopNotifier.Core.Tests.csproj", "{7F1EA555-6B07-43C9-8592-26C97BEF2C2E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.App", "src\CheckmkDesktopNotifier.App\CheckmkDesktopNotifier.App.csproj", "{5EBF58F3-6251-4C65-8279-258D8C19405F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9E825EF4-40F4-4DD8-A39F-4B74250E6A5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E825EF4-40F4-4DD8-A39F-4B74250E6A5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E825EF4-40F4-4DD8-A39F-4B74250E6A5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E825EF4-40F4-4DD8-A39F-4B74250E6A5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F1EA555-6B07-43C9-8592-26C97BEF2C2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F1EA555-6B07-43C9-8592-26C97BEF2C2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F1EA555-6B07-43C9-8592-26C97BEF2C2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F1EA555-6B07-43C9-8592-26C97BEF2C2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5EBF58F3-6251-4C65-8279-258D8C19405F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5EBF58F3-6251-4C65-8279-258D8C19405F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5EBF58F3-6251-4C65-8279-258D8C19405F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5EBF58F3-6251-4C65-8279-258D8C19405F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9E825EF4-40F4-4DD8-A39F-4B74250E6A5B} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
+		{7F1EA555-6B07-43C9-8592-26C97BEF2C2E} = {4FE3F94D-9B8B-46C5-9E11-601F5833E36B}
+		{5EBF58F3-6251-4C65-8279-258D8C19405F} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
+	EndGlobalSection
+EndGlobal

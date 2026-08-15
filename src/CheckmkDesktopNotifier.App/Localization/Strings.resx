@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CompactBarTitle" xml:space="preserve">
+    <value>Checkmk</value>
+  </data>
+  <data name="NewLabel" xml:space="preserve">
+    <value>NEW</value>
+  </data>
+  <data name="CriticalLabel" xml:space="preserve">
+    <value>CRIT</value>
+  </data>
+  <data name="WarningLabel" xml:space="preserve">
+    <value>WARN</value>
+  </data>
+  <data name="UnknownLabel" xml:space="preserve">
+    <value>UNKNOWN</value>
+  </data>
+  <data name="LastCheckLabel" xml:space="preserve">
+    <value>Last check</value>
+  </data>
+  <data name="LastCheckUnknown" xml:space="preserve">
+    <value>--:--</value>
+  </data>
+  <data name="MarkAllNewAsSeen" xml:space="preserve">
+    <value>Mark all new as seen</value>
+  </data>
+  <data name="MarkAsSeen" xml:space="preserve">
+    <value>Mark as seen</value>
+  </data>
+  <data name="Seen" xml:space="preserve">
+    <value>Seen</value>
+  </data>
+  <data name="Acknowledged" xml:space="preserve">
+    <value>ACK</value>
+  </data>
+  <data name="AcknowledgedTooltip" xml:space="preserve">
+    <value>Acknowledged in Checkmk (read-only)</value>
+  </data>
+  <data name="Downtime" xml:space="preserve">
+    <value>Downtime</value>
+  </data>
+  <data name="DowntimeTooltip" xml:space="preserve">
+    <value>Scheduled downtime in Checkmk</value>
+  </data>
+  <data name="HostKind" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="NewSection" xml:space="preserve">
+    <value>NEW</value>
+  </data>
+  <data name="CriticalSection" xml:space="preserve">
+    <value>CRITICAL</value>
+  </data>
+  <data name="WarningSection" xml:space="preserve">
+    <value>WARNING</value>
+  </data>
+  <data name="UnknownSection" xml:space="preserve">
+    <value>UNKNOWN</value>
+  </data>
+  <data name="NoNewProblems" xml:space="preserve">
+    <value>No new problems</value>
+  </data>
+  <data name="NoProblems" xml:space="preserve">
+    <value>No problems in this section</value>
+  </data>
+  <data name="ProblemListTitle" xml:space="preserve">
+    <value>Problems</value>
+  </data>
+  <data name="SeverityCritical" xml:space="preserve">
+    <value>CRITICAL</value>
+  </data>
+  <data name="SeverityWarning" xml:space="preserve">
+    <value>WARNING</value>
+  </data>
+  <data name="SeverityUnknown" xml:space="preserve">
+    <value>UNKNOWN</value>
+  </data>
+</root>
