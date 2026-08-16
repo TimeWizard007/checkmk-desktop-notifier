@@ -16,8 +16,9 @@ public sealed class JsonAlertStateStore : IAlertStateStore
     };
 
     private readonly string _filePath;
+    private readonly string? _fallbackLoadPath;
 
-    public JsonAlertStateStore(string filePath)
+    public JsonAlertStateStore(string filePath, string? fallbackLoadPath = null)
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
@@ -25,16 +26,22 @@ public sealed class JsonAlertStateStore : IAlertStateStore
         }
 
         _filePath = filePath;
+        _fallbackLoadPath = string.IsNullOrWhiteSpace(fallbackLoadPath) ? null : fallbackLoadPath;
     }
 
     public AlertStateDocument? Load()
     {
-        if (!File.Exists(_filePath))
+        var path = File.Exists(_filePath)
+            ? _filePath
+            : _fallbackLoadPath is not null && File.Exists(_fallbackLoadPath)
+                ? _fallbackLoadPath
+                : null;
+        if (path is null)
         {
             return null;
         }
 
-        var json = File.ReadAllText(_filePath);
+        var json = File.ReadAllText(path);
         var dto = JsonSerializer.Deserialize<AlertStateFileDto>(json, SerializerOptions)
                   ?? throw new InvalidOperationException($"Alert state file '{_filePath}' is empty.");
 

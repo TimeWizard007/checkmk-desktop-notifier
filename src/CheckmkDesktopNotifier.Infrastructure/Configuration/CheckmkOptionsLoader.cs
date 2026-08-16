@@ -69,7 +69,7 @@ public static class CheckmkOptionsLoader
         return FromJson(File.ReadAllText(path));
     }
 
-    private static string? ResolveConfigPath()
+    internal static string? ResolveConfigPath()
     {
         foreach (var candidate in CandidatePaths())
         {

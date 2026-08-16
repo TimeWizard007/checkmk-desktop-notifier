@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Authentication;
 using CheckmkDesktopNotifier.Core.Abstractions;
 using CheckmkDesktopNotifier.Core.Domain;
 using CheckmkDesktopNotifier.Infrastructure.Authentication;
@@ -52,9 +53,14 @@ public sealed class CheckmkServiceClient : ICheckmkClient
         {
             return ProblemSnapshot.Failure(retrievedAt, SnapshotErrorKind.Unavailable, "The Checkmk request timed out.", siteId);
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or AuthenticationException)
         {
-            return ProblemSnapshot.Failure(retrievedAt, SnapshotErrorKind.Unavailable, "The Checkmk request failed.", siteId);
+            var status = HttpFailureClassifier.ClassifyException(ex);
+            return ProblemSnapshot.Failure(
+                retrievedAt,
+                SnapshotErrorKind.Unavailable,
+                HttpFailureClassifier.UserMessage(status),
+                siteId);
         }
 
         using (response)
@@ -65,7 +71,9 @@ public sealed class CheckmkServiceClient : ICheckmkClient
                 return ProblemSnapshot.Failure(
                     retrievedAt,
                     SnapshotErrorKind.Authentication,
-                    $"Checkmk authentication failed (HTTP {(int)response.StatusCode}).",
+                    response.StatusCode == HttpStatusCode.Forbidden
+                        ? "Checkmk access was forbidden (HTTP 403)."
+                        : "Checkmk authentication failed (HTTP 401).",
                     siteId);
             }
 

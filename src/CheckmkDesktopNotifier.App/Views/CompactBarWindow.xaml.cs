@@ -1,6 +1,9 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using CheckmkDesktopNotifier.App.ViewModels;
+using CheckmkDesktopNotifier.App.Wpf;
+using CheckmkDesktopNotifier.Core;
 
 namespace CheckmkDesktopNotifier.App.Views;
 
@@ -16,6 +19,11 @@ public partial class CompactBarWindow : Window
 
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if (IsFromButton(e))
+        {
+            return;
+        }
+
         _dragStart = e.GetPosition(this);
         _dragging = false;
         CaptureMouse();
@@ -47,11 +55,16 @@ public partial class CompactBarWindow : Window
             ReleaseMouseCapture();
         }
 
-        if (!_dragging && DataContext is ShellViewModel viewModel)
+        if (!_dragging && !IsFromButton(e) && DataContext is ShellViewModel viewModel)
         {
             viewModel.ToggleExpandedCommand.Execute(null);
         }
 
         _dragging = false;
     }
+
+    private static bool IsFromButton(MouseButtonEventArgs e) =>
+        AncestorSearch.IsInside<DependencyObject, Button>(
+            e.OriginalSource as DependencyObject,
+            DependencyObjectAncestors.GetParent);
 }

@@ -63,24 +63,50 @@ Background polling for the real Checkmk client, wired into Core and the WPF UI. 
 - `last-poll.txt` updates after successful polls
 - Mock keeps `DemoBootstrapper`; Real uses REST polling only
 
-Do not start Phase 3D yet. Do not start Phase 4.
+Do not start Phase 4 until explicitly requested.
+
+## Phase 3D — complete
+
+GUI first-run / Settings, Windows Credential Manager for the automation secret, per-user `settings.json`. Manually validated on Windows 11 (no Administrator privileges): Test connection, Save, restart without `CHECKMK_CONFIG`, Credential Manager storage, isolated alert-state, poll-interval change, wrong/restored secret, VPN loss, Reset, and compact-bar `Run` mouse-input crash fix. Do not start Phase 4 yet.
 
 ## Phase 3 (remaining, later)
 
-- DPAPI credentials / settings UI for URL / site / user / interval / language
+- Optional in-app language switcher / DPAPI is not used (Credential Manager is the secret store)
 - Keep mock for UI development and tests
 
-## Phase 4 — not started
+## Phase 4 — not started (backlog only)
 
-- System tray + New/error icon
-- Sound, Windows toast, mute
-- Host-DOWN notification grouping/coalescing
-- Tray-only mode
+Do not implement these until explicitly requested:
 
-## Phase 5 — not started
+1. Startup Initializing / Loading state
+2. Prevent unsafe/awkward interaction before initialization is ready
+3. Settings gear menu with exactly: Connection settings, Help / About, Exit
+4. Help / About: Checkmk Desktop Notifier; application version from assembly/build metadata (not hardcoded in UI); Author: TimeWizard007; clickable GitHub repository link `https://github.com/TimeWizard007/checkmk-desktop-notifier`
+5. Proper graceful Exit action
+6. System tray icon
+7. Application / window / executable icon
+8. Tray menu
+9. Windows toast / popup notifications
+10. Alert sound
+11. Mute
+12. Local Seen-aware notification behavior
+13. Host DOWN / UNREACHABLE notification grouping/coalescing so one failed host does not create a notification storm from all child services
+14. Reuse the same commands/logic for Exit/Settings between compact-bar menu and tray where appropriate
 
+## Phase 5 / V1 release — not started
+
+Keep this visible; do not start until Phase 4 is done unless a later decision says otherwise:
+
+- `README.md` (English) and `README.pl.md` (Polish), with language links between the files
+- Screenshots
+- Installation/setup instructions
+- Explanation of NEW / Seen / Checkmk ACK / downtime
+- Build-from-source documentation
+- Review/update of `docs/`
+- Clean self-contained Windows package
+- Final Windows regression tests
+- GitHub tag/release
+- MIT / open-source release hygiene
+- No Checkmk logos/trademarks bundled without permission
 - Logging with secret redaction
 - Start with Windows (optional), single-instance
-- `README.md` + `README.pl.md`, MIT `LICENSE`
-- Packaging / `dotnet publish` release notes
-- Open-source cleanup (no secrets, no Checkmk logos)

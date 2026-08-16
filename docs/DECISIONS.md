@@ -51,11 +51,23 @@ Failed polls continue the loop. Core still does not recover incidents from a fai
 
 ## Alert state JSON is per-user LocalAppData (Real mode)
 
-Real mode persists open incidents, Seen, recurrence markers, and `LastSuccessfulPollUtc` to `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json`. Mock mode stays in-memory.
+Real mode persists open incidents, Seen, recurrence markers, and `LastSuccessfulPollUtc` under `%LocalAppData%/CheckmkDesktopNotifier/`. Files are isolated by Checkmk connection identity (SHA-256 of normalized BaseUrl + Site) as `state/<id>/alert-state.json`. A legacy `alert-state.json` in the same folder is used only as a **read fallback** when the isolated file does not exist yet. It is not copied, moved, or deleted automatically. After the isolated file has been written, the root file is unused and may be removed manually.
 
-Secrets, Authorization headers, and Checkmk URL/credentials are **not** stored in that file. They remain in `checkmk.local.json` / environment variables.
+Secrets, Authorization headers, and Checkmk URL/credentials are **not** stored in alert-state files.
 
-A diagnostic `last-poll.txt` in the same folder records success/failure and host/service **counts** only.
+A diagnostic `last-poll.txt` in the app-data folder records success/failure and host/service **counts** only.
+
+## GUI settings vs developer config (Phase 3D)
+
+Normal Windows users configure Checkmk through the Settings window. Non-secret fields are stored in `settings.json`. The automation secret is stored in **Windows Credential Manager** (generic credential, persist-local-machine, bound to this Windows user, no Administrator rights). This is an OS secret store, not application-layer encryption and not a hardcoded key. Phase 3D Windows validation confirmed this storage split.
+
+Developer/CI overrides remain available and are documented in DEVELOPMENT.md. `CHECKMK_CONFIG` is an explicit override of GUI settings. Leftover `CHECKMK_*` environment variables do **not** override a saved GUI configuration. The Settings window edits GUI settings only; it does not display an active developer-file/env connection.
+
+Truly unconfigured state (no usable current connection) shows **Setup required**. Historical incident files may remain visible; they must not themselves imply **Connected**.
+
+## Compact-bar pointer sources are not always Visual
+
+Routed mouse `OriginalSource` on compact-bar labels can be a `Run` (`FrameworkContentElement`). Ancestor walks must not call `VisualTreeHelper.GetParent` unless the object is a `Visual` or `Visual3D`. Content elements use content/logical parent APIs. Settings-gear clicks must not start a drag or toggle the problem list.
 
 ## No Windows Service in V1
 

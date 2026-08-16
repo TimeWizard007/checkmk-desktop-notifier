@@ -96,4 +96,88 @@
   <data name="ConnectionError" xml:space="preserve">
     <value>Connection error</value>
   </data>
+  <data name="ConnectionSetupRequired" xml:space="preserve">
+    <value>Setup required</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Checkmk connection</value>
+  </data>
+  <data name="SettingsIntro" xml:space="preserve">
+    <value>Enter the Checkmk server details to start monitoring. The automation secret is stored in Windows Credential Manager for this Windows user only.</value>
+  </data>
+  <data name="SettingsServerUrl" xml:space="preserve">
+    <value>Checkmk server URL</value>
+  </data>
+  <data name="SettingsSite" xml:space="preserve">
+    <value>Site</value>
+  </data>
+  <data name="SettingsUsername" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="SettingsSecret" xml:space="preserve">
+    <value>Automation secret</value>
+  </data>
+  <data name="SettingsSecretHint" xml:space="preserve">
+    <value>Leave blank to keep the stored secret</value>
+  </data>
+  <data name="SettingsPollInterval" xml:space="preserve">
+    <value>Polling interval (seconds)</value>
+  </data>
+  <data name="SettingsTestConnection" xml:space="preserve">
+    <value>Test connection</value>
+  </data>
+  <data name="SettingsSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="SettingsCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SettingsReset" xml:space="preserve">
+    <value>Reset configuration</value>
+  </data>
+  <data name="SettingsResetConfirm" xml:space="preserve">
+    <value>Remove the saved Checkmk settings and stored automation secret? Open incidents on disk are kept.</value>
+  </data>
+  <data name="TestSuccess" xml:space="preserve">
+    <value>Connection successful</value>
+  </data>
+  <data name="TestUnauthorized" xml:space="preserve">
+    <value>Authentication failed / Unauthorized</value>
+  </data>
+  <data name="TestForbidden" xml:space="preserve">
+    <value>Access forbidden</value>
+  </data>
+  <data name="TestUnreachable" xml:space="preserve">
+    <value>Server cannot be reached</value>
+  </data>
+  <data name="TestTimeout" xml:space="preserve">
+    <value>The request timed out</value>
+  </data>
+  <data name="TestTls" xml:space="preserve">
+    <value>TLS/certificate error</value>
+  </data>
+  <data name="TestInvalidConfiguration" xml:space="preserve">
+    <value>Invalid configuration</value>
+  </data>
+  <data name="TestUnexpectedApi" xml:space="preserve">
+    <value>Unexpected API response</value>
+  </data>
+  <data name="TestUnavailable" xml:space="preserve">
+    <value>Checkmk is unavailable</value>
+  </data>
+  <data name="TestServicesReachable" xml:space="preserve">
+    <value>Services reachable: yes</value>
+  </data>
+  <data name="TestHostsReachable" xml:space="preserve">
+    <value>Hosts reachable: yes</value>
+  </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>Settings saved. Monitoring will use the new connection.</value>
+  </data>
+  <data name="SettingsValidationFailed" xml:space="preserve">
+    <value>Please correct the highlighted fields.</value>
+  </data>
 </root>

@@ -37,4 +37,32 @@ public interface ILocalizationService
     string ConnectionConnected { get; }
     string ConnectionRefreshing { get; }
     string ConnectionError { get; }
+    string ConnectionSetupRequired { get; }
+    string Settings { get; }
+    string SettingsTitle { get; }
+    string SettingsIntro { get; }
+    string SettingsServerUrl { get; }
+    string SettingsSite { get; }
+    string SettingsUsername { get; }
+    string SettingsSecret { get; }
+    string SettingsSecretHint { get; }
+    string SettingsPollInterval { get; }
+    string SettingsTestConnection { get; }
+    string SettingsSave { get; }
+    string SettingsCancel { get; }
+    string SettingsReset { get; }
+    string SettingsResetConfirm { get; }
+    string TestSuccess { get; }
+    string TestUnauthorized { get; }
+    string TestForbidden { get; }
+    string TestUnreachable { get; }
+    string TestTimeout { get; }
+    string TestTls { get; }
+    string TestInvalidConfiguration { get; }
+    string TestUnexpectedApi { get; }
+    string TestUnavailable { get; }
+    string TestServicesReachable { get; }
+    string TestHostsReachable { get; }
+    string SettingsSaved { get; }
+    string SettingsValidationFailed { get; }
 }

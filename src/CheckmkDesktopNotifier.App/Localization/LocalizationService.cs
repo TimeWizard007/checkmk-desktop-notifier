@@ -53,6 +53,34 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
     public string ConnectionConnected => Get();
     public string ConnectionRefreshing => Get();
     public string ConnectionError => Get();
+    public string ConnectionSetupRequired => Get();
+    public string Settings => Get();
+    public string SettingsTitle => Get();
+    public string SettingsIntro => Get();
+    public string SettingsServerUrl => Get();
+    public string SettingsSite => Get();
+    public string SettingsUsername => Get();
+    public string SettingsSecret => Get();
+    public string SettingsSecretHint => Get();
+    public string SettingsPollInterval => Get();
+    public string SettingsTestConnection => Get();
+    public string SettingsSave => Get();
+    public string SettingsCancel => Get();
+    public string SettingsReset => Get();
+    public string SettingsResetConfirm => Get();
+    public string TestSuccess => Get();
+    public string TestUnauthorized => Get();
+    public string TestForbidden => Get();
+    public string TestUnreachable => Get();
+    public string TestTimeout => Get();
+    public string TestTls => Get();
+    public string TestInvalidConfiguration => Get();
+    public string TestUnexpectedApi => Get();
+    public string TestUnavailable => Get();
+    public string TestServicesReachable => Get();
+    public string TestHostsReachable => Get();
+    public string SettingsSaved => Get();
+    public string SettingsValidationFailed => Get();
 
     private string Get([CallerMemberName] string? key = null)
     {

@@ -117,7 +117,7 @@ public sealed class CheckmkServiceClientTests
 
         Assert.False(snapshot.IsSuccess);
         Assert.Equal(SnapshotErrorKind.Unavailable, snapshot.ErrorKind);
-        Assert.Equal("The Checkmk request failed.", snapshot.ErrorMessage);
+        Assert.Equal("The Checkmk server cannot be reached.", snapshot.ErrorMessage);
         Assert.DoesNotContain(TestOptions.Secret, snapshot.ErrorMessage, StringComparison.Ordinal);
         Assert.DoesNotContain("Bearer", snapshot.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }

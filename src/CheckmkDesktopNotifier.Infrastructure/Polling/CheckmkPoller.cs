@@ -25,12 +25,25 @@ public sealed class CheckmkPoller : IProblemPoller
         _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
         ArgumentNullException.ThrowIfNull(options);
         CheckmkOptionsValidator.Validate(options);
-        Interval = options.PollInterval;
+        _interval = options.PollInterval;
         _clock = clock ?? TimeProvider.System;
         _diagnostics = diagnostics;
     }
 
-    public TimeSpan Interval { get; }
+    private TimeSpan _interval;
+
+    public TimeSpan Interval => _interval;
+
+    public void SetInterval(TimeSpan interval)
+    {
+        if (interval.TotalSeconds < CheckmkOptions.MinimumPollIntervalSeconds)
+        {
+            throw new CheckmkOptionsValidationException(
+                $"PollIntervalSeconds must be at least {CheckmkOptions.MinimumPollIntervalSeconds}.");
+        }
+
+        _interval = interval;
+    }
 
     public ConnectionStatus Status
     {

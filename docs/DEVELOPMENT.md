@@ -200,6 +200,42 @@ Confirmed on Windows 11 over the corporate VPN with a dedicated automation accou
 
 Do not log or commit the automation secret, Authorization header, host names, or plugin outputs.
 
+## Phase 3D — Settings / first-run (complete)
+
+Normal published Windows users configure Checkmk in the GUI. They do not need `checkmk.local.json`, `CHECKMK_CONFIG`, or environment variables.
+
+| Item | Location |
+|------|----------|
+| Non-secret settings | `%LocalAppData%\CheckmkDesktopNotifier\settings.json` (`baseUrl`, `site`, `username`, `pollIntervalSeconds` only) |
+| Automation secret | Windows Credential Manager Generic Credential `CheckmkDesktopNotifier` (this Windows user; no Administrator) |
+| Incidents / Seen | `%LocalAppData%\CheckmkDesktopNotifier\state\<identity>\alert-state.json` |
+| Diagnostics | `%LocalAppData%\CheckmkDesktopNotifier\last-poll.txt` |
+
+Precedence (highest first): `CHECKMK_CONFIG` → GUI settings + Credential Manager → discovered `checkmk.local.json` + env → env only → first-run Settings.
+
+The Settings window binds only to GUI settings + Credential Manager. Leftover developer files/env can start Real monitoring while Settings fields look empty. Truly unconfigured state shows **Setup required**; historical incident files do not themselves imply **Connected**.
+
+Mock/Demo remains a developer path (`Mode=Mock` in a discovered file or `CHECKMK_MODE=Mock`). It is not offered in Settings.
+
+### Windows 11 live validation (Phase 3D)
+
+Confirmed on Windows 11 with a dedicated automation account (**no Administrator privileges**). Tests A–L passed. Compact-bar `Run` mouse-input crash was found, fixed, and retested.
+
+- GUI Settings, Test connection (services + hosts reachable), Save, restart without `CHECKMK_CONFIG`
+- `settings.json` has no secret; Credential Manager entry `CheckmkDesktopNotifier` verified
+- Isolated `state\<hash>\alert-state.json`; legacy root file is read-fallback only
+- Poll interval 60 → 20 applied live; subsequent successful polls ~24s apart (20s interval plus request time); no overlapping loops
+- Wrong secret: auth/access error, no crash, secret not exposed, incident state intact; restoring the secret reconnects
+- VPN loss: **Refreshing** → **Connection error**; problems and Seen remain; no false recoveries; recovers when connectivity returns
+- Reset removes GUI settings and the Credential Manager entry, stops polling, returns **Setup required**, does not delete alert-state; re-entering config restores monitoring
+- Compact bar: drag, label click, problem-list toggle, settings gear; no crash from `Run`/`TextBlock` routed input
+
+Do not log or commit the automation secret, Authorization header, host names, or plugin outputs.
+
+### Legacy `alert-state.json`
+
+Phase 3C wrote `%LocalAppData%\CheckmkDesktopNotifier\alert-state.json`. Phase 3D reads that file **only** when the isolated `state\<hash>\alert-state.json` does not exist yet. It is not copied or auto-deleted. After the isolated file exists, the root file is unused and may be removed **manually** later. Do not delete it as part of Reset or startup.
+
 ## Windows — self-contained win-x64 publish
 
 No admin required. From the repository root:
@@ -234,9 +270,9 @@ Run `publish\win-x64\CheckmkDesktopNotifier.exe` on Windows 11.
 dotnet test CheckmkDesktopNotifier.sln
 ```
 
-Core tests cover lifecycle, persistence, identities, recurrence, and the demo snapshot mix.
+Core tests cover lifecycle, persistence (including isolated vs legacy alert-state fallback), identities, recurrence, the demo snapshot mix, and compact-bar ancestor/pointer-origin logic (`Run` vs Visual vs Button).
 
-Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, merged service+host snapshots, polling (immediate first poll, interval, no overlap, cancellation, failed poll freeze, persistence reload), and Mock vs Real startup flags.
+Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, merged service+host snapshots, polling (immediate first poll, interval, no overlap, cancellation, failed poll freeze, persistence reload), GUI settings / Credential Manager / connection tester, and Mock vs Real startup flags.
 
 There is no WPF UI test project yet.
 
@@ -251,7 +287,7 @@ Never commit:
 - Event Log dumps that contain Authorization headers
 - `config/checkmk.local.json` (gitignored)
 
-Phase 3A uses a local JSON file or environment variables. DPAPI under `%LocalAppData%` is later.
+Phase 3D stores the automation secret in Windows Credential Manager (this Windows user). Developer/CI may still use `config/checkmk.local.json` (gitignored) or `CHECKMK_*` / `CHECKMK_CONFIG`. Do not commit secrets.
 
 ## Architecture reminders
 
@@ -259,4 +295,4 @@ Phase 3A uses a local JSON file or environment variables. DPAPI under `%LocalApp
 - Do not put Checkmk REST DTOs in Core.
 - Do not call Checkmk ACK from the eye button.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Do not start Phase 3D or Phase 4 until approved.
+- Phase 3C is complete. Phase 3D is complete. Do not start Phase 4 until explicitly requested.

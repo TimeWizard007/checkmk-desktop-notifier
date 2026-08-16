@@ -7,7 +7,7 @@ public sealed class AlertStateService : IAlertStateService
 {
     internal const int MaxPersistedSummaryLength = 512;
 
-    private readonly IAlertStateStore _store;
+    private IAlertStateStore _store;
     private readonly TimeProvider _clock;
     private readonly object _gate = new();
     private readonly Dictionary<MonitoredObjectId, OpenIncident> _open;
@@ -165,6 +165,27 @@ public sealed class AlertStateService : IAlertStateService
             {
                 return _lastSuccessfulPollUtc;
             }
+        }
+    }
+
+    public void ReplaceStore(IAlertStateStore store)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+
+        lock (_gate)
+        {
+            _store = store;
+            var loaded = _store.Load();
+            _open.Clear();
+            if (loaded is not null)
+            {
+                foreach (var incident in loaded.Incidents)
+                {
+                    _open[incident.ObjectId] = incident;
+                }
+            }
+
+            _lastSuccessfulPollUtc = loaded?.LastSuccessfulPollUtc;
         }
     }
 

@@ -11,4 +11,6 @@ public interface IProblemPoller
     Task RefreshAsync(CancellationToken cancellationToken = default);
 
     Task RunLoopAsync(CancellationToken cancellationToken = default);
+
+    void SetInterval(TimeSpan interval);
 }

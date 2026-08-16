@@ -44,18 +44,19 @@ Core must stay independently testable.
 - Failed HTTP/JSON → `ProblemSnapshot.Failure` (`Unavailable` / `Authentication` / `Protocol` / `Configuration`)
 - `CheckmkPoller` / `CheckmkPollingHostedService` — background polling while the desktop app is running (not a Windows Service)
 - `PollDiagnosticsWriter` — `%LocalAppData%/CheckmkDesktopNotifier/last-poll.txt` (counts and error kind only)
+- GUI settings store, `ISecretStore` / Windows Credential Manager, `CheckmkConfigurationResolver`, `MonitoringCoordinator`, `CheckmkConnectionTester`
 
 ## App responsibilities
 
 - Composition root (`App.xaml.cs` + `Microsoft.Extensions.Hosting` DI)
-- WPF views (`CompactBarWindow`, `ProblemListWindow`)
+- WPF views (`CompactBarWindow`, `ProblemListWindow`, `SettingsWindow`)
 - ViewModels that **project** Core state and **invoke** Core commands
 - Localization (`Strings.resx`, `Strings.pl.resx`, `ILocalizationService`)
-- Window chrome only in code-behind (drag, click vs drag)
-- Mock vs Real client selection via `AddCheckmkClient(options)`
+- Window chrome only in code-behind (drag, click vs drag). Compact-bar mouse handling walks parents with `DependencyObjectAncestors` (ContentElement / `Run` before `VisualTreeHelper`) and ignores settings-gear `Button` descendants.
+- Mock vs Real client selection via configuration resolver + `MonitoringCoordinator`
 - Real-mode background polling via `AddCheckmkPolling` + `IHost.StartAsync()`
 - Mock-only demo bootstrap (`DemoBootstrapper`); Real never injects `DemoSnapshotFactory`
-- Connection status projection (`Connected` / `Refreshing` / `Connection error`) from `IProblemPoller`
+- Connection status projection (`Setup required` / `Connected` / `Refreshing` / `Connection error`)
 
 App must not implement NEW / SEEN / RECOVERED itself.
 
@@ -72,16 +73,16 @@ Views  →  ShellViewModel  →  IAlertStateService  →  in-memory (Mock) / JSO
 
 Startup:
 
-1. Load `CheckmkOptions` (file + environment). Validate (including `PollIntervalSeconds >= 10`).
+1. Resolve configuration (`CheckmkConfigurationResolver`): `CHECKMK_CONFIG` → GUI `settings.json` + Credential Manager → discovered `checkmk.local.json` / env → unconfigured.
 2. Build DI host.
    - Mock: `InMemoryAlertStateStore`, `MockCheckmkClient`.
-   - Real: `JsonAlertStateStore` at `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json`, `CheckmkRestClient`.
+   - Real / first-run: isolated `JsonAlertStateStore` when a connection identity exists (legacy root file is read fallback only), `DelegatingCheckmkClient` + `MonitoringCoordinator`.
 3. Register `CheckmkPoller` + `CheckmkPollingHostedService`. HTTP timeout is shorter than the poll interval.
 4. Mock: `DemoBootstrapper` sets `MockCheckmkClient.NextSnapshot`, `ApplySnapshot`, then local `MarkSeen` on one demo incident.
-   Real: do **not** call `DemoBootstrapper`.
+   Real with usable config: `MonitoringCoordinator.ApplyAsync`. Unconfigured: no poll loop; Settings is shown.
 5. Resolve `CompactBarWindow`, set `Application.MainWindow`, resolve `UiShell` so `IProblemPoller.StateChanged` is subscribed.
-6. `IHost.StartAsync()`: Real mode polls immediately, then every `PollIntervalSeconds`. Mock hosted service is a no-op.
-7. `UiShell.Show()` shows the bar, then attaches `ProblemListWindow.Owner`.
+6. `IHost.StartAsync()`: when polling is enabled, poll immediately, then every `PollIntervalSeconds`.
+7. `UiShell.Show()` shows the bar, then attaches `ProblemListWindow.Owner`. First-run opens Settings.
 
 On exit: `IHost.StopAsync()` cancels the poll loop.
 
@@ -89,7 +90,12 @@ On exit: `IHost.StopAsync()` cancels the poll loop.
 
 No URL, site, username, or automation secret is hardcoded.
 
-Sources (later values override file):
+End-user sources:
+
+- `%LocalAppData%/CheckmkDesktopNotifier/settings.json` (non-secret fields only)
+- Windows Credential Manager Generic Credential `CheckmkDesktopNotifier` (automation secret)
+
+Developer/CI sources (do not override saved GUI settings unless `CHECKMK_CONFIG` is set):
 
 - `config/checkmk.local.json` (gitignored) or `CHECKMK_CONFIG`
 - Environment: `CHECKMK_MODE`, `CHECKMK_BASE_URL`, `CHECKMK_SITE`, `CHECKMK_USERNAME`, `CHECKMK_SECRET`, `CHECKMK_POLL_INTERVAL_SECONDS`
@@ -133,7 +139,8 @@ A host named `web01` and a service `web01` / `CPU` are different incidents. Host
 `AlertStateDocument` schema version 1. JSON store writes a private DTO (site id, kind, host name, …), not Checkmk REST `value`/`extensions` types. Atomic replace via temp file.
 
 - **Mock:** `InMemoryAlertStateStore` (state dies with the process).
-- **Real:** `JsonAlertStateStore` at `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json`.
+- **Real:** `JsonAlertStateStore` at `%LocalAppData%/CheckmkDesktopNotifier/state/<connection-id>/alert-state.json`.
+- **Legacy Phase 3C file:** `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json` is a **read fallback only**. It is not copied, moved, or deleted automatically. Saves always go to the isolated path. Fallback stops as soon as the isolated file exists. After that, the root file may be removed **manually** if desired; do not auto-delete user data.
 
 Persisted: open incidents, local Seen, recurrence markers, `LastSuccessfulPollUtc`.
 
@@ -157,11 +164,27 @@ Single-flight: `SemaphoreSlim(1,1)`. Timer/`RefreshAsync` uses `WaitAsync(0)` an
 
 `CheckmkPollingHostedService` is a `BackgroundService` started with the WPF process. It runs the loop only when `CheckmkRuntimeProfile.UseBackgroundPolling` is true (`Mode=Real`). It is not a Windows Service. Phase 3C polling and JSON persistence were manually validated on Windows 11.
 
+Live reconfiguration (Phase 3D) uses `MonitoringCoordinator`: cancel the current poll session, replace the REST client and interval, optionally `ReplaceStore` when BaseUrl/Site identity changes, then start a new session. No overlapping poll loops.
+
+## Configuration precedence
+
+Highest first:
+
+1. `CHECKMK_CONFIG` (explicit developer/CI file) + `CHECKMK_*` environment overlays
+2. GUI `%LocalAppData%/CheckmkDesktopNotifier/settings.json` + Windows Credential Manager (environment ignored)
+3. Discovered `checkmk.local.json` + `CHECKMK_*` overlays
+4. `CHECKMK_*` environment variables alone
+5. Unconfigured → first-run Settings (no Mock, no polling)
+
+GUI BaseUrl is the server origin only (https), not `/{site}/check_mk/api/1.0/`.
+
+Incident identity includes Checkmk **site name**, not the server URL. Persisted incidents are therefore isolated by `ConnectionIdentity` (normalized BaseUrl + Site) so two servers that share a site name cannot collide. Changing server/site switches files; it does not merge or delete the previous file. Reset configuration deletes `settings.json` and the Credential Manager secret only.
+
 ## WPF ViewModels
 
 `ShellViewModel` reads `GetOpenIncidents()` and `LastSuccessfulPollUtc`. It calls `MarkSeen` / `MarkAllNewAsSeen` / expand toggle. After each poll, `IProblemPoller.StateChanged` reloads counters, the problem list, last-check time, and connection status on the WPF dispatcher. The UI does not implement NEW / SEEN / RECOVERED.
 
-Connection status (compact bar): `Connected`, `Refreshing`, `Connection error`. Last successful check remains `HH:mm` from Core (`LastSuccessfulPollUtc` updates only on success). A connection error does not replace the problem list. No exception stacks in the main UI.
+Connection status (compact bar): `Setup required` when no poll session is active (unconfigured / after Reset); otherwise `Connected`, `Refreshing`, or `Connection error`. Historical incidents and last-check time may remain visible without implying an active connection. Last successful check remains `HH:mm` from Core (`LastSuccessfulPollUtc` updates only on success). A connection error does not replace the problem list. No exception stacks in the main UI.
 
 Sections:
 

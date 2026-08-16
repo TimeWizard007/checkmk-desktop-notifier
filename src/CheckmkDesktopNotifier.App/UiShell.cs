@@ -1,5 +1,9 @@
+using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.App.ViewModels;
 using CheckmkDesktopNotifier.App.Views;
+using CheckmkDesktopNotifier.Infrastructure;
+using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Rest;
 using System.ComponentModel;
 using System.Windows;
 
@@ -11,17 +15,33 @@ public sealed class UiShell
     private readonly ProblemListWindow _list;
     private readonly ShellViewModel _viewModel;
     private readonly WindowSessionState _session;
+    private readonly GuiConfigurationService _gui;
+    private readonly CheckmkConnectionTester _tester;
+    private readonly ILocalizationService _text;
+    private readonly IMonitoringCoordinator? _coordinator;
 
     public UiShell(
         CompactBarWindow bar,
         ProblemListWindow list,
         ShellViewModel viewModel,
-        WindowSessionState session)
+        WindowSessionState session,
+        GuiConfigurationService gui,
+        CheckmkConnectionTester tester,
+        ILocalizationService text,
+        IMonitoringCoordinator? coordinator = null)
     {
         _bar = bar;
         _list = list;
         _viewModel = viewModel;
         _session = session;
+        _gui = gui;
+        _tester = tester;
+        _text = text;
+        _coordinator = coordinator;
+
+        _bar.DataContext = _viewModel;
+        _list.DataContext = _viewModel;
+        _viewModel.SettingsRequested += (_, _) => ShowSettings();
 
         _bar.DataContext = _viewModel;
         _list.DataContext = _viewModel;
@@ -46,6 +66,17 @@ public sealed class UiShell
         AttachListOwner();
         PositionList();
         ApplyExpandedState();
+    }
+
+    public void ShowSettings()
+    {
+        var viewModel = new SettingsViewModel(_gui, _tester, _text, _coordinator);
+        var window = new SettingsWindow(viewModel)
+        {
+            Owner = _bar.IsVisible ? _bar : null
+        };
+        window.ShowDialog();
+        _viewModel.Reload();
     }
 
     private void AttachListOwner()

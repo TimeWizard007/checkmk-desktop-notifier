@@ -1,0 +1,71 @@
+<Window x:Class="CheckmkDesktopNotifier.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Text.SettingsTitle}"
+        Width="480"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource WindowBackgroundBrush}"
+        ShowInTaskbar="False">
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="0,4,0,10"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Background" Value="{StaticResource RowBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BarBorderBrush}"/>
+        </Style>
+        <Style TargetType="PasswordBox">
+            <Setter Property="Margin" Value="0,4,0,4"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Background" Value="{StaticResource RowBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BarBorderBrush}"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Background" Value="{StaticResource ButtonBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BarBorderBrush}"/>
+        </Style>
+    </Window.Resources>
+    <StackPanel Margin="16">
+        <TextBlock Text="{Binding Text.SettingsTitle}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <TextBlock Text="{Binding Text.SettingsIntro}" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,16"/>
+
+        <TextBlock Text="{Binding Text.SettingsServerUrl}"/>
+        <TextBox Text="{Binding BaseUrl, UpdateSourceTrigger=PropertyChanged}"/>
+
+        <TextBlock Text="{Binding Text.SettingsSite}"/>
+        <TextBox Text="{Binding Site, UpdateSourceTrigger=PropertyChanged}"/>
+
+        <TextBlock Text="{Binding Text.SettingsUsername}"/>
+        <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
+
+        <TextBlock Text="{Binding Text.SettingsSecret}"/>
+        <PasswordBox x:Name="SecretBox"/>
+        <TextBlock Text="{Binding Text.SettingsSecretHint}"
+                   Foreground="{StaticResource MutedBrush}"
+                   Visibility="{Binding HasStoredSecret, Converter={StaticResource BooleanToVisibility}}"
+                   Margin="0,0,0,10"/>
+
+        <TextBlock Text="{Binding Text.SettingsPollInterval}"/>
+        <TextBox Text="{Binding PollIntervalText, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left"/>
+
+        <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,8,0,12" MinHeight="36"/>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="{Binding Text.SettingsTestConnection}" Command="{Binding TestConnectionCommand}" IsEnabled="{Binding CanInteract}"/>
+            <Button Content="{Binding Text.SettingsSave}" Command="{Binding SaveCommand}" IsEnabled="{Binding CanInteract}"/>
+            <Button Content="{Binding Text.SettingsCancel}" Command="{Binding CancelCommand}"/>
+        </StackPanel>
+        <Button Content="{Binding Text.SettingsReset}" HorizontalAlignment="Left" Click="OnResetClick" IsEnabled="{Binding CanInteract}"/>
+    </StackPanel>
+</Window>

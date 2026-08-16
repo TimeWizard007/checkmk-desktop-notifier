@@ -129,6 +129,3 @@ public sealed class CheckmkOptionsLoaderTests
         }
     }
 }
-
-[CollectionDefinition("Environment", DisableParallelization = true)]
-public sealed class EnvironmentCollection;

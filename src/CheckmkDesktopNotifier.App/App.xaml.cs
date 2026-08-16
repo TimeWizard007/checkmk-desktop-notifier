@@ -10,6 +10,8 @@ using CheckmkDesktopNotifier.Core.Persistence;
 using CheckmkDesktopNotifier.Core.State;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Rest;
+using CheckmkDesktopNotifier.Infrastructure.Secrets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -23,47 +25,71 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        CheckmkOptions options;
+        var paths = AppStoragePaths.ForCurrentUser();
+        ISecretStore secrets = OperatingSystem.IsWindows()
+            ? new WindowsCredentialSecretStore()
+            : new InMemorySecretStore();
+        var settingsStore = new JsonUserSettingsStore(paths.SettingsPath);
+        var gui = new GuiConfigurationService(settingsStore, secrets);
+
+        LoadedConfiguration loaded;
         try
         {
-            options = CheckmkOptionsLoader.Load();
-            CheckmkOptionsValidator.Validate(options);
+            loaded = CheckmkConfigurationResolver.Resolve(paths, settingsStore, secrets);
         }
-        catch (Exception ex) when (ex is CheckmkOptionsValidationException or JsonException or System.IO.IOException)
+        catch (Exception)
         {
-            MessageBox.Show(
-                ex.Message,
-                "Checkmk Desktop Notifier",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-            Shutdown(1);
-            return;
+            loaded = new LoadedConfiguration
+            {
+                Options = new CheckmkOptions { Mode = ClientMode.Real, PollIntervalSeconds = CheckmkOptions.DefaultPollIntervalSeconds },
+                Source = ConfigurationSource.None,
+                IsUsableReal = false,
+                IsMock = false,
+                LoadError = "Saved settings could not be read. Open Settings to repair the configuration."
+            };
         }
-
-        var appData = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CheckmkDesktopNotifier");
-        Directory.CreateDirectory(appData);
 
         _host = Host.CreateDefaultBuilder()
             .ConfigureServices(services =>
             {
                 services.AddSingleton(TimeProvider.System);
-                if (CheckmkRuntimeProfile.UsePersistentAlertState(options.Mode))
+                services.AddSingleton(paths);
+                services.AddSingleton(secrets);
+                services.AddSingleton<IUserSettingsStore>(settingsStore);
+                services.AddSingleton(gui);
+                services.AddSingleton(loaded);
+                services.AddSingleton<CheckmkConnectionTester>();
+                services.AddSingleton<ILocalizationService, LocalizationService>();
+                services.AddSingleton<WindowSessionState>();
+
+                if (loaded.IsMock)
                 {
-                    var statePath = Path.Combine(appData, "alert-state.json");
-                    services.AddSingleton<IAlertStateStore>(_ => new JsonAlertStateStore(statePath));
+                    services.AddSingleton<IAlertStateStore, InMemoryAlertStateStore>();
+                    services.AddSingleton<IAlertStateService, AlertStateService>();
+                    services.AddCheckmkClient(loaded.Options);
                 }
                 else
                 {
-                    services.AddSingleton<IAlertStateStore, InMemoryAlertStateStore>();
+                    IAlertStateStore alertStore = loaded.Identity is not null
+                        ? new JsonAlertStateStore(paths.AlertStatePathFor(loaded.Identity), paths.LegacyAlertStatePath)
+                        : new InMemoryAlertStateStore();
+                    services.AddSingleton(alertStore);
+                    services.AddSingleton<IAlertStateService, AlertStateService>();
+
+                    var pollerOptions = loaded.IsUsableReal
+                        ? loaded.Options
+                        : new CheckmkOptions
+                        {
+                            Mode = ClientMode.Mock,
+                            PollIntervalSeconds = CheckmkOptions.DefaultPollIntervalSeconds
+                        };
+                    services.AddSingleton(pollerOptions);
+                    services.AddSingleton(new DelegatingCheckmkClient(new UnconfiguredCheckmkClient()));
+                    services.AddSingleton<ICheckmkClient>(sp => sp.GetRequiredService<DelegatingCheckmkClient>());
+                    services.AddSingleton<IMonitoringCoordinator, MonitoringCoordinator>();
                 }
 
-                services.AddSingleton<IAlertStateService, AlertStateService>();
-                services.AddCheckmkClient(options);
-                services.AddCheckmkPolling(Path.Combine(appData, "last-poll.txt"));
-                services.AddSingleton<ILocalizationService, LocalizationService>();
-                services.AddSingleton<WindowSessionState>();
+                services.AddCheckmkPolling(paths.LastPollPath);
                 services.AddSingleton<ShellViewModel>();
                 services.AddSingleton<CompactBarWindow>();
                 services.AddSingleton<ProblemListWindow>();
@@ -75,9 +101,25 @@ public partial class App : Application
         var alerts = _host.Services.GetRequiredService<IAlertStateService>();
         var clock = _host.Services.GetRequiredService<TimeProvider>();
 
-        if (CheckmkRuntimeProfile.UseDemoBootstrap(options.Mode))
+        if (loaded.IsMock)
         {
             await DemoBootstrapper.InitializeAsync(client, alerts, clock).ConfigureAwait(true);
+        }
+        else if (loaded.IsUsableReal)
+        {
+            var coordinator = _host.Services.GetRequiredService<IMonitoringCoordinator>();
+            try
+            {
+                await coordinator.ApplyAsync(loaded.Options).ConfigureAwait(true);
+            }
+            catch (Exception ex) when (ex is CheckmkOptionsValidationException or InvalidOperationException or IOException)
+            {
+                MessageBox.Show(
+                    ConnectionTestResult.Sanitize(ex.Message),
+                    "Checkmk Desktop Notifier",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
         var bar = _host.Services.GetRequiredService<CompactBarWindow>();
@@ -86,6 +128,11 @@ public partial class App : Application
 
         await _host.StartAsync().ConfigureAwait(true);
         shell.Show();
+
+        if (loaded.NeedsFirstRunSetup)
+        {
+            shell.ShowSettings();
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)

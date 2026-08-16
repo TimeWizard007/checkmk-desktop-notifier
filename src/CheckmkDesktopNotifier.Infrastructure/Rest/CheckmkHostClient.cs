@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Authentication;
 using CheckmkDesktopNotifier.Core.Domain;
 using CheckmkDesktopNotifier.Infrastructure.Authentication;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
@@ -130,9 +131,10 @@ public sealed class CheckmkHostClient
         {
             return RawGetResult.Fail(null, SnapshotErrorKind.Unavailable, "The Checkmk host request timed out.");
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or AuthenticationException)
         {
-            return RawGetResult.Fail(null, SnapshotErrorKind.Unavailable, "The Checkmk host request failed.");
+            var status = HttpFailureClassifier.ClassifyException(ex);
+            return RawGetResult.Fail(null, SnapshotErrorKind.Unavailable, HttpFailureClassifier.UserMessage(status));
         }
 
         using (response)
@@ -140,7 +142,12 @@ public sealed class CheckmkHostClient
             var status = (int)response.StatusCode;
             if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
             {
-                return RawGetResult.Fail(status, SnapshotErrorKind.Authentication, $"Checkmk authentication failed (HTTP {status}).");
+                return RawGetResult.Fail(
+                    status,
+                    SnapshotErrorKind.Authentication,
+                    response.StatusCode == HttpStatusCode.Forbidden
+                        ? "Checkmk access was forbidden (HTTP 403)."
+                        : "Checkmk authentication failed (HTTP 401).");
             }
 
             if ((int)response.StatusCode is >= 400 and < 500)

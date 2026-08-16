@@ -76,6 +76,18 @@
                 <Run Text=": "/>
                 <Run Text="{Binding LastCheckText, Mode=OneWay}"/>
             </TextBlock>
+            <Button Command="{Binding OpenSettingsCommand}"
+                    ToolTip="{Binding Text.Settings, Mode=OneWay}"
+                    Cursor="Hand"
+                    Width="24"
+                    Height="24"
+                    Margin="8,0,0,0"
+                    Padding="0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Visibility="{Binding SettingsAvailable, Converter={StaticResource BooleanToVisibility}}">
+                <TextBlock Text="⚙" FontSize="14" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+            </Button>
         </StackPanel>
     </Border>
 </Window>

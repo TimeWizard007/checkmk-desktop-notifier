@@ -3,6 +3,8 @@ using System.Windows;
 using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.Core.Abstractions;
 using CheckmkDesktopNotifier.Core.Domain;
+using CheckmkDesktopNotifier.Infrastructure;
+using CheckmkDesktopNotifier.Infrastructure.Configuration;
 using CheckmkDesktopNotifier.Infrastructure.Polling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,17 +16,23 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly IAlertStateService _alerts;
     private readonly IProblemPoller _poller;
     private readonly TimeProvider _clock;
+    private readonly IMonitoringCoordinator? _coordinator;
+    private readonly bool _settingsAvailable;
 
     public ShellViewModel(
         IAlertStateService alerts,
         ILocalizationService text,
         TimeProvider clock,
-        IProblemPoller poller)
+        IProblemPoller poller,
+        IMonitoringCoordinator? coordinator = null,
+        LoadedConfiguration? loaded = null)
     {
         _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
         Text = text ?? throw new ArgumentNullException(nameof(text));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _poller = poller ?? throw new ArgumentNullException(nameof(poller));
+        _coordinator = coordinator;
+        _settingsAvailable = loaded?.IsMock != true;
         _poller.StateChanged += OnPollerStateChanged;
         Reload();
     }
@@ -86,8 +94,17 @@ public sealed partial class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(HasNewProblems));
     }
 
+    public bool SettingsAvailable => _settingsAvailable;
+
+    public event EventHandler? SettingsRequested;
+
     [RelayCommand]
     private void ToggleExpanded() => IsExpanded = !IsExpanded;
+
+    [RelayCommand(CanExecute = nameof(CanOpenSettings))]
+    private void OpenSettings() => SettingsRequested?.Invoke(this, EventArgs.Empty);
+
+    private bool CanOpenSettings() => _settingsAvailable;
 
     [RelayCommand(CanExecute = nameof(CanMarkAllNewAsSeen))]
     private void MarkAllNewAsSeen()
@@ -156,8 +173,14 @@ public sealed partial class ShellViewModel : ObservableObject
         return local.ToString("HH:mm");
     }
 
-    private string FormatConnectionStatus(ConnectionStatus status) =>
-        status.Kind switch
+    private string FormatConnectionStatus(ConnectionStatus status)
+    {
+        if (_coordinator is not null && !_coordinator.IsPollingEnabled)
+        {
+            return Text.ConnectionSetupRequired;
+        }
+
+        return status.Kind switch
         {
             ConnectionStatusKind.Refreshing => Text.ConnectionRefreshing,
             ConnectionStatusKind.Error => Text.ConnectionError,
@@ -165,6 +188,7 @@ public sealed partial class ShellViewModel : ObservableObject
             _ when _alerts.LastSuccessfulPollUtc is not null => Text.ConnectionConnected,
             _ => string.Empty
         };
+    }
 
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> items)
     {
