@@ -8,12 +8,56 @@ namespace CheckmkDesktopNotifier.Core.Tests;
 public sealed class PackagingTests
 {
     [Fact]
-    public void Central_version_is_0_4_line_not_v1()
+    public void Central_version_is_1_0_0()
     {
         var version = ReadCentralVersion();
-        Assert.StartsWith("0.4.", version, StringComparison.Ordinal);
-        Assert.NotEqual("1.0.0", version);
+        Assert.Equal("1.0.0", version);
         Assert.Equal(version, ApplicationVersion.FromAssembly(typeof(ProductInfo).Assembly));
+    }
+
+    [Fact]
+    public void V1_readme_and_license_files_exist()
+    {
+        var root = FindRepoRoot();
+        var readme = File.ReadAllText(Path.Combine(root, "README.md"));
+        var readmePl = File.ReadAllText(Path.Combine(root, "README.pl.md"));
+        var license = File.ReadAllText(Path.Combine(root, "LICENSE"));
+        Assert.Contains("[Polski](README.pl.md)", readme, StringComparison.Ordinal);
+        Assert.Contains("[English](README.md)", readmePl, StringComparison.Ordinal);
+        Assert.Contains("not affiliated with Checkmk GmbH", readme, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("MIT License", license, StringComparison.Ordinal);
+        Assert.Contains("TimeWizard007", license, StringComparison.Ordinal);
+        Assert.DoesNotContain("vscode-file://", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("vscode-file://", readmePl, StringComparison.Ordinal);
+        Assert.Contains("![Compact Always-on-Top bar](docs/images/compact-bar.png)", readme, StringComparison.Ordinal);
+        Assert.Contains("![Kompaktowy pasek Always-on-Top](docs/images/compact-bar.png)", readmePl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void V1_release_assets_exist()
+    {
+        var root = FindRepoRoot();
+        foreach (var relative in new[]
+                 {
+                     "SHA256SUMS.txt",
+                     "docs/images/compact-bar.png",
+                     "docs/images/problem-list.png",
+                     "docs/images/settings-connection.png",
+                     "docs/images/settings-notifications.png",
+                     "docs/images/settings-general.png",
+                     "docs/images/tray-menu.png",
+                     "docs/images/about.png"
+                 })
+        {
+            Assert.True(File.Exists(Path.Combine(root, relative)), relative);
+        }
+
+        var sums = File.ReadAllText(Path.Combine(root, "SHA256SUMS.txt"));
+        Assert.Contains("CheckmkDesktopNotifier-Setup-x64.exe", sums, StringComparison.Ordinal);
+        Assert.Contains(
+            "71C5A97C461B513DF2B977F4FEC39C2E739E5817779EF9BA205C44EDEF847B2E",
+            sums,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -105,7 +149,9 @@ public sealed class PackagingTests
                  {
                      "scripts/build-windows-package.ps1",
                      "scripts/build-windows-package.sh",
-                     "scripts/publish-win-x64.sh"
+                     "scripts/publish-win-x64.sh",
+                     "scripts/hash-windows-installer.ps1",
+                     "scripts/hash-windows-installer.sh"
                  })
         {
             var text = File.ReadAllText(Path.Combine(root, relative));

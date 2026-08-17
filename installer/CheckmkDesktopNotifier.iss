@@ -1,13 +1,13 @@
 ; Checkmk Desktop Notifier — per-user installer (Inno Setup 6).
 ; Independent open-source project. Not affiliated with Checkmk GmbH.
 ; Compile from repo root after publish:
-;   iscc /DMyAppVersion=0.4.1 installer\CheckmkDesktopNotifier.iss
+;   iscc /DMyAppVersion=1.0.0 installer\CheckmkDesktopNotifier.iss
 ;
 ; Version fallback below must match Directory.Build.props <Version>.
 
 #define MyAppName "Checkmk Desktop Notifier"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.4.1"
+  #define MyAppVersion "1.0.0"
 #endif
 #define MyAppPublisher "TimeWizard007"
 #define MyAppURL "https://github.com/TimeWizard007/checkmk-desktop-notifier"
@@ -38,7 +38,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 DisableDirPage=yes
 PrivilegesRequired=lowest
-; Unsigned Phase 4D builds. Add SignTool later; do not ship a self-signed cert as trusted.
+; Unsigned V1 builds. Add SignTool later; do not ship a self-signed cert as trusted.
 ; SignTool=signtool
 OutputDir=..\artifacts
 OutputBaseFilename=CheckmkDesktopNotifier-Setup-x64

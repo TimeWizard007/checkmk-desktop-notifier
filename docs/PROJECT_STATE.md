@@ -4,11 +4,17 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**Phase 4D (per-user installer / upgrade / uninstall) — COMPLETE / Windows-tested.**
+**Phase 5 COMPLETE / V1 READY.**
 
-Phase 4A, 4B, 4C, and 4D are **COMPLETE / Windows-tested**.
+Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY.
 
-Do **not** start Phase 5.
+Version **1.0.0**. About on Windows 11 shows 1.0.0. GitHub Release is **not** created in this pass.
+
+Installer SHA-256 (`SHA256SUMS.txt`):
+
+```
+71C5A97C461B513DF2B977F4FEC39C2E739E5817779EF9BA205C44EDEF847B2E  CheckmkDesktopNotifier-Setup-x64.exe
+```
 
 ## Git checkpoint
 
@@ -19,7 +25,8 @@ Do **not** start Phase 5.
 - Phase 3D complete — `a255b7e` `Complete Phase 3D secure GUI configuration`
 - Phase 4B complete — `1ce8616` `Complete Phase 4B notifications and sound controls`
 - Phase 4C complete — `337c5a3` `Complete Phase 4C host grouping and autostart`
-- Phase 4D: COMPLETE / Windows-tested
+- Phase 4D complete — `0bfd177` `Complete Phase 4D Windows installer and packaging`
+- Phase 5: COMPLETE / V1 READY
 
 ## Phase 1 — complete
 
@@ -202,7 +209,7 @@ Implemented and manually validated on Windows 11:
 
 - Compact bar is shown immediately with **Initializing...** / **Uruchamianie...**; status is session-based (persisted last-poll time does not imply **Connected**)
 - Gear opens a dark context menu: Connection settings, Help / About, Exit (does not drag or toggle the list)
-- About dialog: product name, assembly version (`0.4.0` from project metadata, not hardcoded in UI), Author TimeWizard007, clickable GitHub URI
+- About dialog: product name, assembly informational version from `Directory.Build.props` (not hardcoded in UI), Author TimeWizard007, clickable GitHub URI
 - Shared `IShellCommands` for gear and tray: ShowBar / ShowSettings / ShowAbout / Exit
 - Single Settings and About windows (activate if already open)
 - Graceful Exit: stop polling, close dialogs, dispose tray, `Application.Shutdown` (not `Environment.Exit`); `ShutdownMode=OnExplicitShutdown`
@@ -257,7 +264,7 @@ Implemented and manually validated on Windows 11 (no Administrator privileges):
 
 - **Technology:** Inno Setup 6 (`installer/CheckmkDesktopNotifier.iss`). Free for this use, mature, per-user `PrivilegesRequired=lowest`, simple upgrades via stable `AppId`. MSIX was rejected because packaged identity conflicts with the unpackaged WinForms balloon design.
 - **Install:** `%LocalAppData%\Programs\CheckmkDesktopNotifier` (not Program Files). Output `artifacts/CheckmkDesktopNotifier-Setup-x64.exe` (gitignored). Portable `publish/win-x64/` remains the same exe.
-- **Version:** `Directory.Build.props` (`0.4.1`) is the single source for assembly/file/product/About and `iscc /DMyAppVersion`. Not v1.0.0.
+- **Version:** `Directory.Build.props` (`1.0.0`) is the single source for assembly/file/product/About and `iscc /DMyAppVersion`.
 - **Shortcuts:** per-user Start Menu always; optional desktop shortcut (default off).
 - **Autostart:** same HKCU Run value `CheckmkDesktopNotifier` as the app. No Startup folder, scheduled task, or HKLM. Interactive wizard checkbox follows the real Run value; checked writes the installed quoted path, unchecked deletes only that value. Silent install repairs the path if the value already exists and does not delete it.
 - **Upgrade:** replaces `{app}` binaries only. User data stays in `%LocalAppData%\CheckmkDesktopNotifier`. Credential Manager `CheckmkDesktopNotifier` is not touched on ordinary upgrade.
@@ -268,62 +275,39 @@ Implemented and manually validated on Windows 11 (no Administrator privileges):
 
 **Windows 11 manual validation: PASSED.** `CheckmkDesktopNotifier-Setup-x64.exe` builds and runs as a normal user with no UAC. Install path is `%LocalAppData%\Programs\CheckmkDesktopNotifier`. The installed app launches; the Start Menu shortcut works; existing GUI settings and Credential Manager remain usable. HKCU autostart points at the installed executable and matches Settings. Starting the installed exe while the notifier is already running reuses/activates the existing instance (no second poller, no duplicate notifications).
 
-### Phase 5 / V1 release (keep visible; do not start now)
+### Phase 5 — COMPLETE / V1 READY
 
-- Version `1.0.0`
-- `README.md` (English)
-- `README.pl.md` (Polish)
-- Language links between READMEs
-- Project overview
-- Screenshots
-- Feature list
-- Windows requirements
-- Checkmk requirements
-- Installation instructions
-- Portable usage instructions
-- First-run configuration
-- Checkmk automation-user setup
-- Credential Manager / security explanation
-- NEW vs Seen explanation
-- Checkmk ACK / downtime explanation
-- HOST DOWN / UNREACHABLE grouping explanation
-- Notification / custom WAV / volume / mute documentation
-- Tray behavior
-- Start with Windows
-- Installer upgrade/uninstall behavior
-- Build-from-source documentation
-- Installer build documentation
-- Unsigned installer / SmartScreen note
-- License review
-- Final icon review
-- Final regression checklist
-- Final installer build
-- Git tag `v1.0.0`
-- GitHub Release
-- MIT / open-source release hygiene
-- No Checkmk logos/trademarks bundled without permission
-- Do not create README until Phase 5
+User-facing 1.0.0 documentation, MIT license, sanitized screenshots, installer checksum, version **1.0.0**. No new product features.
+
+- `README.md` / `README.pl.md` with relative language links and screenshots
+- MIT `LICENSE` (copyright TimeWizard007)
+- `docs/RELEASE_NOTES_1.0.0.md`
+- `SHA256SUMS.txt` for `CheckmkDesktopNotifier-Setup-x64.exe`
+- About on Windows 11: **1.0.0**; FileVersion **1.0.0.0**, ProductVersion **1.0.0**
+- Screenshots under `docs/images/` (compact bar, problem list, connection, notifications, tray, About; General also stored)
+- Git tag `v1.0.0` is created as part of this close-out. GitHub Release is a separate follow-up and is **not** created here.
+
+Post-V1 (do not implement now): team workflow via Checkmk ACK (who took/acked an incident, optional comments) and ticket workflow (create/open ticket, Zoho Desk or similar). Evaluate those integrations **before** any custom shared database.
 
 ## Tests
 
-Last automated run (Linux agent, Phase 4D close-out):
+Last automated run (Linux agent, Phase 5 close-out):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 295 passed, 0 failed
-  Core.Tests:            131 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 297 passed, 0 failed
+  Core.Tests:            133 passed
   Infrastructure.Tests:  164 passed
 ```
-
-Re-run after any further change. Record the new numbers here if they change.
 
 ## What is NOT implemented
 
 - Authenticode signing / trusted SmartScreen reputation
 - Persistent window position on disk
-- Phase 5: MIT `LICENSE`, `README.md`, `README.pl.md`, screenshots, install docs, GitHub Release, v1.0.0
+- Shared/team Seen; Checkmk ACK writes; ticketing / Zoho (post-V1)
+- GitHub Release (follow-up after tag `v1.0.0`)
 - Windows Service (out of V1 by decision)
 
 ## Immediate next steps
 
-Do not start Phase 5 until asked. Do not create v1.0.0, a Git tag, or a GitHub Release yet. Do not invent a host POST. Do not use `host_config`.
+Do not start post-V1 work. A GitHub Release may be created later from tag `v1.0.0`. Do not invent a host POST. Do not use `host_config`.

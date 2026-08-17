@@ -94,7 +94,7 @@ Custom WAV is **imported** into `%LocalAppData%/CheckmkDesktopNotifier/assets/cu
 
 Mute persists in `preferences.json` (non-secret) and remains a separate switch from volume 0%. Mute never means pause, Seen, or Checkmk ACK. Settings **Test notification sound** plays the selected source at the configured volume without creating an incident; it bypasses mute so the asset can be heard while muted.
 
-Notifications fire only for Core `AlertDelta.Opened` after host-failure grouping. First successful snapshot on virgin local state is a silent baseline. Host-DOWN grouping and per-user autostart are Phase 4C (**COMPLETE / Windows-tested**). Installer work is Phase 4D (**COMPLETE / Windows-tested**). V1 documentation/release is Phase 5.
+Notifications fire only for Core `AlertDelta.Opened` after host-failure grouping. First successful snapshot on virgin local state is a silent baseline. Host-DOWN grouping and per-user autostart are Phase 4C (**COMPLETE / Windows-tested**). Installer work is Phase 4D (**COMPLETE / Windows-tested**). V1 documentation/release is Phase 5 (**COMPLETE / V1 READY**).
 
 ## Host-failure notification grouping (Phase 4C, COMPLETE / Windows-tested)
 
@@ -136,7 +136,7 @@ Installed + Start Menu + autostart + desktop would otherwise start multiple poll
 
 ## Central version (Phase 4D, COMPLETE / Windows-tested)
 
-`Directory.Build.props` defines `Version` / `AssemblyVersion` / `FileVersion` / `InformationalVersion` (`0.4.1`). About reads informational version. Inno uses `/DMyAppVersion` with the same value (fallback `#define` in the `.iss` must match; PackagingTests checks). Do not ship v1.0.0 until Phase 5.
+`Directory.Build.props` defines `Version` / `AssemblyVersion` / `FileVersion` / `InformationalVersion` (`1.0.0`). About reads informational version. Inno uses `/DMyAppVersion` with the same value (fallback `#define` in the `.iss` must match; PackagingTests checks). Do not hardcode `1.0.0` in the About UI.
 
 ## Dark compact menus (Phase 4B)
 
@@ -170,9 +170,9 @@ Until initialization completes, the compact bar shows **Initializing...**. Histo
 
 Normal per-user desktop app, tray/bar later. No admin-required service.
 
-## Open-source MIT intent
+## Open-source MIT
 
-The repo should become MIT-licensed (LICENSE file is Phase 5). No hardcoded sites, users, or secrets.
+The repository is MIT-licensed (`LICENSE`, copyright TimeWizard007, 2026). No hardcoded sites, users, or secrets. No Checkmk logos. Inno Setup binaries are not committed.
 
 ## No Checkmk logos or trademarks bundled
 

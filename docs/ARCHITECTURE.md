@@ -1,6 +1,6 @@
 # Architecture
 
-Checkmk Desktop Notifier is a per-user Windows desktop companion for Checkmk. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems.
+Checkmk Desktop Notifier is a per-user Windows desktop companion for Checkmk. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems. End-user documentation is `README.md` / `README.pl.md`. This file is the technical architecture.
 
 English is the language of source code, identifiers, comments, and commit messages. User-visible UI is localizable (`en`, `pl`).
 
@@ -127,7 +127,7 @@ API base URI: `{BaseUrl}/{Site}/check_mk/api/1.0/`.
 
 `MarkSeen` / `MarkAllNewAsSeen` are local only. Checkmk `acknowledged` is metadata, never local Seen.
 
-Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only. Version numbers come from `Directory.Build.props` (`0.4.1`). Phase 4D Inno Setup (COMPLETE / Windows-tested) installs binaries under `%LocalAppData%/Programs/CheckmkDesktopNotifier`; user data stays under `%LocalAppData%/CheckmkDesktopNotifier`.
+Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only. Version numbers come from `Directory.Build.props` (`1.0.0`). Phase 4D Inno Setup (COMPLETE / Windows-tested) installs binaries under `%LocalAppData%/Programs/CheckmkDesktopNotifier`; user data stays under `%LocalAppData%/CheckmkDesktopNotifier`. Phase 5 (COMPLETE / V1 READY) is documentation, versioning, and packaging for 1.0.0, not new product features.
 
 **Virgin baseline:** `openIncidentCount == 0 && LastSuccessfulPollUtc is null` before `ApplySnapshot`. If that first snapshot succeeds, Opened incidents are persisted for the UI and **must not** emit notifications/sound. Subsequent successful polls notify only newly Opened incidents.
 

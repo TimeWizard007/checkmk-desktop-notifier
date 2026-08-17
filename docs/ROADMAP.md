@@ -59,7 +59,7 @@ Background polling for the real Checkmk client, wired into Core and the WPF UI. 
 - Hosted poller (default 60s, minimum 10s), first poll immediately, no overlapping polls
 - Failed poll freezes lifecycle (no false RECOVERED); existing problems and Seen remain
 - Connection status: Refreshing → Connected; on loss, Refreshing → Connection error
-- `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json` (not secrets); Seen survives restart
+- `%LocalAppData%/CheckmkDesktopNotifier/state/<connection-id>/alert-state.json` (not secrets); Seen survives restart. A legacy root `alert-state.json` is read-fallback only.
 - `last-poll.txt` updates after successful polls
 - Mock keeps `DemoBootstrapper`; Real uses REST polling only
 
@@ -102,42 +102,22 @@ Manually validated on Windows 11. Phase 4D packaging is COMPLETE / Windows-teste
 
 ## Phase 4D — COMPLETE / Windows-tested
 
-Per-user Inno Setup 6 installer to `%LocalAppData%\Programs\CheckmkDesktopNotifier`, Start Menu shortcut, optional desktop shortcut, same HKCU Run autostart as the app, upgrade that preserves user data, optional uninstall data wipe, central `0.4.1` versioning, unsigned builds, per-user single-instance mutex. Manually validated on Windows 11. Do not start Phase 5.
+Per-user Inno Setup 6 installer to `%LocalAppData%\Programs\CheckmkDesktopNotifier`, Start Menu shortcut, optional desktop shortcut, same HKCU Run autostart as the app, upgrade that preserves user data, optional uninstall data wipe, central versioning via `Directory.Build.props`, unsigned builds, per-user single-instance mutex. Manually validated on Windows 11.
 
-## Phase 5 / V1 release — not started
+## Phase 5 / V1 release — COMPLETE / V1 READY
 
-Keep this visible; do not start until asked:
+User-facing 1.0.0 documentation, MIT license, sanitized screenshots, `SHA256SUMS.txt`, version **1.0.0**. Tag `v1.0.0` is part of close-out. GitHub Release is a separate follow-up.
 
-- Version `1.0.0`
-- `README.md` (English)
-- `README.pl.md` (Polish)
-- Language links between READMEs
-- Project overview
-- Screenshots
-- Feature list
-- Windows requirements
-- Checkmk requirements
-- Installation instructions
-- Portable usage instructions
-- First-run configuration
-- Checkmk automation-user setup
-- Credential Manager / security explanation
-- NEW vs Seen explanation
-- Checkmk ACK / downtime explanation
-- HOST DOWN / UNREACHABLE grouping explanation
-- Notification / custom WAV / volume / mute documentation
-- Tray behavior
-- Start with Windows
-- Installer upgrade/uninstall behavior
-- Build-from-source documentation
-- Installer build documentation
-- Unsigned installer / SmartScreen note
-- License review
-- Final icon review
-- Final regression checklist
-- Final installer build
-- Git tag `v1.0.0`
-- GitHub Release
-- MIT / open-source release hygiene
-- No Checkmk logos/trademarks bundled without permission
-- Logging with secret redaction
+## After V1 — not started
+
+V1.1 / future team workflow (do **not** implement now):
+
+- Take / ACK in Checkmk
+- Show shared acknowledgement / ownership
+- Acknowledgement comments
+- Optional ticket workflow
+- Zoho Desk API integration
+
+Evaluate Checkmk ACK + an existing ticket system **before** any custom shared database.
+
+Possible later: App SDK toasts if packaging identity changes; more audio formats if justified.

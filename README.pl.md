@@ -1,0 +1,346 @@
+# Checkmk Desktop Notifier
+
+**[English](README.md)** | **[Polski](README.pl.md)**
+
+Lekki monitor i powiadamiacz pulpitu Windows dla Checkmk.
+
+To **niezależny projekt open source**. **Nie jest powiązany z Checkmk GmbH**, nie jest przez nią sponsorowany ani nie jest jej produktem. Nazwa „Checkmk” opisuje wyłącznie system monitoringu, z którym współpracuje ta aplikacja.
+
+Aktualna linia wydania: **1.0.0**.
+
+## Przegląd
+
+Checkmk Desktop Notifier to towarzysz per-user dla Windows 10/11. Odpytuje Checkmk przez REST API, pokazuje bieżące problemy HARD hostów i usług na kompaktowym pasku Always-on-Top i wyświetla powiadomienia pulpitu, gdy otwierają się nowe **lokalne** incydenty.
+
+**Nie zastępuje** interfejsu WWW Checkmk. Nie zapisuje w Checkmk potwierdzeń (ACK), przestojów ani konfiguracji. Stan **Seen** jest lokalny dla tego użytkownika Windows.
+
+## Zrzuty ekranu
+
+Nazwy hostów i wewnętrzne adresy URL są pominięte albo zastąpione przykładami.
+
+![Kompaktowy pasek Always-on-Top](docs/images/compact-bar.png)
+
+![Lista problemów i filtry wagi](docs/images/problem-list.png)
+
+![Ustawienia — Połączenie](docs/images/settings-connection.png)
+
+![Ustawienia — Powiadomienia](docs/images/settings-notifications.png)
+
+![Menu zasobnika systemowego](docs/images/tray-menu.png)
+
+![O programie (wersja 1.0.0)](docs/images/about.png)
+
+## Funkcje
+
+- Kompaktowy pasek Always-on-Top z licznikami NEW / CRIT / WARN / UNKNOWN
+- Rozwijana lista problemów (hosty i usługi, wyjście pluginu, interfejs EN/PL)
+- Klikalne liczniki i chipy filtrów (tylko prezentacja; incydenty nie są scalane)
+- Lokalne NEW / Seen (per użytkownik Windows, zapisywane na dysku)
+- Tylko do odczytu: znaczniki ACK i zaplanowanego przestoju z Checkmk
+- Odpytywanie w tle kolekcji REST usług i hostów
+- Dymki powiadomień Windows i dźwięk alertu
+- Dołączony WAV, opcjonalny własny WAV, głośność aplikacji, wyciszenie
+- Grupowanie powiadomień HOST DOWN / UNREACHABLE (tylko powiadomienia)
+- Ikona w zasobniku systemowym (pokaż / ukryj / Ustawienia / O programie / Wycisz / Zakończ)
+- Uruchamianie z systemem Windows (per-user, HKCU Run)
+- Ustawienia w GUI; sekret automatyzacji w Menedżerze poświadczeń Windows
+- Instalator per-user (bez uprawnień Administratora)
+- Pojedyncza instancja: drugie uruchomienie aktywuje istniejący proces
+- Nadal obsługiwany jest przenośny publikowany build win-x64
+
+## Wymagania
+
+**Windows**
+
+- Windows 10 lub Windows 11 (64-bit)
+- Do instalacji i zwykłego użycia **nie** są potrzebne uprawnienia Administratora
+- Sieciowy dostęp do serwera Checkmk (np. VPN, jeśli tak łączycie się z witryną)
+
+**Checkmk**
+
+- Zweryfikowano wobec **Checkmk CRE / RAW 2.4.0p34**, REST API 1.0
+- Inne edycje/wersje z tymi samymi kolekcjami POST usług i GET hostów mogą działać; nie są zgłaszane jako przetestowane
+- Użytkownik automatyzacji, który **odczytuje** hosty i usługi, które Was interesują (zob. [Użytkownik automatyzacji Checkmk](#użytkownik-automatyzacji-checkmk))
+
+## Instalacja
+
+Zalecane przy zwykłym użytku: instalator per-user `CheckmkDesktopNotifier-Setup-x64.exe` z GitHub Release.
+
+- Uruchamia się jako **zwykły użytkownik Windows**. Bez UAC / uprawnień Administratora.
+- Instaluje do `%LocalAppData%\Programs\CheckmkDesktopNotifier`
+- Zawsze tworzy skrót w **menu Start**
+- Opcjonalny **skrót na pulpicie** (domyślnie wyłączony)
+- Opcjonalne **Uruchamiaj z systemem Windows** (ta sama wartość HKCU Run co Ustawienia → Ogólne)
+- **Nie** wymaga `checkmk.local.json`, `CHECKMK_CONFIG` ani zmiennych środowiskowych
+
+Instalator i aplikacja współdzielą jeden mechanizm autostartu:
+
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`  
+nazwa wartości: `CheckmkDesktopNotifier`  
+polecenie: ścieżka do `CheckmkDesktopNotifier.exe` w cudzysłowie
+
+Dla tej opcji nie ma skrótu w folderze Autostart, zadania Harmonogramu zadań ani wpisu HKLM.
+
+Przed uruchomieniem porównaj sumę instalatora z [SHA256SUMS.txt](SHA256SUMS.txt).
+
+### Niepodpisany instalator / SmartScreen
+
+Binaria V1 są **niepodpisane**. Windows SmartScreen może pokazać ostrzeżenie o „nieznanym wydawcy”. Oznacza to brak podpisu Authenticode; **samo w sobie nie oznacza**, że plik jest złośliwy. Pobieraj wyłącznie z oficjalnego źródła tego repozytorium i weryfikuj SHA-256 z [SHA256SUMS.txt](SHA256SUMS.txt). **Nie** wyłączaj SmartScreen globalnie.
+
+## Pierwsze uruchomienie / konfiguracja
+
+1. Uruchom **Checkmk Desktop Notifier** z menu Start.
+2. Otwórz **Ustawienia** (koło zębate na pasku albo zasobnik → Ustawienia połączenia).
+3. Na karcie **Połączenie** uzupełnij:
+
+   | Pole | Znaczenie |
+   |------|-----------|
+   | Adres URL serwera Checkmk | Tylko origin, np. `https://checkmk.example.com` — bez ścieżki witryny i bez poświadczeń |
+   | Witryna (Site) | Nazwa witryny Checkmk, np. `mysite` |
+   | Nazwa użytkownika | Nazwa użytkownika automatyzacji |
+   | Sekret automatyzacji | Sekret automatyzacji (w Menedżerze poświadczeń, nie w `settings.json`) |
+   | Interwał odpytywania | Sekundy między cyklami (domyślnie 60, minimum 10) |
+
+4. Kliknij **Testuj połączenie**. Aplikacja sprawdza, czy kolekcje REST usług **i** hostów są osiągalne.
+5. Kliknij **Zapisz**. Monitoring startuje od razu pierwszym odpytaniem.
+
+Zainstalowana aplikacja **nie** potrzebuje `config/checkmk.local.json`, `CHECKMK_CONFIG` ani zmiennych `CHECKMK_*`. To pozostaje mechanizmem **dla deweloperów / CI**.
+
+Przy **pierwszym udanym** odpytaniu z pustym lokalnym stanem incydentów bieżące problemy są wczytywane **cicho** (bez burzy powiadomień). Kolejne cykle powiadamiają tylko nowo otwarte lokalne incydenty.
+
+## Użytkownik automatyzacji Checkmk
+
+V1 jest wobec Checkmk **tylko do odczytu**. Utwórz **użytkownika automatyzacji** z **sekretem automatyzacji** (nie logowaniem hasłem interaktywnym).
+
+Sprawdzony model V1:
+
+- Rola: **Normal monitoring user** wystarcza dla monitorowanego zakresu (zweryfikowano)
+- Członkostwo w grupach kontaktów musi obejmować hosty i usługi, które mają być widoczne
+- Uprawnienia Administratora Checkmk **nie** są wymagane
+- Węższa rola „tylko te dwie kolekcje” **nie** była testowana
+
+Nie umieszczaj w tym repozytorium prawdziwej nazwy użytkownika, sekretu, URL-a ani wewnętrznej nazwy grupy.
+
+Powiadamiacz pokazuje **ACK** Checkmk jako metadane. To **nie** jest lokalne **Seen**.
+
+## Powiadomienia
+
+Dymek Windows (przez ikonę w zasobniku) oraz — o ile nie wyciszono — jeden dźwięk alertu pojawiają się, gdy lokalny incydent **się otwiera** (`AlertDelta.Opened`) po grupowaniu awarii hosta.
+
+- Kolejne odpytania tego samego nieprzerwanego incydentu nie powtarzają dymka/dźwięku
+- Restart nie odtwarza już otwartych incydentów
+- Nieudane odpytanie nigdy nie wygląda jak „wszystko wróciło do normy” i nie emituje dźwięku odzyskania
+- Wyciszenie wyłącza **dźwięk**; dymki nadal się pojawiają
+- ACK / przestój Checkmk **nie** wyciszają powiadomień w V1
+
+## NEW i Seen
+
+**NEW** oznacza: powiadamiacz tego użytkownika Windows **nie** oznaczył jeszcze tego lokalnego incydentu jako Seen.
+
+**Seen** jest **lokalne, per użytkownik Windows**:
+
+- Przycisk oka oznacza **ten** incydent jako Seen
+- **Oznacz wszystkie nowe jako zobaczone** dotyczy wszystkich obecnie NEW
+- Seen jest zapisywane na dysku i **przetrwa restart**
+- Seen **nie** jest wysyłane do Checkmk
+- Seen **nie** jest współdzielone między administratorami ani innymi użytkownikami Windows
+
+Jeśli dwie osoby uruchamiają powiadamiacz, każda ma własny stan NEW/Seen. Współdzielony workflow zespołowy to pozycja **po V1** (najpierw ACK Checkmk i system zgłoszeń; ten projekt nie zaczyna od własnej współdzielonej bazy).
+
+## ACK i przestój Checkmk
+
+- **ACK** z Checkmk to metadane **tylko do odczytu** (znacznik). V1 nie tworzy ani nie zapisuje potwierdzeń.
+- **Zaplanowany przestój** to metadane **tylko do odczytu**. V1 nie ustawia ani nie usuwa przestoju.
+- ACK **to nie** Seen. Oznaczenie Seen **nie** wykonuje ACK w Checkmk.
+
+## Grupowanie HOST DOWN / UNREACHABLE
+
+Grupowanie dotyczy **wyłącznie powiadomień**. Incydenty **nie** są scalane w silniku ani na liście problemów.
+
+Jeśli host w stanie HARD **DOWN** (Critical) lub **UNREACHABLE** (Unknown) ma w tym samym zrzucie powiązane usługi:
+
+- Emitowany jest **jeden** zgrupowany dymek hosta i **jeden** dźwięk (`HOST DOWN` / `HOST UNREACHABLE` plus liczba usług)
+- Incydenty usług potomnych pozostają w pełni widoczne i mają własne NEW/Seen
+- Dymki/dźwięki usług potomnych są wstrzymane, dopóki grupowanie tego hosta jest aktywne
+- Kolejne odpytania, gdy host nadal jest niedostępny, nie powtarzają zgrupowanego dymka
+- To zapobiega burzy powiadomień usług przy awarii hosta
+
+ACK lub przestój na hoście albo na usługach potomnych **nie** wycisza zgrupowanego dymka.
+
+## Zachowanie zasobnika
+
+Aplikacja trzyma ikonę w zasobniku systemowym.
+
+- Zamknięcie kompaktowego paska **ukrywa** go (nie kończy programu)
+- **Otwórz** w zasobniku lub kliknięcie LPM przywraca / przełącza istniejący pasek
+- Zasobnik i koło zębate współdzielą Ustawienia, O programie, Wycisz, Ukryj i **Zakończ**
+- **Zakończ** to jedyna zwykła droga, by zatrzymać odpytywanie
+
+Drugie uruchomienie zainstalowanego lub przenośnego exe **aktywuje** istniejącą instancję. Nie startuje drugiego odpytywania.
+
+## Uruchamianie z systemem Windows
+
+Ustawienia → **Ogólne** → **Uruchamiaj z systemem Windows** albo pole wyboru w instalatorze zapisują tę samą wartość HKCU Run opisaną w [Instalacja](#instalacja). Pole wyboru pokazuje **rzeczywisty** wpis systemu, nie plik preferencji. Bez podnoszenia uprawnień.
+
+## Dźwięk powiadomienia / własny WAV / głośność / wyciszenie
+
+- Dołączony oryginalny WAV (`notifier.wav`, krótki motyw syntetyczny)
+- Ustawienia → **Powiadomienia**: **Domyślny dźwięk powiadomienia** vs **Własny WAV**, głośność **0–100%** (domyślnie 30%), **Wycisz dźwięk**, **Testuj dźwięk powiadomienia**, **Przywróć domyślny dźwięk**
+- V1 akceptuje **tylko WAV** (nieskompresowany PCM). MP3/MP4 są celowo niewspierane
+- Własny plik jest **kopiowany** do `%LocalAppData%\CheckmkDesktopNotifier\assets\custom-notification.wav`. Usunięcie oryginalnego źródła nie psuje odtwarzania
+- Wyciszenie wyłącza wyłącznie dźwięk; dymki nadal się pojawiają
+- Test odtwarza wybrany dźwięk przy ustawionej głośności i **omija Wycisz**, żeby dało się posłuchać przy wyciszeniu
+- Głośność to skalowanie próbek PCM w procesie. Aplikacja nie zmienia głośności systemowej Windows
+
+## Bezpieczeństwo / Menedżer poświadczeń
+
+| Dane | Lokalizacja |
+|------|-------------|
+| Ustawienia GUI bez sekretu (URL, witryna, użytkownik, interwał) | `%LocalAppData%\CheckmkDesktopNotifier\settings.json` |
+| Sekret automatyzacji | Menedżer poświadczeń Windows, poświadczenie ogólne **`CheckmkDesktopNotifier`** (ten użytkownik Windows) |
+| Incydenty / Seen | `%LocalAppData%\CheckmkDesktopNotifier\state\<connection-hash>\alert-state.json` |
+| Wyciszenie / głośność / Domyślny vs Własny | `%LocalAppData%\CheckmkDesktopNotifier\preferences.json` |
+| Zaimportowany WAV | `%LocalAppData%\CheckmkDesktopNotifier\assets\custom-notification.wav` |
+
+- Sekret **nie** jest przechowywany w `settings.json` ani `alert-state.json`
+- Nagłówki Authorization **nie** są zapisywane
+- Uprawnienia Administratora nie są wymagane
+- Menedżer poświadczeń to magazyn sekretów systemu dla tego użytkownika Windows. To **nie** jest szyfrowanie warstwy aplikacji i nie zastępuje tokenu sprzętowego ani firmowego sejfu sekretów
+
+Reset konfiguracji usuwa ustawienia GUI i zapisany sekret. **Nie** kasuje plików incydentów/Seen ani preferencji powiadomień.
+
+## Aktualizacja
+
+Uruchom nowszy `CheckmkDesktopNotifier-Setup-x64.exe` na istniejącej instalacji per-user.
+
+- Zastępuje pliki programu w `%LocalAppData%\Programs\CheckmkDesktopNotifier`
+- Zachowuje dane użytkownika w `%LocalAppData%\CheckmkDesktopNotifier`
+- **Nie** usuwa sekretu z Menedżera poświadczeń
+- Jeśli aplikacja działa, Setup prosi o **Zakończ** z zasobnika (bez cichego zabijania procesu)
+
+## Odinstalowanie
+
+Użyj **Aplikacje** w Windows albo deinstalatora z folderu instalacji.
+
+- Usuwa binaria, skróty menu Start / pulpitu oraz wartość HKCU Run
+- **Domyślnie zachowuje** dane użytkownika (ustawienia, Seen, preferencje, własny WAV)
+- Opcjonalne pytanie (domyślnie **Nie**) może usunąć folder aplikacji w LocalAppData i spróbować `cmdkey /delete:CheckmkDesktopNotifier`
+
+## Tryb przenośny
+
+Nadal obsługiwany jest samodzielny publikowany build **win-x64** (`publish/win-x64/CheckmkDesktopNotifier.exe`).
+
+| | Zainstalowany | Przenośny |
+|---|---------------|-----------|
+| Typowe użycie | Zwykłe wdrożenie | Testy, rozwój, ręczna kopia |
+| Lokalizacja | `%LocalAppData%\Programs\CheckmkDesktopNotifier` | Folder, do którego publikujesz |
+| Ustawienia / Seen / sekret | Ten sam LocalAppData + Menedżer poświadczeń | Ten sam LocalAppData + Menedżer poświadczeń |
+
+Build przenośny i zainstalowany współdzielą mutex pojedynczej instancji oraz ten sam katalog danych tego użytkownika Windows.
+
+## Budowa ze źródeł
+
+Wymagania: **.NET 8 SDK**.
+
+Aplikacja WPF celuje w `net8.0-windows`. Agent Linux może ją **skompiłować** (`EnableWindowsTargeting`); do **uruchomienia** UI potrzebny jest Windows.
+
+```bash
+dotnet build CheckmkDesktopNotifier.sln
+dotnet test CheckmkDesktopNotifier.sln
+```
+
+Publikacja przenośna:
+
+```bash
+dotnet publish src/CheckmkDesktopNotifier.App/CheckmkDesktopNotifier.App.csproj \
+  -c Release \
+  -r win-x64 \
+  --self-contained true \
+  -p:PublishSingleFile=false \
+  -o publish/win-x64
+```
+
+`publish/` jest w `.gitignore`. Nie commituj wyniku publikacji.
+
+## Budowa instalatora
+
+Na **Windows**, z zainstalowanym [Inno Setup 6](https://jrsoftware.org/isinfo.php):
+
+```powershell
+powershell -File scripts/build-windows-package.ps1
+```
+
+Wynik (gitignored):
+
+```text
+artifacts\CheckmkDesktopNotifier-Setup-x64.exe
+```
+
+Skrypt czyta wersję **1.0.0** z `Directory.Build.props` i przekazuje `/DMyAppVersion=1.0.0` do `iscc`. Równoważnie:
+
+```text
+iscc /DMyAppVersion=1.0.0 installer\CheckmkDesktopNotifier.iss
+```
+
+SHA-256 zbudowanego instalatora (nie wymyślaj sumy, zanim plik powstanie):
+
+```powershell
+powershell -File scripts/hash-windows-installer.ps1
+```
+
+albo:
+
+```powershell
+Get-FileHash .\artifacts\CheckmkDesktopNotifier-Setup-x64.exe -Algorithm SHA256
+```
+
+Sam Inno Setup **nie** jest commitowany. Źródłem jest tylko `installer/CheckmkDesktopNotifier.iss`.
+
+## Obecne ograniczenia
+
+To **świadome granice V1**, nie przypadkowe braki:
+
+- Tylko Windows
+- Specyficzne dla Checkmk (kolekcje REST opisane w `docs/CHECKMK_API.md`)
+- Lokalne Seen **nie** jest współdzielone między administratorami
+- ACK i przestój Checkmk są **tylko do odczytu**
+- Brak integracji zgłoszeń / Zoho
+- Własne dźwięki alertu: **tylko WAV**
+- Powiadomienia to **dymki** zasobnika, nie spakowane toasty Windows App SDK
+- Binaria są **niepodpisane**; SmartScreen może ostrzegać
+- Pozycja paska nie jest zapisywana między restartami
+- Brak przełącznika języka w aplikacji (UI idzie za kulturą interfejsu Windows: angielski domyślnie, polski gdy UI culture to polski)
+
+## Mapa drogowa
+
+Poza V1. Nie oczekuj tego w 1.0.0:
+
+**Workflow zespołowy / wspólna koordynacja**
+
+- Take / ACK **w Checkmk**
+- Pokazanie, kto potwierdził lub przejął incydent
+- Wspólna odpowiedzialność operacyjna
+- Opcjonalne komentarze potwierdzenia Checkmk
+
+**Workflow zgłoszeń**
+
+- Akcja utwórz / otwórz zgłoszenie
+- Integracja API Zoho Desk (lub podobna)
+- Wspólny numer / status zgłoszenia
+
+Pierwsza ocena współdzielonej pracy powinna iść przez **ACK Checkmk + istniejący system zgłoszeń**, a nie przez własną bazę wbudowaną w ten powiadamiacz.
+
+**Możliwe późniejsze usprawnienia**
+
+- Nowoczesne toasty Windows, jeśli zmieni się model pakowania / tożsamości
+- Dodatkowe formaty dźwięku powiadomień, jeśli pojawi się wyraźna potrzeba
+
+## Licencja / atrybucja
+
+- Licencja: [MIT](LICENSE) — Copyright © 2026 TimeWizard007
+- Ikona aplikacji: oryginalny placeholder projektu (ciemny monitor + puls). **Nie** dołączono logo Checkmk
+- Domyślny dźwięk: oryginalny / wygenerowany WAV w drzewie źródłowym
+- NuGet: CommunityToolkit.Mvvm oraz Microsoft.Extensions.* (MIT)
+- Instalator kompilowany Inno Setup 6 (kompilator nie jest w tym repozytorium)
+
+Checkmk® jest znakiem towarowym Checkmk GmbH. Ten projekt jest niezależny i używa nazwy wyłącznie do opisu zgodności.

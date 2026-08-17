@@ -11,8 +11,13 @@
 
 ```
 checkmk-desktop-notifier/
+  README.md / README.pl.md
+  LICENSE
+  Directory.Build.props          ← Version 1.0.0
   CheckmkDesktopNotifier.sln
   docs/                          ← durable project memory (read this first)
+  installer/CheckmkDesktopNotifier.iss
+  scripts/
   config/checkmk.local.json.example
   src/CheckmkDesktopNotifier.Core/
   src/CheckmkDesktopNotifier.Infrastructure/
@@ -53,9 +58,11 @@ UI language follows Windows UI culture (`en` default, `pl` when UI culture is Po
 4. Bar is draggable; click (not drag) expands the problem list.
 5. NEW section first; eye only on NEW; Mark all new as seen works locally.
 6. Seen rows remain under real severity. ACK and downtime are badges, not Seen.
-7. Closing the list collapses it; closing the bar exits the app.
+7. Closing the list collapses it. Closing the compact bar **hides to tray** (does not exit). Exit is gear/tray **Exit** only.
 
-## Local Checkmk configuration (Phase 3A)
+## Local Checkmk configuration (developer override)
+
+End users of the **installed** app use Settings → Connection. They do not need this file. The following is for developers and CI only.
 
 Never commit `config/checkmk.local.json`. Copy the example:
 
@@ -69,7 +76,7 @@ Edit the `Checkmk` object:
 |-------|--------|
 | `Mode` | `Mock` (default) or `Real` |
 | `BaseUrl` | Origin only, e.g. `https://checkmk.example.invalid` — no site path, no credentials |
-| `Site` | Site name, e.g. `itssrv` |
+| `Site` | Site name, e.g. `mysite` |
 | `Username` | Automation user |
 | `Secret` | Automation secret (never commit) |
 | `PollIntervalSeconds` | Default `60`, minimum `10`. Used by the Real-mode background poller. |
@@ -170,7 +177,7 @@ Polling runs only while the desktop app is running (`BackgroundService`, not a W
 | Mode | Startup | Persistence | Polling |
 |------|---------|-------------|---------|
 | Mock | `DemoBootstrapper` + `DemoSnapshotFactory` | In-memory | Hosted service is a no-op (no REST) |
-| Real | No demo snapshot | `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json` | Immediate first poll, then every `PollIntervalSeconds` |
+| Real | No demo snapshot | `%LocalAppData%/CheckmkDesktopNotifier/state/<connection-hash>/alert-state.json` (legacy root file is read-fallback only) | Immediate first poll, then every `PollIntervalSeconds` |
 
 Diagnostics file (no secrets, no Authorization, no host names, no plugin output):
 
@@ -194,7 +201,7 @@ Confirmed on Windows 11 over the corporate VPN with a dedicated automation accou
 - Real host + service problems are displayed in the WPF UI
 - Background polling repeats approximately every 60 seconds
 - `last-poll.txt` updates after successful polling
-- Local Seen survives application restart via `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json`
+- Local Seen survives application restart via `%LocalAppData%/CheckmkDesktopNotifier/state/<connection-hash>/alert-state.json`
 - Connectivity loss: **Refreshing** then **Connection error**; existing problems remain; Seen preserved; no false recoveries
 - After connectivity is restored, polling resumes normally
 
@@ -242,7 +249,7 @@ Gear menu and tray share `IShellCommands` (`ShowBar`, `HideToTray`, `ToggleBar`,
 
 Tray uses built-in `System.Windows.Forms.NotifyIcon` (no extra NuGet). Left-click toggles bar visibility. Tray **Open** always restores the existing compact bar.
 
-Version in About is `AssemblyInformationalVersion` / assembly version from `Directory.Build.props` (currently `0.4.1`), not a string literal in XAML. Icon: replaceable original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256). Do not spend time redesigning the placeholder in code; a final icon may be supplied before V1.
+Version in About is `AssemblyInformationalVersion` / assembly version from `Directory.Build.props` (currently `1.0.0`), not a string literal in XAML. Icon: original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256, no Checkmk logo). A final visual replacement may still be supplied before the public GitHub Release; do not invent a new icon in this phase.
 
 Windows 11 checklist A–T: **PASSED**. Gear/tray visual leftover (system-boxed menus) is addressed in Phase 4B.
 
@@ -383,7 +390,7 @@ No Administrator privileges. Use a self-contained win-x64 publish.
 
 Inno Setup 6 source: `installer/CheckmkDesktopNotifier.iss`. Polish language file ships with Inno Setup 6 (`compiler:Languages\Polish.isl`).
 
-**Windows 11 installer validation: PASSED.** Do not start Phase 5.
+**Windows 11 installer validation: PASSED.** Phase 5 is COMPLETE / V1 READY.
 
 ### Packaging commands
 
@@ -405,7 +412,7 @@ powershell -File scripts/build-windows-package.ps1
 Equivalent:
 
 ```text
-iscc /DMyAppVersion=0.4.1 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.0.0 installer\CheckmkDesktopNotifier.iss
 ```
 
 Output: `artifacts/CheckmkDesktopNotifier-Setup-x64.exe` (gitignored). `publish/` and `artifacts/` must not be committed.
@@ -450,7 +457,13 @@ No Administrator privileges.
 
 **Windows 11 Phase 4D validation: PASSED.** Sanitized confirmation: `CheckmkDesktopNotifier-Setup-x64.exe` builds and runs as a normal user with no UAC. Install path is `%LocalAppData%\Programs\CheckmkDesktopNotifier`. The installed app launches; the Start Menu shortcut works; existing GUI settings and Credential Manager remain usable. HKCU autostart points at the installed executable and is the same mechanism as Settings. Starting the installed exe while the notifier is already running reuses/activates the existing instance (no second poller, no duplicate notifications).
 
-Do not start Phase 5.
+## Phase 5 — COMPLETE / V1 READY
+
+User documentation: `README.md` / `README.pl.md`. Release notes: `docs/RELEASE_NOTES_1.0.0.md`. MIT `LICENSE` at the repository root. Sanitized screenshots under `docs/images/`.
+
+Installer SHA-256 is recorded in `SHA256SUMS.txt` (do not commit the EXE). About on Windows 11 shows **1.0.0**.
+
+Do not implement post-V1 features (shared Seen, Checkmk ACK writes, ticketing). GitHub Release is a separate follow-up after tag `v1.0.0`.
 
 ## Windows — self-contained win-x64 publish
 
@@ -511,4 +524,4 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not put Checkmk REST DTOs in Core.
 - Do not call Checkmk ACK from the eye button.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Do not start Phase 5.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY.

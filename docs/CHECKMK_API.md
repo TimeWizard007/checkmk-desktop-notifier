@@ -1,11 +1,11 @@
 # Checkmk API
 
-Target environment for verification:
+Target environment for verification (sanitized):
 
 - Edition: Checkmk CRE / RAW
 - Version: `2.4.0p34`
-- Site: `itssrv`
-- REST base path: `/itssrv/check_mk/api/1.0/`
+- Site: use the Checkmk **site name** (path segment). The live verification used a corporate site; that name is not published here.
+- REST base path: `/{site}/check_mk/api/1.0/`
 
 Do not invent endpoints. Prefer: (1) live verification, (2) the site’s OpenAPI/Swagger export, (3) general Checkmk docs last.
 
@@ -180,9 +180,9 @@ Time columns are Unix timestamps.
 | `last_time_unreachable` | Unix time |
 | `acknowledged` | 0/1 |
 | `scheduled_downtime_depth` | In downtime if `> 0` |
-| `num_services_hard_crit` | Count for later grouping copy |
-| `num_services_hard_warn` | Count for later grouping copy |
-| `num_services_hard_unknown` | Count for later grouping copy |
+| `num_services_hard_crit` | REST count; **not** mapped onto Core `MonitoredProblem`. V1 grouping uses merged-snapshot service problems |
+| `num_services_hard_warn` | same |
+| `num_services_hard_unknown` | same |
 
 ### Services table (unprefixed; matches verified POST names)
 
