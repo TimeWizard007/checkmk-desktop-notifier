@@ -10,9 +10,6 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <RootNamespace>CheckmkDesktopNotifier.App</RootNamespace>
     <AssemblyName>CheckmkDesktopNotifier</AssemblyName>
-    <Version>0.4.0</Version>
-    <InformationalVersion>0.4.0</InformationalVersion>
-    <Product>Checkmk Desktop Notifier</Product>
     <ApplicationTitle>Checkmk Desktop Notifier</ApplicationTitle>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

@@ -4,11 +4,11 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**Phase 4C (host-DOWN grouping + Start with Windows) — COMPLETE / Windows-tested.**
+**Phase 4D (per-user installer / upgrade / uninstall) — COMPLETE / Windows-tested.**
 
-Phase 4A and Phase 4B are **COMPLETE / Windows-tested**.
+Phase 4A, 4B, 4C, and 4D are **COMPLETE / Windows-tested**.
 
-Do **not** start Phase 4D (installer). Do **not** start Phase 5.
+Do **not** start Phase 5.
 
 ## Git checkpoint
 
@@ -18,7 +18,8 @@ Do **not** start Phase 4D (installer). Do **not** start Phase 5.
 - Phase 2 completion: `2b85065` — `Mark Phase 2 as Windows-tested and complete`
 - Phase 3D complete — `a255b7e` `Complete Phase 3D secure GUI configuration`
 - Phase 4B complete — `1ce8616` `Complete Phase 4B notifications and sound controls`
-- Phase 4C: COMPLETE / Windows-tested
+- Phase 4C complete — `337c5a3` `Complete Phase 4C host grouping and autostart`
+- Phase 4D: COMPLETE / Windows-tested
 
 ## Phase 1 — complete
 
@@ -250,50 +251,67 @@ Implemented and manually validated on Windows 11 (no Administrator privileges):
 
 **Windows 11 manual validation: PASSED.** Autostart: Settings → General → Start with Windows creates the per-user HKCU Run entry; restart preserves enabled; disable removes the entry; no UAC; Settings / Credential Manager unchanged. Grouping: one grouped host balloon and exactly one sound; child service incidents stayed visible/NEW; child service notifications were suppressed while grouping-active; no service storm; later polls while the host stayed failed did not repeat; after recovery, a later host failure produced a new grouped notification.
 
-### Phase 4D backlog (do not implement now)
+### Phase 4D — COMPLETE / Windows-tested (per-user installer)
 
-- Per-user Windows installer/package
-- Install without Administrator privileges where practical
-- Installation under a per-user location, e.g. `%LocalAppData%\Programs\CheckmkDesktopNotifier`
-- Start Menu shortcut
-- Optional desktop shortcut
-- Installer option for Start with Windows
-- Installer and app must share the **same** autostart mechanism/state (`HKCU\...\Run` value `CheckmkDesktopNotifier`; no second Startup-folder source)
-- Upgrade existing installation without losing: GUI settings, Credential Manager secret, Seen/open incident persistence, custom WAV, volume/mute preferences
-- Uninstall behavior
-- User-data preservation by default
-- Optional explicit user-data removal if appropriate
-- Application versioning
-- Icon / executable metadata
-- Clean packaging for Phase 5 release
+Implemented and manually validated on Windows 11 (no Administrator privileges):
+
+- **Technology:** Inno Setup 6 (`installer/CheckmkDesktopNotifier.iss`). Free for this use, mature, per-user `PrivilegesRequired=lowest`, simple upgrades via stable `AppId`. MSIX was rejected because packaged identity conflicts with the unpackaged WinForms balloon design.
+- **Install:** `%LocalAppData%\Programs\CheckmkDesktopNotifier` (not Program Files). Output `artifacts/CheckmkDesktopNotifier-Setup-x64.exe` (gitignored). Portable `publish/win-x64/` remains the same exe.
+- **Version:** `Directory.Build.props` (`0.4.1`) is the single source for assembly/file/product/About and `iscc /DMyAppVersion`. Not v1.0.0.
+- **Shortcuts:** per-user Start Menu always; optional desktop shortcut (default off).
+- **Autostart:** same HKCU Run value `CheckmkDesktopNotifier` as the app. No Startup folder, scheduled task, or HKLM. Interactive wizard checkbox follows the real Run value; checked writes the installed quoted path, unchecked deletes only that value. Silent install repairs the path if the value already exists and does not delete it.
+- **Upgrade:** replaces `{app}` binaries only. User data stays in `%LocalAppData%\CheckmkDesktopNotifier`. Credential Manager `CheckmkDesktopNotifier` is not touched on ordinary upgrade.
+- **Running app:** compact bar cancels WM_CLOSE, so Setup uses `AppMutex` (`Local\TimeWizard007.CheckmkDesktopNotifier`) and asks the user to Exit from the tray. No silent kill.
+- **Uninstall:** removes binaries, shortcuts, and the app Run value. User data is kept unless the user confirms optional removal (LocalAppData app folder + `cmdkey /delete:CheckmkDesktopNotifier`).
+- **Unsigned:** no certificate in-tree. SmartScreen may warn. `SignTool` is left as a commented placeholder.
+- **Single-instance:** per-user `Local\` mutex; a second launch shows the existing bar. Portable and installed share the mutex for this Windows user.
+
+**Windows 11 manual validation: PASSED.** `CheckmkDesktopNotifier-Setup-x64.exe` builds and runs as a normal user with no UAC. Install path is `%LocalAppData%\Programs\CheckmkDesktopNotifier`. The installed app launches; the Start Menu shortcut works; existing GUI settings and Credential Manager remain usable. HKCU autostart points at the installed executable and matches Settings. Starting the installed exe while the notifier is already running reuses/activates the existing instance (no second poller, no duplicate notifications).
 
 ### Phase 5 / V1 release (keep visible; do not start now)
 
+- Version `1.0.0`
 - `README.md` (English)
 - `README.pl.md` (Polish)
-- Links between language versions
+- Language links between READMEs
+- Project overview
 - Screenshots
-- Installation/setup instructions
-- Checkmk automation-user configuration guide
-- Explanation of NEW / Seen / ACK / downtime / grouping
+- Feature list
+- Windows requirements
+- Checkmk requirements
+- Installation instructions
+- Portable usage instructions
+- First-run configuration
+- Checkmk automation-user setup
+- Credential Manager / security explanation
+- NEW vs Seen explanation
+- Checkmk ACK / downtime explanation
+- HOST DOWN / UNREACHABLE grouping explanation
+- Notification / custom WAV / volume / mute documentation
+- Tray behavior
+- Start with Windows
+- Installer upgrade/uninstall behavior
 - Build-from-source documentation
+- Installer build documentation
+- Unsigned installer / SmartScreen note
+- License review
 - Final icon review
-- Final docs review
-- Final Windows regression tests
-- GitHub tag/release
-- `v1.0.0` release
+- Final regression checklist
+- Final installer build
+- Git tag `v1.0.0`
+- GitHub Release
 - MIT / open-source release hygiene
 - No Checkmk logos/trademarks bundled without permission
 - Do not create README until Phase 5
 
 ## Tests
 
-Last automated run (Linux agent, Phase 4C close-out):
+Last automated run (Linux agent, Phase 4D close-out):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 287 passed, 0 failed
-  Core.Tests:            123 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 295 passed, 0 failed
+  Core.Tests:            131 passed
   Infrastructure.Tests:  164 passed
 ```
 
@@ -301,11 +319,11 @@ Re-run after any further change. Record the new numbers here if they change.
 
 ## What is NOT implemented
 
-- Phase 4D: per-user installer/package, shortcuts, upgrade/uninstall, versioning/metadata packaging
+- Authenticode signing / trusted SmartScreen reputation
 - Persistent window position on disk
-- Phase 5: MIT `LICENSE`, `README.md`, `README.pl.md`, screenshots, install docs, packaging/release, final icon review
+- Phase 5: MIT `LICENSE`, `README.md`, `README.pl.md`, screenshots, install docs, GitHub Release, v1.0.0
 - Windows Service (out of V1 by decision)
 
 ## Immediate next steps
 
-Do not start Phase 4D until asked. Do not start Phase 5. Do not invent a host POST. Do not use `host_config`.
+Do not start Phase 5 until asked. Do not create v1.0.0, a Git tag, or a GitHub Release yet. Do not invent a host POST. Do not use `host_config`.

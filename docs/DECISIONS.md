@@ -94,7 +94,7 @@ Custom WAV is **imported** into `%LocalAppData%/CheckmkDesktopNotifier/assets/cu
 
 Mute persists in `preferences.json` (non-secret) and remains a separate switch from volume 0%. Mute never means pause, Seen, or Checkmk ACK. Settings **Test notification sound** plays the selected source at the configured volume without creating an incident; it bypasses mute so the asset can be heard while muted.
 
-Notifications fire only for Core `AlertDelta.Opened` after host-failure grouping. First successful snapshot on virgin local state is a silent baseline. Host-DOWN grouping and per-user autostart are Phase 4C (**COMPLETE / Windows-tested**). Installer work remains Phase 4D.
+Notifications fire only for Core `AlertDelta.Opened` after host-failure grouping. First successful snapshot on virgin local state is a silent baseline. Host-DOWN grouping and per-user autostart are Phase 4C (**COMPLETE / Windows-tested**). Installer work is Phase 4D (**COMPLETE / Windows-tested**). V1 documentation/release is Phase 5.
 
 ## Host-failure notification grouping (Phase 4C, COMPLETE / Windows-tested)
 
@@ -118,7 +118,25 @@ Mechanism: per-user `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value 
 
 If the publish/install path changes, re-enable or opening Settings / startup `RepairIfRegistered` rewrites the command to the current exe. Settings checkbox reads the **actual** Run value, not `preferences.json`.
 
-**Phase 4D installer:** use this same HKCU Run value as the single source of truth. Do not add a parallel Startup-folder shortcut for “Start with Windows”. The installer checkbox should write/delete this value; the app General tab should keep showing OS state.
+**Phase 4D installer:** use this same HKCU Run value as the single source of truth. Do not add a parallel Startup-folder shortcut for “Start with Windows”. The installer checkbox should write/delete this value; the app General tab should keep showing OS state. After install, if the value already exists (portable path), rewrite it to the quoted installed exe. App `RepairIfRegistered` does the same when the installed process starts.
+
+## Per-user installer (Phase 4D, COMPLETE / Windows-tested)
+
+Inno Setup 6, `PrivilegesRequired=lowest`, `AppId={{B7C4E91A-5D2F-4A38-9E16-8F0C3B2A1D47}`. License: compiling an installer with Inno Setup does not relicense this project; we commit only `.iss` source, not Inno binaries. Generated setup EXE is an artifact, not source.
+
+Upgrade replaces `{app}` only. User data and Credential Manager survive. Uninstall removes binaries/shortcuts/Run value; optional Yes (default No) deletes `%LocalAppData%\CheckmkDesktopNotifier` and runs `cmdkey /delete:CheckmkDesktopNotifier`. If `cmdkey` fails, the user can delete Generic credential `CheckmkDesktopNotifier` in Windows Credential Manager.
+
+The compact bar cancels `Closing`, so Restart Manager close is unreliable. Setup `AppMutex` matches `SingleInstanceIdentity.MutexName` and asks the user to Exit. No silent `taskkill`.
+
+Unsigned builds: Windows SmartScreen / “unknown publisher” is expected until a real Authenticode certificate is used. Do not check in self-signed certs.
+
+## Single-instance (Phase 4D, COMPLETE / Windows-tested)
+
+Installed + Start Menu + autostart + desktop would otherwise start multiple pollers and duplicate balloons. A per-user `Local\` mutex is required. Second launch sets `ActivateEventName`; the first instance calls `ShowBar`. Portable and installed share the mutex for this logon. Not `Global\` (no admin). Not a machine-wide service.
+
+## Central version (Phase 4D, COMPLETE / Windows-tested)
+
+`Directory.Build.props` defines `Version` / `AssemblyVersion` / `FileVersion` / `InformationalVersion` (`0.4.1`). About reads informational version. Inno uses `/DMyAppVersion` with the same value (fallback `#define` in the `.iss` must match; PackagingTests checks). Do not ship v1.0.0 until Phase 5.
 
 ## Dark compact menus (Phase 4B)
 

@@ -22,9 +22,16 @@ namespace CheckmkDesktopNotifier.App;
 public partial class App : Application
 {
     private IHost? _host;
+    private SingleInstanceGuard? _singleInstance;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        if (!SingleInstanceGuard.TryOwn(out _singleInstance))
+        {
+            Shutdown();
+            return;
+        }
+
         base.OnStartup(e);
 
         var paths = AppStoragePaths.ForCurrentUser();
@@ -125,6 +132,7 @@ public partial class App : Application
         }
         var viewModel = _host.Services.GetRequiredService<ShellViewModel>();
         shell.Show();
+        _singleInstance?.Listen(() => Dispatcher.BeginInvoke(new Action(shell.ShowBar)));
 
         var client = _host.Services.GetRequiredService<ICheckmkClient>();
         var alerts = _host.Services.GetRequiredService<IAlertStateService>();
@@ -166,7 +174,11 @@ public partial class App : Application
         {
             await _host.StopAsync().ConfigureAwait(true);
             _host.Dispose();
+            _host = null;
         }
+
+        _singleInstance?.Dispose();
+        _singleInstance = null;
 
         base.OnExit(e);
     }

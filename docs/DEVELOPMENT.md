@@ -242,7 +242,7 @@ Gear menu and tray share `IShellCommands` (`ShowBar`, `HideToTray`, `ToggleBar`,
 
 Tray uses built-in `System.Windows.Forms.NotifyIcon` (no extra NuGet). Left-click toggles bar visibility. Tray **Open** always restores the existing compact bar.
 
-Version in About is `AssemblyInformationalVersion` / assembly version from the App project (`0.4.0`), not a string literal in XAML. Icon: replaceable original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256). Do not spend time redesigning the placeholder in code; a final icon may be supplied before V1.
+Version in About is `AssemblyInformationalVersion` / assembly version from `Directory.Build.props` (currently `0.4.1`), not a string literal in XAML. Icon: replaceable original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256). Do not spend time redesigning the placeholder in code; a final icon may be supplied before V1.
 
 Windows 11 checklist A–T: **PASSED**. Gear/tray visual leftover (system-boxed menus) is addressed in Phase 4B.
 
@@ -349,7 +349,7 @@ The original functional 4B checklist (baseline storm, WARN/CRIT/UNKNOWN, Seen, r
 
 Grouping is notification-only (`HostFailureNotificationGrouping`). Core/UI still list every host and service incident. Autostart is `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier` (quoted current exe; no secrets; no HKLM). Settings General checkbox reflects the real OS entry.
 
-**Windows 11 manual validation: PASSED.** Do not start Phase 4D.
+**Windows 11 manual validation: PASSED.** Phase 4D packaging is COMPLETE / Windows-tested.
 
 ### Windows 11 checklist (Phase 4C)
 
@@ -379,7 +379,78 @@ No Administrator privileges. Use a self-contained win-x64 publish.
 
 **Windows 11 Phase 4C validation: PASSED.** Sanitized confirmation: Settings → General → Start with Windows creates the per-user HKCU Run entry; restart preserves enabled; disable removes it; no UAC; Settings / Credential Manager unchanged. A controlled host failure produced one grouped host balloon and exactly one sound; child service incidents stayed visible/NEW; child notifications were suppressed while grouping-active; no service storm; later polls while the host stayed failed did not repeat; after recovery, a later host failure produced a new grouped notification.
 
-Do not start Phase 4D.
+## Phase 4D — per-user installer (COMPLETE / Windows-tested)
+
+Inno Setup 6 source: `installer/CheckmkDesktopNotifier.iss`. Polish language file ships with Inno Setup 6 (`compiler:Languages\Polish.isl`).
+
+**Windows 11 installer validation: PASSED.** Do not start Phase 5.
+
+### Packaging commands
+
+Linux publish (portable and installer input):
+
+```bash
+bash scripts/publish-win-x64.sh
+# or:
+dotnet publish src/CheckmkDesktopNotifier.App/CheckmkDesktopNotifier.App.csproj \
+  -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o publish/win-x64
+```
+
+Windows installer (Inno Setup 6 `iscc` on PATH, or `C:\Program Files (x86)\Inno Setup 6\ISCC.exe`):
+
+```powershell
+powershell -File scripts/build-windows-package.ps1
+```
+
+Equivalent:
+
+```text
+iscc /DMyAppVersion=0.4.1 installer\CheckmkDesktopNotifier.iss
+```
+
+Output: `artifacts/CheckmkDesktopNotifier-Setup-x64.exe` (gitignored). `publish/` and `artifacts/` must not be committed.
+
+### Windows 11 checklist (Phase 4D)
+
+No Administrator privileges.
+
+| | Test | Expected |
+|---|------|----------|
+| A | Run installer as normal user | Completes |
+| B | No UAC | No admin prompt |
+| C | Install path | `%LocalAppData%\Programs\CheckmkDesktopNotifier` |
+| D | Start Menu shortcut | Exists, uses app icon, launches exe |
+| E | Optional desktop shortcut | Created only if selected |
+| F | Launch after install | Default on; launches installed exe, no elevation, no credentials on the command line |
+| G | Fresh profile | Setup required / Settings |
+| H | Installer Start with Windows | Same HKCU Run value `CheckmkDesktopNotifier` |
+| I | App Settings | Reflects installer autostart state |
+| J | Toggle in app | Still works after install |
+| K | No duplicate autostart | No Startup folder / task / second Run value |
+| L | Configure app | Settings + Seen + custom WAV + volume/mute |
+| M | Upgrade | Newer setup over existing install |
+| N | Settings survive | Yes |
+| O | Credential Manager secret | Survives |
+| P | Seen/open state | Survives |
+| Q | Custom WAV | Survives |
+| R | Volume/Mute | Survive |
+| S | Autostart | Survives or repairs to installed path |
+| T | Launch after upgrade | Normal |
+| U | Normal uninstall | Removes binaries/shortcuts |
+| V | Default uninstall | Preserves `%LocalAppData%\CheckmkDesktopNotifier` |
+| W | Reinstall | Restores previous configuration |
+| X | Optional data removal | Deletes user-data folder; attempts `cmdkey /delete:CheckmkDesktopNotifier` |
+| Y | Upgrade while running | Mutex prompt; user Exits from tray; no corrupt state |
+| Z | After uninstall | No leftover notifier process |
+| AA | Real monitoring | Works from installed exe |
+| AB | Host grouping | Works |
+| AC | Notifications/sound/mute | Work |
+| AD | Settings/About/Exit/tray | Work |
+| AE | Autostart after login | Launches **installed** path |
+
+**Windows 11 Phase 4D validation: PASSED.** Sanitized confirmation: `CheckmkDesktopNotifier-Setup-x64.exe` builds and runs as a normal user with no UAC. Install path is `%LocalAppData%\Programs\CheckmkDesktopNotifier`. The installed app launches; the Start Menu shortcut works; existing GUI settings and Credential Manager remain usable. HKCU autostart points at the installed executable and is the same mechanism as Settings. Starting the installed exe while the notifier is already running reuses/activates the existing instance (no second poller, no duplicate notifications).
+
+Do not start Phase 5.
 
 ## Windows — self-contained win-x64 publish
 
@@ -407,7 +478,7 @@ dotnet publish src/CheckmkDesktopNotifier.App/CheckmkDesktopNotifier.App.csproj 
 
 Run `publish\win-x64\CheckmkDesktopNotifier.exe` on Windows 11.
 
-`publish/` is gitignored. Do not commit publish output.
+`publish/` and `artifacts/` are gitignored. Do not commit publish or installer output.
 
 ## Tests
 
@@ -417,7 +488,7 @@ dotnet test CheckmkDesktopNotifier.sln
 
 Core tests cover lifecycle, persistence (including isolated vs legacy alert-state fallback), identities, recurrence, the demo snapshot mix, compact-bar ancestor/pointer-origin logic (`Run` vs Visual vs Button, including counter buttons), and presentation-only problem-list filtering.
 
-Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, merged service+host snapshots, polling (immediate first poll, interval, no overlap, cancellation, failed poll freeze, persistence reload), GUI settings / Credential Manager / connection tester, Mock vs Real startup flags, Phase 4B notifications (Opened-only, baseline storm suppression, mute, sound preview, backend failure isolation), and Phase 4C host-failure grouping plus autostart (fake store). Core also covers hide/restore/tray-toggle visibility, the bundled notifier WAV header, grouped host alert copy, and HKCU Run command formatting.
+Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, merged service+host snapshots, polling (immediate first poll, interval, no overlap, cancellation, failed poll freeze, persistence reload), GUI settings / Credential Manager / connection tester, Mock vs Real startup flags, Phase 4B notifications (Opened-only, baseline storm suppression, mute, sound preview, backend failure isolation), and Phase 4C host-failure grouping plus autostart (fake store). Core also covers hide/restore/tray-toggle visibility, the bundled notifier WAV header, grouped host alert copy, HKCU Run command formatting, central version/packaging invariants, and install vs user-data path separation.
 
 There is no WPF UI test project yet.
 
@@ -440,4 +511,4 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not put Checkmk REST DTOs in Core.
 - Do not call Checkmk ACK from the eye button.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Do not start Phase 4D.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Do not start Phase 5.

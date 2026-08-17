@@ -1,7 +1,7 @@
 namespace CheckmkDesktopNotifier.Core.Autostart;
 
 /// <summary>
-/// Per-user HKCU Run registration shared with a future installer. One value name, no HKLM.
+/// Per-user HKCU Run registration shared with the installer. One value name, no HKLM.
 /// </summary>
 public static class AutostartCommand
 {

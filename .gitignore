@@ -26,6 +26,7 @@ coverage*.xml
 # Local app state and publish output
 artifacts/
 publish/
+installer/Output/
 *.binlog
 
 # Local Checkmk connection (never commit secrets)

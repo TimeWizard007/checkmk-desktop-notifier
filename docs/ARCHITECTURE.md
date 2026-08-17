@@ -81,12 +81,13 @@ Views  →  ShellViewModel  →  IAlertStateService  →  in-memory (Mock) / JSO
 
 Startup:
 
-1. Resolve configuration (`CheckmkConfigurationResolver`): `CHECKMK_CONFIG` → GUI `settings.json` + Credential Manager → discovered `checkmk.local.json` / env → unconfigured.
-2. Build DI host (Mock vs Real stores/clients as above). Register poller + hosted service.
-3. Resolve `CompactBarWindow`, set `Application.MainWindow`, resolve `UiShell`, **show the bar and tray immediately** with status **Initializing**. Problem list owner is attached after the bar is shown. Expanding the list is disabled until Ready.
-4. Mock: `DemoBootstrapper`. Real with usable config: `MonitoringCoordinator.ApplyAsync`. Unconfigured: no poll loop.
-5. `IHost.StartAsync()` starts polling when enabled.
-6. Mark the shell **Ready**. First-run then opens Settings.
+1. Acquire per-user single-instance mutex (`Local\TimeWizard007.CheckmkDesktopNotifier`). A second launch signals the existing instance to show the bar and exits.
+2. Resolve configuration (`CheckmkConfigurationResolver`): `CHECKMK_CONFIG` → GUI `settings.json` + Credential Manager → discovered `checkmk.local.json` / env → unconfigured.
+3. Build DI host (Mock vs Real stores/clients as above). Register poller + hosted service.
+4. Resolve `CompactBarWindow`, set `Application.MainWindow`, resolve `UiShell`, **show the bar and tray immediately** with status **Initializing**. Problem list owner is attached after the bar is shown. Expanding the list is disabled until Ready.
+5. Mock: `DemoBootstrapper`. Real with usable config: `MonitoringCoordinator.ApplyAsync`. Unconfigured: no poll loop.
+6. `IHost.StartAsync()` starts polling when enabled.
+7. Mark the shell **Ready**. First-run then opens Settings.
 
 On Exit: cancel monitoring, close Settings/About, hide the problem list, dispose tray, `Application.Shutdown()`. OnExit: `IHost.StopAsync()` cancels the poll loop.
 
@@ -99,8 +100,10 @@ End-user sources:
 - `%LocalAppData%/CheckmkDesktopNotifier/settings.json` (non-secret fields only)
 - `%LocalAppData%/CheckmkDesktopNotifier/preferences.json` (mute, volume, Default vs Custom; not secrets; not cleared by Reset; **not** autostart)
 - `%LocalAppData%/CheckmkDesktopNotifier/assets/custom-notification.wav` (imported custom sound copy)
+- `%LocalAppData%/CheckmkDesktopNotifier/` — user data (settings, preferences, custom WAV, alert-state). **Not** overwritten by the installer.
+- `%LocalAppData%/Programs/CheckmkDesktopNotifier/` — installed binaries (Phase 4D, COMPLETE / Windows-tested). Separate from user data.
 - Windows Credential Manager Generic Credential `CheckmkDesktopNotifier` (automation secret)
-- Per-user autostart: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier` (quoted exe path only; OS is source of truth)
+- Per-user autostart: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier` (quoted exe path only; OS is source of truth; installer and Settings share this value)
 
 Developer/CI sources (do not override saved GUI settings unless `CHECKMK_CONFIG` is set):
 
@@ -124,7 +127,7 @@ API base URI: `{BaseUrl}/{Site}/check_mk/api/1.0/`.
 
 `MarkSeen` / `MarkAllNewAsSeen` are local only. Checkmk `acknowledged` is metadata, never local Seen.
 
-Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only.
+Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only. Version numbers come from `Directory.Build.props` (`0.4.1`). Phase 4D Inno Setup (COMPLETE / Windows-tested) installs binaries under `%LocalAppData%/Programs/CheckmkDesktopNotifier`; user data stays under `%LocalAppData%/CheckmkDesktopNotifier`.
 
 **Virgin baseline:** `openIncidentCount == 0 && LastSuccessfulPollUtc is null` before `ApplySnapshot`. If that first snapshot succeeds, Opened incidents are persisted for the UI and **must not** emit notifications/sound. Subsequent successful polls notify only newly Opened incidents.
 

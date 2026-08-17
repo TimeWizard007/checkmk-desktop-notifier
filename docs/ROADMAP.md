@@ -63,8 +63,6 @@ Background polling for the real Checkmk client, wired into Core and the WPF UI. 
 - `last-poll.txt` updates after successful polls
 - Mock keeps `DemoBootstrapper`; Real uses REST polling only
 
-Do not start Phase 4D (installer) until asked. Phase 4C is complete.
-
 ## Phase 3D — complete
 
 GUI first-run / Settings, Windows Credential Manager for the automation secret, per-user `settings.json`. Manually validated on Windows 11 (no Administrator privileges): Test connection, Save, restart without `CHECKMK_CONFIG`, Credential Manager storage, isolated alert-state, poll-interval change, wrong/restored secret, VPN loss, Reset, and compact-bar `Run` mouse-input crash fix.
@@ -97,46 +95,49 @@ Windows balloon notifications, alert sound (bundled WAV + optional imported cust
 ## Phase 4C — COMPLETE / Windows-tested
 
 - Host DOWN / UNREACHABLE notification grouping/coalescing from the merged snapshot (no child-service balloon storm; full host/service visibility in the problem list)
-- Per-user Start with Windows (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier`, shared with a future installer)
+- Per-user Start with Windows (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier`, shared with the Phase 4D installer)
 - Settings General tab
 
-Manually validated on Windows 11. Do not start Phase 4D packaging.
+Manually validated on Windows 11. Phase 4D packaging is COMPLETE / Windows-tested.
 
-## Phase 4D — not started
+## Phase 4D — COMPLETE / Windows-tested
 
-- Per-user Windows installer/package
-- Install without Administrator privileges where practical
-- Installation under a per-user location, e.g. `%LocalAppData%\Programs\CheckmkDesktopNotifier`
-- Start Menu shortcut
-- Optional desktop shortcut
-- Installer option for Start with Windows
-- Installer and app must share the **same** autostart mechanism/state (`HKCU\...\Run` value `CheckmkDesktopNotifier`; no second Startup-folder source)
-- Upgrade existing installation without losing: GUI settings, Credential Manager secret, Seen/open incident persistence, custom WAV, volume/mute preferences
-- Uninstall behavior
-- User-data preservation by default
-- Optional explicit user-data removal if appropriate
-- Application versioning
-- Icon / executable metadata
-- Clean packaging for Phase 5 release
+Per-user Inno Setup 6 installer to `%LocalAppData%\Programs\CheckmkDesktopNotifier`, Start Menu shortcut, optional desktop shortcut, same HKCU Run autostart as the app, upgrade that preserves user data, optional uninstall data wipe, central `0.4.1` versioning, unsigned builds, per-user single-instance mutex. Manually validated on Windows 11. Do not start Phase 5.
 
 ## Phase 5 / V1 release — not started
 
-Keep this visible; do not start until Phase 4 is done unless a later decision says otherwise:
+Keep this visible; do not start until asked:
 
+- Version `1.0.0`
 - `README.md` (English)
 - `README.pl.md` (Polish)
-- Links between language versions
+- Language links between READMEs
+- Project overview
 - Screenshots
-- Installation/setup instructions
-- Checkmk automation-user configuration guide
-- Explanation of NEW / Seen / ACK / downtime / grouping
+- Feature list
+- Windows requirements
+- Checkmk requirements
+- Installation instructions
+- Portable usage instructions
+- First-run configuration
+- Checkmk automation-user setup
+- Credential Manager / security explanation
+- NEW vs Seen explanation
+- Checkmk ACK / downtime explanation
+- HOST DOWN / UNREACHABLE grouping explanation
+- Notification / custom WAV / volume / mute documentation
+- Tray behavior
+- Start with Windows
+- Installer upgrade/uninstall behavior
 - Build-from-source documentation
+- Installer build documentation
+- Unsigned installer / SmartScreen note
+- License review
 - Final icon review
-- Final docs review
-- Final Windows regression tests
-- GitHub tag/release
-- `v1.0.0` release
+- Final regression checklist
+- Final installer build
+- Git tag `v1.0.0`
+- GitHub Release
 - MIT / open-source release hygiene
 - No Checkmk logos/trademarks bundled without permission
 - Logging with secret redaction
-- Single-instance

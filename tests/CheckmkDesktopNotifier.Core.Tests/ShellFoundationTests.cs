@@ -8,6 +8,8 @@ public sealed class ShellFoundationTests
     public void Repository_uri_is_the_public_github_project()
     {
         Assert.Equal("https://github.com/TimeWizard007/checkmk-desktop-notifier", ProductInfo.RepositoryUrl);
+        Assert.Equal("TimeWizard007", ProductInfo.Author);
+        Assert.Equal("Desktop monitor and notifier for Checkmk", ProductInfo.Description);
         Assert.Equal(Uri.UriSchemeHttps, ProductInfo.Repository.Scheme);
         Assert.Equal("github.com", ProductInfo.Repository.Host);
         Assert.Equal(ProductInfo.RepositoryUrl, ProductInfo.Repository.AbsoluteUri.TrimEnd('/'));
