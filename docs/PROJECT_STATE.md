@@ -4,9 +4,11 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**Phase 3D (GUI settings, first-run, Credential Manager) — COMPLETE.**
+**Phase 4B (Notifications, mute, sound, filter polish) — COMPLETE / Windows-tested.**
 
-Phase 3D was manually validated on Windows 11. Do **not** start Phase 4 yet.
+Phase 4A is **COMPLETE / Windows-tested**.
+
+Do **not** start Phase 4C (host-DOWN grouping / coalescing, autostart). Do **not** start Phase 4D (installer).
 
 ## Git checkpoint
 
@@ -14,7 +16,9 @@ Phase 3D was manually validated on Windows 11. Do **not** start Phase 4 yet.
 - Phase 3B completion: `1ad02e3` — `Complete Phase 3B real Checkmk host integration`
 - Phase 3C completion: `4604f01` — `Complete Phase 3C polling and persistence`
 - Phase 2 completion: `2b85065` — `Mark Phase 2 as Windows-tested and complete`
-- This record: Phase 3D complete — `Complete Phase 3D secure GUI configuration`
+- Phase 3D complete — `a255b7e` `Complete Phase 3D secure GUI configuration`
+- Phase 4A: COMPLETE / Windows-tested
+- Phase 4B: COMPLETE / Windows-tested
 
 ## Phase 1 — complete
 
@@ -191,22 +195,54 @@ Security review (confirmed): secret never in `settings.json`, `alert-state.json`
 
 No credentials, secrets, Authorization headers, host names, or plugin outputs recorded.
 
-### Phase 4 backlog (do not implement now)
+### Phase 4A — COMPLETE / Windows-tested (desktop shell / UX foundation)
 
-1. Startup Initializing / Loading state
-2. Prevent unsafe/awkward interaction before initialization is ready
-3. Settings gear menu: Connection settings, Help / About, Exit
-4. Help / About: product name, version from assembly/build metadata (not hardcoded), Author: TimeWizard007, clickable GitHub link `https://github.com/TimeWizard007/checkmk-desktop-notifier`
-5. Proper graceful Exit action
-6. System tray icon
-7. Application / window / executable icon
-8. Tray menu
-9. Windows toast / popup notifications
-10. Alert sound
-11. Mute
-12. Local Seen-aware notification behavior
-13. Host DOWN / UNREACHABLE notification grouping/coalescing (one failed host must not storm child-service notifications)
-14. Reuse the same commands/logic for Exit/Settings between compact-bar menu and tray where appropriate
+Implemented and manually validated on Windows 11:
+
+- Compact bar is shown immediately with **Initializing...** / **Uruchamianie...**; status is session-based (persisted last-poll time does not imply **Connected**)
+- Gear opens a dark context menu: Connection settings, Help / About, Exit (does not drag or toggle the list)
+- About dialog: product name, assembly version (`0.4.0` from project metadata, not hardcoded in UI), Author TimeWizard007, clickable GitHub URI
+- Shared `IShellCommands` for gear and tray: ShowBar / ShowSettings / ShowAbout / Exit
+- Single Settings and About windows (activate if already open)
+- Graceful Exit: stop polling, close dialogs, dispose tray, `Application.Shutdown` (not `Environment.Exit`); `ShutdownMode=OnExplicitShutdown`
+- Tray: `System.Windows.Forms.NotifyIcon` (no extra package); left-click Open; menu Open / Connection settings / Help About / Exit
+- Original placeholder multi-size `Assets/app.ico` (monitor + heartbeat, no Checkmk logo); executable / windows / tray. Replaceable before V1; do not spend time redesigning it in code.
+- **Windows 11 manual validation: PASSED** (Initializing, click/drag, gear, Settings, About, version `0.4.0`, GitHub, single-instance dialogs, tray Open/Settings/About, Exit, real monitoring, Seen, VPN). Visual leftover (system-boxed menus) carried into 4B.
+
+### Phase 4B — COMPLETE / Windows-tested (notifications, mute, sound, filter polish)
+
+Implemented and manually validated on Windows 11 (no Administrator privileges):
+
+- Notify only `AlertDelta.Opened` (NEW incidents). Same uninterrupted incident, Seen, WARN→CRIT, failed polls, recoveries, ACK, and downtime do not emit extra notifications.
+- Startup baseline: empty local state (`openCount == 0` and `LastSuccessfulPollUtc is null`) — first successful snapshot is ingested into the UI **without** toasts/sound. Later NEW incidents notify. Persisted state continues normal lifecycle (no replay on restart).
+- Visual: unpackaged WinForms `NotifyIcon.ShowBalloonTip` (no Windows App SDK, no extra NuGet). Sound: bundled `Assets/notifier.wav` via `SoundPlayer` at per-app PCM volume (default 30%); optional imported custom WAV in LocalAppData `assets/custom-notification.wav`. WAV-only in V1. Deleting the original source file does not break playback.
+- Mute: visual still shown; sound off; not pause/Seen/ACK. Gear/tray/Settings share `IUserPreferences`. Persisted in `preferences.json` with volume and Default/Custom (Reset configuration does not clear these).
+- Settings: Connection / Notifications tabs. Notifications include Default notifier sound / Custom WAV / Volume / Test notification sound / Restore default sound / Mute. Test sound bypasses Mute and does not create incidents.
+- Compact-bar counters toggle the problem list (same filter closes; a different filter switches in place with no close/reopen flash). Gear does not change the filter.
+- Dark problem list, dark scrollbar, no empty strip after the gear, content-driven compact-bar width. Hide/restore tray and left-click tray toggle work.
+
+**Windows 11 manual validation: PASSED** (counters, Notifications sound UI, volume 100/30/0, custom WAV import + source deletion, restart persistence, Restore default, Mute/Unmute, one NEW → one balloon + one sound, no poll/restart replay). Previously validated 4A/4B behavior also confirmed: baseline suppression, filters, Seen, Mark all new as seen, tray, VPN, Credential Manager, About/Exit, compact-bar sizing.
+
+Host-DOWN grouping/coalescing is **not** implemented (Phase 4C).
+
+### Phase 4C backlog (do not implement now)
+
+- Host DOWN / UNREACHABLE notification grouping/coalescing
+- Avoid notification storms from child services of a failed host
+- Preserve full host/service visibility in the problem list
+- Start with Windows / per-user autostart
+- Shared autostart state for application Settings and a future installer
+
+### Phase 4D backlog (do not implement now)
+
+- Per-user installer/package
+- Install without Administrator privileges where practical
+- Upgrade behavior
+- Start Menu shortcut
+- Optional desktop shortcut
+- Installer option for Start with Windows
+- Preserving Settings / Credential Manager / Seen state on upgrade
+- Uninstall behavior
 
 ### Phase 5 / V1 release (keep visible; do not start now)
 
@@ -216,34 +252,35 @@ No credentials, secrets, Authorization headers, host names, or plugin outputs re
 - Explanation of NEW / Seen / Checkmk ACK / downtime
 - Build-from-source documentation
 - Review/update of `docs/`
+- Final icon review
 - Clean self-contained Windows package
 - Final Windows regression tests
-- GitHub tag/release
+- Version / GitHub tag / GitHub Release
 - MIT / open-source release hygiene
 - No Checkmk logos/trademarks bundled without permission
 - Do not create README until Phase 5
 
 ## Tests
 
-Last automated run (Linux agent, Phase 3D completion):
+Last automated run (Linux agent, Phase 4B close-out):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 154 passed, 0 failed
-  Core.Tests:            36 passed
-  Infrastructure.Tests:  118 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 244 passed, 0 failed
+  Core.Tests:            98 passed
+  Infrastructure.Tests:  146 passed
 ```
 
 Re-run after any further change. Record the new numbers here if they change.
 
 ## What is NOT implemented
 
-- Phase 4: Initializing/Loading, gear menu (Settings / Help About / Exit), icons, tray, toast, sound, mute, Seen-aware notifications, host-DOWN grouping
-- Windows startup / single-instance
+- Phase 4C: host-DOWN / UNREACHABLE child-service notification grouping/coalescing; Start with Windows / autostart
+- Phase 4D: per-user installer/package, shortcuts, upgrade/uninstall
 - Persistent window position on disk
-- Phase 5: MIT `LICENSE`, `README.md`, `README.pl.md`, screenshots, install docs, packaging/release
+- Phase 5: MIT `LICENSE`, `README.md`, `README.pl.md`, screenshots, install docs, packaging/release, final icon review
 - Windows Service (out of V1 by decision)
 
 ## Immediate next steps
 
-Do not start Phase 4 until explicitly requested. Do not invent a host POST. Do not use `host_config`. Do not auto-delete the legacy root `alert-state.json`.
+Do not start Phase 4C until asked. Do not invent a host POST. Do not use `host_config`.

@@ -6,12 +6,22 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <RootNamespace>CheckmkDesktopNotifier.App</RootNamespace>
     <AssemblyName>CheckmkDesktopNotifier</AssemblyName>
+    <Version>0.4.0</Version>
+    <InformationalVersion>0.4.0</InformationalVersion>
+    <Product>Checkmk Desktop Notifier</Product>
     <ApplicationTitle>Checkmk Desktop Notifier</ApplicationTitle>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CheckmkDesktopNotifier.Core\CheckmkDesktopNotifier.Core.csproj" />
@@ -20,6 +30,8 @@
 
   <ItemGroup>
     <None Include="..\..\config\checkmk.local.json.example" Link="config\checkmk.local.json.example" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Assets\app.ico" />
+    <Resource Include="Assets\notifier.wav" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,6 +1,7 @@
 using CheckmkDesktopNotifier.Core.Abstractions;
 using CheckmkDesktopNotifier.Core.Mock;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Notifications;
 using CheckmkDesktopNotifier.Infrastructure.Polling;
 using CheckmkDesktopNotifier.Infrastructure.Rest;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,7 +51,8 @@ public static class CheckmkClientServiceCollectionExtensions
                 sp.GetRequiredService<IAlertStateService>(),
                 sp.GetRequiredService<CheckmkOptions>(),
                 sp.GetService<TimeProvider>(),
-                sp.GetService<PollDiagnosticsWriter>()));
+                sp.GetService<PollDiagnosticsWriter>(),
+                sp.GetService<INotificationCoordinator>()));
         services.AddHostedService<CheckmkPollingHostedService>();
         return services;
     }

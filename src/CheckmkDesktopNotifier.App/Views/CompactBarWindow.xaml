@@ -4,70 +4,77 @@
         Title="{Binding Text.CompactBarTitle}"
         Height="36"
         SizeToContent="Width"
-        MinWidth="640"
         WindowStyle="None"
         ResizeMode="NoResize"
         Topmost="True"
         ShowInTaskbar="True"
+        Icon="pack://application:,,,/Assets/app.ico"
         Background="{StaticResource BarBackgroundBrush}"
         MouseLeftButtonDown="OnMouseLeftButtonDown"
         MouseMove="OnMouseMove"
         MouseLeftButtonUp="OnMouseLeftButtonUp"
         Cursor="SizeAll">
-    <Border BorderBrush="{StaticResource BarBorderBrush}" BorderThickness="1" Padding="10,0">
-        <StackPanel Orientation="Horizontal">
+    <Border BorderBrush="{StaticResource BarBorderBrush}"
+            BorderThickness="1"
+            Padding="10,0"
+            HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
             <TextBlock Style="{StaticResource BarTextStyle}"
                        FontWeight="SemiBold"
                        Text="{Binding Text.CompactBarTitle}"/>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text="  |  "/>
 
-            <Border x:Name="NewSegment" CornerRadius="3" Padding="6,2" Margin="0,0,4,0">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Setter Property="Background" Value="Transparent"/>
+            <Button Command="{Binding ToggleNewFilterCommand}" Cursor="Hand">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource BarCounterButton}">
+                        <Setter Property="Margin" Value="0,0,4,0"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding HasNewProblems}" Value="True">
                                 <Setter Property="Background" Value="{StaticResource NewAccentBrush}"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
-                </Border.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource BarTextStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasNewProblems}" Value="True">
-                                        <Setter Property="Foreground" Value="{StaticResource NewAccentTextBrush}"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                        <Run Text="{Binding Text.NewLabel, Mode=OneWay}"/>
-                        <Run Text=": "/>
-                        <Run Text="{Binding NewCount, Mode=OneWay}"/>
-                    </TextBlock>
-                </StackPanel>
-            </Border>
+                </Button.Style>
+                <TextBlock FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource BarTextStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasNewProblems}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource NewAccentTextBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                    <Run Text="{Binding Text.NewLabel, Mode=OneWay}"/>
+                    <Run Text=": "/>
+                    <Run Text="{Binding NewCount, Mode=OneWay}"/>
+                </TextBlock>
+            </Button>
 
             <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
-            <TextBlock Style="{StaticResource BarTextStyle}">
-                <Run Text="{Binding Text.CriticalLabel, Mode=OneWay}"/>
-                <Run Text=": "/>
-                <Run Text="{Binding CriticalCount, Mode=OneWay}"/>
-            </TextBlock>
+            <Button Style="{StaticResource BarCounterButton}" Command="{Binding ToggleCriticalFilterCommand}">
+                <TextBlock Style="{StaticResource BarTextStyle}">
+                    <Run Text="{Binding Text.CriticalLabel, Mode=OneWay}"/>
+                    <Run Text=": "/>
+                    <Run Text="{Binding CriticalCount, Mode=OneWay}"/>
+                </TextBlock>
+            </Button>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
-            <TextBlock Style="{StaticResource BarTextStyle}">
-                <Run Text="{Binding Text.WarningLabel, Mode=OneWay}"/>
-                <Run Text=": "/>
-                <Run Text="{Binding WarningCount, Mode=OneWay}"/>
-            </TextBlock>
+            <Button Style="{StaticResource BarCounterButton}" Command="{Binding ToggleWarningFilterCommand}">
+                <TextBlock Style="{StaticResource BarTextStyle}">
+                    <Run Text="{Binding Text.WarningLabel, Mode=OneWay}"/>
+                    <Run Text=": "/>
+                    <Run Text="{Binding WarningCount, Mode=OneWay}"/>
+                </TextBlock>
+            </Button>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
-            <TextBlock Style="{StaticResource BarTextStyle}">
-                <Run Text="{Binding Text.UnknownLabel, Mode=OneWay}"/>
-                <Run Text=": "/>
-                <Run Text="{Binding UnknownCount, Mode=OneWay}"/>
-            </TextBlock>
+            <Button Style="{StaticResource BarCounterButton}" Command="{Binding ToggleUnknownFilterCommand}">
+                <TextBlock Style="{StaticResource BarTextStyle}">
+                    <Run Text="{Binding Text.UnknownLabel, Mode=OneWay}"/>
+                    <Run Text=": "/>
+                    <Run Text="{Binding UnknownCount, Mode=OneWay}"/>
+                </TextBlock>
+            </Button>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text="{Binding ConnectionStatusText, Mode=OneWay}"/>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
@@ -76,7 +83,7 @@
                 <Run Text=": "/>
                 <Run Text="{Binding LastCheckText, Mode=OneWay}"/>
             </TextBlock>
-            <Button Command="{Binding OpenSettingsCommand}"
+            <Button Click="OnGearClick"
                     ToolTip="{Binding Text.Settings, Mode=OneWay}"
                     Cursor="Hand"
                     Width="24"
@@ -86,6 +93,22 @@
                     Background="Transparent"
                     BorderThickness="0"
                     Visibility="{Binding SettingsAvailable, Converter={StaticResource BooleanToVisibility}}">
+                <Button.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{Binding Text.MenuConnectionSettings}"
+                                  Command="{Binding OpenSettingsCommand}"/>
+                        <MenuItem Header="{Binding Text.MenuHelpAbout}"
+                                  Command="{Binding OpenAboutCommand}"/>
+                        <MenuItem Header="{Binding MuteMenuHeader}"
+                                  Command="{Binding ToggleMuteCommand}"/>
+                        <MenuItem Header="{Binding Text.MenuHideToTray}"
+                                  Command="{Binding HideToTrayCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="{Binding Text.MenuExit}"
+                                  Command="{Binding ExitApplicationCommand}"
+                                  Style="{StaticResource ExitMenuItemStyle}"/>
+                    </ContextMenu>
+                </Button.ContextMenu>
                 <TextBlock Text="⚙" FontSize="14" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
             </Button>
         </StackPanel>

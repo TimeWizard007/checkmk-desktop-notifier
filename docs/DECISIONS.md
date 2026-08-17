@@ -69,6 +69,61 @@ Truly unconfigured state (no usable current connection) shows **Setup required**
 
 Routed mouse `OriginalSource` on compact-bar labels can be a `Run` (`FrameworkContentElement`). Ancestor walks must not call `VisualTreeHelper.GetParent` unless the object is a `Visual` or `Visual3D`. Content elements use content/logical parent APIs. Settings-gear clicks must not start a drag or toggle the problem list.
 
+## Desktop shell commands (Phase 4A)
+
+Gear menu and tray must call the same `IShellCommands` implementation (`UiShell`): Open compact bar, Hide to tray, Toggle bar (tray left-click), Connection settings, Help / About, Exit. Do not duplicate hide/show or lifecycle logic. Hide to tray hides the existing compact bar and problem list; it does not exit, pause monitoring, or create a second bar. Tray **Open** always restores the existing window. Tray left-click toggles visibility.
+
+## Tray uses WinForms NotifyIcon
+
+No extra tray NuGet. `System.Windows.Forms.NotifyIcon` is part of the Windows desktop TFM (same license as .NET). Prefer this over Hardcodet.NotifyIcon.Wpf to avoid another UI framework. Left-click (and the Open menu item) activates the existing compact bar.
+
+## Desktop notifications (Phase 4B)
+
+Unpackaged self-contained exe does **not** get reliable Windows App SDK / CommunityToolkit toast delivery without an AppUserModelID plus a Start Menu shortcut (fragile, often needs extra install steps). Phase 4B therefore uses the existing tray icon's `NotifyIcon.ShowBalloonTip`.
+
+- Windows 10/11, no Administrator privileges
+- No extra NuGet
+- Works from unpackaged `dotnet publish` output
+- Limits: balloon UI (not Action Center toast chrome); title 63 / text 255 characters; overlapping balloons may replace each other
+
+Sound is an original bundled WAV (`Assets/notifier.wav`), played with `System.Media.SoundPlayer` (no extra audio NuGet). It is a short synthetic three-tone motif (G5 → D6 → B5, 16-bit PCM mono 22050 Hz, ~350 ms). **V1 is WAV-only** (uncompressed PCM, 8- or 16-bit, mono or stereo, ≤ 5 seconds). MP3/MP4 would need another decoder; they are out of V1.
+
+Volume is application-only: PCM samples are scaled in memory (default **30%**). The app does not change Windows master volume or other apps. `SoundPlayer` has no volume API.
+
+Custom WAV is **imported** into `%LocalAppData%/CheckmkDesktopNotifier/assets/custom-notification.wav`. Preferences store Default vs Custom, volume, mute, and the display file name — not the original source path. If the imported file is missing or invalid, playback falls back to the bundled default without crashing. Restore default selects the bundled asset, does not reset mute/volume/connection settings, and deletes the imported copy when safe.
+
+Mute persists in `preferences.json` (non-secret) and remains a separate switch from volume 0%. Mute never means pause, Seen, or Checkmk ACK. Settings **Test notification sound** plays the selected source at the configured volume without creating an incident; it bypasses mute so the asset can be heard while muted.
+
+Notifications fire only for Core `AlertDelta.Opened`. First successful snapshot on virgin local state is a silent baseline. Host-DOWN grouping, autostart, and installer work remain later phases (4C / 4D). Phase 4B is COMPLETE / Windows-tested.
+
+## Dark compact menus (Phase 4B)
+
+Gear uses a custom WPF `ContextMenu`/`MenuItem` template (dark `#252A33`, subtle `#3A4150` border, compact padding, 1px low-contrast separator, muted Exit with the same item padding). Tray uses a WinForms `ToolStripProfessionalRenderer` with the same palette, a 1px separator, and `ShowImageMargin=false`.
+
+## Problem list light rectangle (Phase 4B)
+
+The bright rectangle at the top-right of `ProblemListWindow` was **not** the scrollbar. Default WPF `Button` (Aero2) paints system chrome and ignores `Background`/`BorderThickness` unless `OverridesDefaultStyle` is true. The header “Mark all new as seen” button was that fill. App-wide dark `Button` templates remove default light chrome (including per-row eye buttons). The `ScrollViewer` template also omits the system `Corner` rectangle. That header slot now hosts the dark filter chips.
+
+## Problem list filter (Phase 4B)
+
+Compact-bar counters call `ToggleCounter` (same filter closes; different filter switches without collapsing). Filter chips call `OpenFilter`. The gear menu does not. Opening the list from the bar background (non-counter area) uses **ALL**.
+
+## Compact bar width (Phase 4B)
+
+`CompactBarWindow` uses `SizeToContent=Width` and a horizontal `StackPanel`. A `MinWidth="640"` was forcing unused dark space after the gear whenever the content (EN status, small counters) was narrower than 640px. There is no `MinWidth` now; first-run placement uses the laid-out `ActualWidth` instead of a hardcoded 720px assumption. Hide/restore keeps the saved position; opening the problem list does not set bar width.
+
+## Shutdown is explicit
+
+`ShutdownMode=OnExplicitShutdown`. Closing Settings, About, or the problem list does not exit. Exit cancels polling (`ResetPollingAsync`), closes dialogs, disposes the tray, then `Application.Shutdown()`. Do not use `Environment.Exit` for the normal path.
+
+## About version and icon
+
+About reads version from assembly informational/assembly metadata. Do not hardcode `1.0.0` in the UI. The GitHub URI is `ProductInfo.Repository`. The app icon is an original placeholder `Assets/app.ico` (dark monitor + heartbeat, no Checkmk logo), easy to replace later.
+
+## Startup status is session-based
+
+Until initialization completes, the compact bar shows **Initializing...**. Historical incidents may be listed, but **Connected** is only shown from this session's poller status, not from a persisted last-successful-poll timestamp.
+
 ## No Windows Service in V1
 
 Normal per-user desktop app, tray/bar later. No admin-required service.

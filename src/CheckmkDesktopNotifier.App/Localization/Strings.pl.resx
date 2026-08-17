@@ -180,4 +180,115 @@
   <data name="SettingsValidationFailed" xml:space="preserve">
     <value>Popraw nieprawidłowe pola.</value>
   </data>
+  <data name="ConnectionInitializing" xml:space="preserve">
+    <value>Uruchamianie...</value>
+  </data>
+  <data name="MenuConnectionSettings" xml:space="preserve">
+    <value>Ustawienia połączenia</value>
+  </data>
+  <data name="MenuHelpAbout" xml:space="preserve">
+    <value>Pomoc / O programie</value>
+  </data>
+  <data name="MenuExit" xml:space="preserve">
+    <value>Zakończ</value>
+  </data>
+  <data name="MenuOpen" xml:space="preserve">
+    <value>Otwórz</value>
+  </data>
+  <data name="MenuMuteSound" xml:space="preserve">
+    <value>Wycisz dźwięk</value>
+  </data>
+  <data name="MenuUnmuteSound" xml:space="preserve">
+    <value>Włącz dźwięk</value>
+  </data>
+  <data name="MenuHideToTray" xml:space="preserve">
+    <value>Ukryj do zasobnika</value>
+  </data>
+  <data name="TestNotificationSound" xml:space="preserve">
+    <value>Testuj dźwięk powiadomienia</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>O programie Checkmk Desktop Notifier</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>Desktopowy monitor i notifier dla Checkmk.</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>Wersja</value>
+  </data>
+  <data name="AboutAuthor" xml:space="preserve">
+    <value>Autor</value>
+  </data>
+  <data name="AboutGitHub" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="AboutClose" xml:space="preserve">
+    <value>Zamknij</value>
+  </data>
+  <data name="SettingsTabConnection" xml:space="preserve">
+    <value>Połączenie</value>
+  </data>
+  <data name="SettingsTabNotifications" xml:space="preserve">
+    <value>Powiadomienia</value>
+  </data>
+  <data name="SettingsNotificationsIntro" xml:space="preserve">
+    <value>Przetestuj dołączony dźwięk powiadomienia. Wyciszenie jest też dostępne w menu koła zębatego i zasobnika.</value>
+  </data>
+  <data name="FilterAll" xml:space="preserve">
+    <value>WSZYSTKIE</value>
+  </data>
+  <data name="FilterNew" xml:space="preserve">
+    <value>NOWE</value>
+  </data>
+  <data name="FilterCritical" xml:space="preserve">
+    <value>CRIT</value>
+  </data>
+  <data name="FilterWarning" xml:space="preserve">
+    <value>WARN</value>
+  </data>
+  <data name="FilterUnknown" xml:space="preserve">
+    <value>NIEZNANE</value>
+  </data>
+  <data name="EmptyFilterAll" xml:space="preserve">
+    <value>Brak problemów.</value>
+  </data>
+  <data name="EmptyFilterNew" xml:space="preserve">
+    <value>Brak nowych problemów.</value>
+  </data>
+  <data name="EmptyFilterCritical" xml:space="preserve">
+    <value>Brak problemów krytycznych.</value>
+  </data>
+  <data name="EmptyFilterWarning" xml:space="preserve">
+    <value>Brak ostrzeżeń.</value>
+  </data>
+  <data name="EmptyFilterUnknown" xml:space="preserve">
+    <value>Brak problemów nieznanych.</value>
+  </data>
+  <data name="SoundSection" xml:space="preserve">
+    <value>Dźwięk</value>
+  </data>
+  <data name="SoundDefault" xml:space="preserve">
+    <value>Domyślny dźwięk powiadomienia</value>
+  </data>
+  <data name="SoundCustomWav" xml:space="preserve">
+    <value>Własny WAV</value>
+  </data>
+  <data name="SoundChooseWav" xml:space="preserve">
+    <value>Wybierz WAV...</value>
+  </data>
+  <data name="SoundVolume" xml:space="preserve">
+    <value>Głośność</value>
+  </data>
+  <data name="SoundRestoreDefault" xml:space="preserve">
+    <value>Przywróć domyślny dźwięk</value>
+  </data>
+  <data name="SoundMute" xml:space="preserve">
+    <value>Wycisz dźwięk</value>
+  </data>
+  <data name="SoundInvalidWav" xml:space="preserve">
+    <value>Ten plik WAV nie jest obsługiwany. Użyj nieskompresowanego PCM WAV (8 lub 16 bitów, mono lub stereo, do 5 sekund).</value>
+  </data>
+  <data name="SoundWavFilter" xml:space="preserve">
+    <value>Pliki WAV (*.wav)</value>
+  </data>
 </root>

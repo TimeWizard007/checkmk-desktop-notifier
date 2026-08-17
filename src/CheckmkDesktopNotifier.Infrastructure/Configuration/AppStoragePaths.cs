@@ -1,11 +1,10 @@
-using CheckmkDesktopNotifier.Infrastructure.Configuration;
-
 namespace CheckmkDesktopNotifier.Infrastructure.Configuration;
 
 public sealed class AppStoragePaths
 {
     public const string ApplicationFolderName = "CheckmkDesktopNotifier";
     public const string SettingsFileName = "settings.json";
+    public const string PreferencesFileName = "preferences.json";
     public const string LegacyAlertStateFileName = "alert-state.json";
     public const string LastPollFileName = "last-poll.txt";
 
@@ -22,6 +21,11 @@ public sealed class AppStoragePaths
     public string AppDataDirectory { get; }
 
     public string SettingsPath => Path.Combine(AppDataDirectory, SettingsFileName);
+
+    public string PreferencesPath => Path.Combine(AppDataDirectory, PreferencesFileName);
+
+    public string CustomNotificationSoundPath =>
+        Path.Combine(AppDataDirectory, "assets", "custom-notification.wav");
 
     public string LegacyAlertStatePath => Path.Combine(AppDataDirectory, LegacyAlertStateFileName);
 

@@ -1,5 +1,8 @@
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using CheckmkDesktopNotifier.App.Wpf;
+using CheckmkDesktopNotifier.Core;
 
 namespace CheckmkDesktopNotifier.App.Views;
 
@@ -12,9 +15,16 @@ public partial class ProblemListWindow : Window
 
     private void OnHeaderMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.LeftButton == MouseButtonState.Pressed)
+        if (IsFromInteractiveControl(e) || e.LeftButton != MouseButtonState.Pressed)
         {
-            DragMove();
+            return;
         }
+
+        DragMove();
     }
+
+    private static bool IsFromInteractiveControl(MouseButtonEventArgs e) =>
+        AncestorSearch.IsInside<DependencyObject, ButtonBase>(
+            e.OriginalSource as DependencyObject,
+            DependencyObjectAncestors.GetParent);
 }

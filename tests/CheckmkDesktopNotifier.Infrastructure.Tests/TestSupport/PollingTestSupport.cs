@@ -3,6 +3,7 @@ using CheckmkDesktopNotifier.Core.Domain;
 using CheckmkDesktopNotifier.Core.Persistence;
 using CheckmkDesktopNotifier.Core.State;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Notifications;
 using CheckmkDesktopNotifier.Infrastructure.Polling;
 
 namespace CheckmkDesktopNotifier.Infrastructure.Tests.TestSupport;
@@ -77,13 +78,14 @@ internal static class PollerTestHost
     public static (CheckmkPoller Poller, AlertStateService Alerts, RecordingCheckmkClient Client) Create(
         CheckmkOptions? options = null,
         TimeProvider? clock = null,
-        PollDiagnosticsWriter? diagnostics = null)
+        PollDiagnosticsWriter? diagnostics = null,
+        INotificationCoordinator? notifications = null)
     {
         clock ??= TimeProvider.System;
         options ??= new CheckmkOptions { Mode = ClientMode.Mock, PollIntervalSeconds = 60 };
         var client = new RecordingCheckmkClient(clock);
         var alerts = new AlertStateService(new InMemoryAlertStateStore(), clock);
-        var poller = new CheckmkPoller(client, alerts, options, clock, diagnostics);
+        var poller = new CheckmkPoller(client, alerts, options, clock, diagnostics, notifications);
         return (poller, alerts, client);
     }
 }

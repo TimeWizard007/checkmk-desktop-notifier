@@ -45,18 +45,25 @@ Core must stay independently testable.
 - `CheckmkPoller` / `CheckmkPollingHostedService` — background polling while the desktop app is running (not a Windows Service)
 - `PollDiagnosticsWriter` — `%LocalAppData%/CheckmkDesktopNotifier/last-poll.txt` (counts and error kind only)
 - GUI settings store, `ISecretStore` / Windows Credential Manager, `CheckmkConfigurationResolver`, `MonitoringCoordinator`, `CheckmkConnectionTester`
+- Notification policy (`INotificationCoordinator` / `NotificationCoordinator`) maps `AlertDelta.Opened` to desktop alerts; `IUserPreferences` / `preferences.json` (mute, volume, Default vs Custom WAV)
+- `INotificationService` / `IAlertSoundService` abstractions (Windows balloon/sound live in App); PCM volume scaling and WAV validation live in Core
 
 ## App responsibilities
 
 - Composition root (`App.xaml.cs` + `Microsoft.Extensions.Hosting` DI)
-- WPF views (`CompactBarWindow`, `ProblemListWindow`, `SettingsWindow`)
-- ViewModels that **project** Core state and **invoke** Core commands
+- WPF views (`CompactBarWindow`, `ProblemListWindow`, `SettingsWindow`, `AboutWindow`)
+- ViewModels that **project** Core state and **invoke** Core / shell commands
 - Localization (`Strings.resx`, `Strings.pl.resx`, `ILocalizationService`)
-- Window chrome only in code-behind (drag, click vs drag). Compact-bar mouse handling walks parents with `DependencyObjectAncestors` (ContentElement / `Run` before `VisualTreeHelper`) and ignores settings-gear `Button` descendants.
+- Shared shell commands (`IShellCommands` / `UiShell`) for bar, Hide to tray, Settings, About, Exit
+- System tray (`NotifyIconTray` via WinForms `NotifyIcon`) including balloon notifications; left-click toggles bar visibility
+- Alert sound (`WindowsAlertSoundService` / bundled `notifier.wav`), per-app volume, optional imported custom WAV, and mute (shared `IUserPreferences`)
+- Dark compact gear/tray menu styling; dark problem-list `WindowChrome`, scrollbar, and `Button` templates (no default Aero2 chrome)
+- Presentation-only problem-list filter (`ProblemListFilter`); compact-bar counters **toggle** filtered views
+- Window chrome only in code-behind (drag, click vs drag). Compact-bar mouse handling walks parents with `DependencyObjectAncestors` (ContentElement / `Run` before `VisualTreeHelper`) and ignores settings-gear and counter `Button` descendants.
 - Mock vs Real client selection via configuration resolver + `MonitoringCoordinator`
 - Real-mode background polling via `AddCheckmkPolling` + `IHost.StartAsync()`
 - Mock-only demo bootstrap (`DemoBootstrapper`); Real never injects `DemoSnapshotFactory`
-- Connection status projection (`Setup required` / `Connected` / `Refreshing` / `Connection error`)
+- Connection status projection (`Initializing` / `Setup required` / `Connected` / `Refreshing` / `Connection error`)
 
 App must not implement NEW / SEEN / RECOVERED itself.
 
@@ -66,6 +73,7 @@ App must not implement NEW / SEEN / RECOVERED itself.
 Views  →  ShellViewModel  →  IAlertStateService  →  in-memory (Mock) / JSON (Real)
                 │
                 ├── IProblemPoller (StateChanged → Reload)
+                │         └── INotificationCoordinator (AlertDelta.Opened only)
                 └── ICheckmkClient
                       ├── MockCheckmkClient          (Mode=Mock, default; no REST polling)
                       └── CheckmkRestClient          (Mode=Real: services + HARD host DOWN/UNREACH)
@@ -74,17 +82,13 @@ Views  →  ShellViewModel  →  IAlertStateService  →  in-memory (Mock) / JSO
 Startup:
 
 1. Resolve configuration (`CheckmkConfigurationResolver`): `CHECKMK_CONFIG` → GUI `settings.json` + Credential Manager → discovered `checkmk.local.json` / env → unconfigured.
-2. Build DI host.
-   - Mock: `InMemoryAlertStateStore`, `MockCheckmkClient`.
-   - Real / first-run: isolated `JsonAlertStateStore` when a connection identity exists (legacy root file is read fallback only), `DelegatingCheckmkClient` + `MonitoringCoordinator`.
-3. Register `CheckmkPoller` + `CheckmkPollingHostedService`. HTTP timeout is shorter than the poll interval.
-4. Mock: `DemoBootstrapper` sets `MockCheckmkClient.NextSnapshot`, `ApplySnapshot`, then local `MarkSeen` on one demo incident.
-   Real with usable config: `MonitoringCoordinator.ApplyAsync`. Unconfigured: no poll loop; Settings is shown.
-5. Resolve `CompactBarWindow`, set `Application.MainWindow`, resolve `UiShell` so `IProblemPoller.StateChanged` is subscribed.
-6. `IHost.StartAsync()`: when polling is enabled, poll immediately, then every `PollIntervalSeconds`.
-7. `UiShell.Show()` shows the bar, then attaches `ProblemListWindow.Owner`. First-run opens Settings.
+2. Build DI host (Mock vs Real stores/clients as above). Register poller + hosted service.
+3. Resolve `CompactBarWindow`, set `Application.MainWindow`, resolve `UiShell`, **show the bar and tray immediately** with status **Initializing**. Problem list owner is attached after the bar is shown. Expanding the list is disabled until Ready.
+4. Mock: `DemoBootstrapper`. Real with usable config: `MonitoringCoordinator.ApplyAsync`. Unconfigured: no poll loop.
+5. `IHost.StartAsync()` starts polling when enabled.
+6. Mark the shell **Ready**. First-run then opens Settings.
 
-On exit: `IHost.StopAsync()` cancels the poll loop.
+On Exit: cancel monitoring, close Settings/About, hide the problem list, dispose tray, `Application.Shutdown()`. OnExit: `IHost.StopAsync()` cancels the poll loop.
 
 ## Configuration and secrets
 
@@ -93,6 +97,8 @@ No URL, site, username, or automation secret is hardcoded.
 End-user sources:
 
 - `%LocalAppData%/CheckmkDesktopNotifier/settings.json` (non-secret fields only)
+- `%LocalAppData%/CheckmkDesktopNotifier/preferences.json` (mute, volume, Default vs Custom; not secrets; not cleared by Reset)
+- `%LocalAppData%/CheckmkDesktopNotifier/assets/custom-notification.wav` (imported custom sound copy)
 - Windows Credential Manager Generic Credential `CheckmkDesktopNotifier` (automation secret)
 
 Developer/CI sources (do not override saved GUI settings unless `CHECKMK_CONFIG` is set):
@@ -116,6 +122,10 @@ API base URI: `{BaseUrl}/{Site}/check_mk/api/1.0/`.
 - Same object, newer usable recurrence marker → Recovered + NEW (offline OK gap).
 
 `MarkSeen` / `MarkAllNewAsSeen` are local only. Checkmk `acknowledged` is metadata, never local Seen.
+
+Notifications (Phase 4B, COMPLETE / Windows-tested) consume `AlertDelta` only. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Host-DOWN notification grouping is Phase 4C (not started).
+
+**Virgin baseline:** `openIncidentCount == 0 && LastSuccessfulPollUtc is null` before `ApplySnapshot`. If that first snapshot succeeds, Opened incidents are persisted for the UI and **must not** emit notifications/sound. Subsequent successful polls notify only newly Opened incidents.
 
 ## Incident identity
 
@@ -156,7 +166,7 @@ Real mode does not call `DemoBootstrapper` and does not start from `DemoSnapshot
 
 `CheckmkPoller.RunLoopAsync`:
 
-1. Poll immediately (`RefreshAsync` → `ICheckmkClient.GetCurrentProblemsAsync` → `IAlertStateService.ApplySnapshot`).
+1. Poll immediately (`RefreshAsync` → `ICheckmkClient.GetCurrentProblemsAsync` → capture virgin local state → `IAlertStateService.ApplySnapshot` → `INotificationCoordinator.Process`).
 2. Wait `Interval - elapsed` (aligned from poll start). If the cycle ran longer than the interval, start the next poll immediately.
 3. Repeat until cancellation.
 
@@ -178,18 +188,22 @@ Highest first:
 
 GUI BaseUrl is the server origin only (https), not `/{site}/check_mk/api/1.0/`.
 
-Incident identity includes Checkmk **site name**, not the server URL. Persisted incidents are therefore isolated by `ConnectionIdentity` (normalized BaseUrl + Site) so two servers that share a site name cannot collide. Changing server/site switches files; it does not merge or delete the previous file. Reset configuration deletes `settings.json` and the Credential Manager secret only.
+Incident identity includes Checkmk **site name**, not the server URL. Persisted incidents are therefore isolated by `ConnectionIdentity` (normalized BaseUrl + Site) so two servers that share a site name cannot collide. Changing server/site switches files; it does not merge or delete the previous file. Reset configuration deletes `settings.json` and the Credential Manager secret only. `preferences.json` (mute) is left in place.
 
 ## WPF ViewModels
 
-`ShellViewModel` reads `GetOpenIncidents()` and `LastSuccessfulPollUtc`. It calls `MarkSeen` / `MarkAllNewAsSeen` / expand toggle. After each poll, `IProblemPoller.StateChanged` reloads counters, the problem list, last-check time, and connection status on the WPF dispatcher. The UI does not implement NEW / SEEN / RECOVERED.
+`ShellViewModel` reads `GetOpenIncidents()` and `LastSuccessfulPollUtc`. It calls `MarkSeen` / `MarkAllNewAsSeen` / expand toggle / presentation filter. After each poll, `IProblemPoller.StateChanged` reloads counters, the (possibly filtered) problem list, last-check time, and connection status on the WPF dispatcher. The UI does not implement NEW / SEEN / RECOVERED. The active filter is not stored in Core incident state.
 
-Connection status (compact bar): `Setup required` when no poll session is active (unconfigured / after Reset); otherwise `Connected`, `Refreshing`, or `Connection error`. Historical incidents and last-check time may remain visible without implying an active connection. Last successful check remains `HH:mm` from Core (`LastSuccessfulPollUtc` updates only on success). A connection error does not replace the problem list. No exception stacks in the main UI.
+Connection status (compact bar): `Initializing...` until startup finishes; then `Setup required` when no poll session is active; otherwise `Connected`, `Refreshing`, or `Connection error` from **this session's** poller. Persisted `LastSuccessfulPollUtc` may still fill last-check time; it must not imply Connected. A connection error does not replace the problem list. No exception stacks in the main UI.
 
-Sections:
+Sections (ALL filter):
 
 - NEW: `!IsSeen`
 - CRITICAL / WARNING / UNKNOWN: all open incidents of that severity (including NEW)
+
+Single-selection filters NEW / CRIT / WARN / UNK show a flat list (Seen CRIT remains visible under CRIT; Seen leaves the NEW view). Empty filters show a localized empty-state line.
+
+Compact-bar NEW/CRIT/WARN/UNKNOWN counts are global (not filtered). Clicking a count **toggles** that filter (same filter closes; a different filter switches in place). Clicking Checkmk / non-counter area toggles the list and opens ALL. Gear does not change the filter.
 
 Eye button is visible only when `IsNew`. Checkmk ACK and downtime are badges only.
 

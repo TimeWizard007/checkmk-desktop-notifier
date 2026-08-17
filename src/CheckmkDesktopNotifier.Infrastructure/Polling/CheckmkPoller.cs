@@ -1,6 +1,8 @@
 using CheckmkDesktopNotifier.Core.Abstractions;
 using CheckmkDesktopNotifier.Core.Domain;
+using CheckmkDesktopNotifier.Core.Notifications;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Notifications;
 
 namespace CheckmkDesktopNotifier.Infrastructure.Polling;
 
@@ -10,6 +12,7 @@ public sealed class CheckmkPoller : IProblemPoller
     private readonly IAlertStateService _alerts;
     private readonly TimeProvider _clock;
     private readonly PollDiagnosticsWriter? _diagnostics;
+    private readonly INotificationCoordinator? _notifications;
     private readonly SemaphoreSlim _flight = new(1, 1);
     private readonly object _statusLock = new();
     private ConnectionStatus _status = ConnectionStatus.Idle;
@@ -19,7 +22,8 @@ public sealed class CheckmkPoller : IProblemPoller
         IAlertStateService alerts,
         CheckmkOptions options,
         TimeProvider? clock = null,
-        PollDiagnosticsWriter? diagnostics = null)
+        PollDiagnosticsWriter? diagnostics = null,
+        INotificationCoordinator? notifications = null)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
@@ -28,6 +32,7 @@ public sealed class CheckmkPoller : IProblemPoller
         _interval = options.PollInterval;
         _clock = clock ?? TimeProvider.System;
         _diagnostics = diagnostics;
+        _notifications = notifications;
     }
 
     private TimeSpan _interval;
@@ -139,7 +144,18 @@ public sealed class CheckmkPoller : IProblemPoller
                 "The Checkmk request failed.");
         }
 
-        _alerts.ApplySnapshot(snapshot);
+        var wasVirgin = NotificationBaseline.IsVirginLocalState(
+            _alerts.GetOpenIncidents().Count,
+            _alerts.LastSuccessfulPollUtc);
+        var delta = _alerts.ApplySnapshot(snapshot);
+        try
+        {
+            _notifications?.Process(snapshot, delta, wasVirgin);
+        }
+        catch (Exception)
+        {
+        }
+
         var lastSuccess = _alerts.LastSuccessfulPollUtc;
         var now = _clock.GetUtcNow();
 

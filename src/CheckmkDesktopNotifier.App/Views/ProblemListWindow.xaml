@@ -1,6 +1,7 @@
 <Window x:Class="CheckmkDesktopNotifier.App.Views.ProblemListWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:vm="clr-namespace:CheckmkDesktopNotifier.App.ViewModels"
         Title="{Binding Text.ProblemListTitle}"
         Width="480"
@@ -11,7 +12,18 @@
         ResizeMode="CanResize"
         Topmost="True"
         ShowInTaskbar="False"
-        Background="{StaticResource WindowBackgroundBrush}">
+        SnapsToDevicePixels="True"
+        Background="{StaticResource WindowBackgroundBrush}"
+        BorderBrush="{StaticResource BarBorderBrush}"
+        BorderThickness="0"
+        Icon="pack://application:,,,/Assets/app.ico">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                            ResizeBorderThickness="6"
+                            GlassFrameThickness="0"
+                            CornerRadius="0"
+                            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
     <Window.Resources>
         <DataTemplate DataType="{x:Type vm:ProblemItemViewModel}">
             <Border Background="{StaticResource RowBackgroundBrush}"
@@ -85,13 +97,21 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Border BorderBrush="{StaticResource BarBorderBrush}" BorderThickness="1">
+    <Border BorderBrush="{StaticResource BarBorderBrush}"
+            BorderThickness="1"
+            Background="{StaticResource WindowBackgroundBrush}">
         <DockPanel>
             <Border DockPanel.Dock="Top"
                     Background="{StaticResource BarBackgroundBrush}"
+                    BorderBrush="{StaticResource BarBorderBrush}"
+                    BorderThickness="0,0,0,1"
                     Padding="12,8"
                     MouseLeftButtonDown="OnHeaderMouseLeftButtonDown">
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -99,20 +119,60 @@
                     <TextBlock Style="{StaticResource BarTextStyle}"
                                FontWeight="SemiBold"
                                FontSize="14"
+                               VerticalAlignment="Center"
                                Text="{Binding Text.ProblemListTitle}"/>
-                    <Button Grid.Column="1"
-                            Padding="10,4"
-                            Cursor="Hand"
+                    <Border Grid.Column="1"
+                            Background="{StaticResource WindowBackgroundBrush}"
+                            BorderBrush="{StaticResource BarBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="2">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton GroupName="ProblemFilter"
+                                         Style="{StaticResource FilterChipStyle}"
+                                         Content="{Binding Text.FilterAll}"
+                                         IsChecked="{Binding IsFilterAll, Mode=OneWay}"
+                                         Command="{Binding SelectAllFilterCommand}"/>
+                            <RadioButton GroupName="ProblemFilter"
+                                         Style="{StaticResource FilterChipStyle}"
+                                         Content="{Binding Text.FilterNew}"
+                                         IsChecked="{Binding IsFilterNew, Mode=OneWay}"
+                                         Command="{Binding SelectNewFilterCommand}"/>
+                            <RadioButton GroupName="ProblemFilter"
+                                         Style="{StaticResource FilterChipStyle}"
+                                         Content="{Binding Text.FilterCritical}"
+                                         IsChecked="{Binding IsFilterCritical, Mode=OneWay}"
+                                         Command="{Binding SelectCriticalFilterCommand}"/>
+                            <RadioButton GroupName="ProblemFilter"
+                                         Style="{StaticResource FilterChipStyle}"
+                                         Content="{Binding Text.FilterWarning}"
+                                         IsChecked="{Binding IsFilterWarning, Mode=OneWay}"
+                                         Command="{Binding SelectWarningFilterCommand}"/>
+                            <RadioButton GroupName="ProblemFilter"
+                                         Style="{StaticResource FilterChipStyle}"
+                                         Content="{Binding Text.FilterUnknown}"
+                                         IsChecked="{Binding IsFilterUnknown, Mode=OneWay}"
+                                         Command="{Binding SelectUnknownFilterCommand}"/>
+                        </StackPanel>
+                    </Border>
+                    <Button Grid.Row="1"
+                            Style="{StaticResource ResetButtonStyle}"
+                            HorizontalAlignment="Left"
+                            Margin="0,6,0,0"
+                            Padding="0"
                             Command="{Binding MarkAllNewAsSeenCommand}"
                             Content="{Binding Text.MarkAllNewAsSeen}"
-                            Background="{StaticResource ButtonBackgroundBrush}"
-                            Foreground="{StaticResource TextBrush}"
-                            BorderThickness="0"/>
+                            Visibility="{Binding HasNewProblems, Converter={StaticResource BooleanToVisibility}}"/>
                 </Grid>
             </Border>
 
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,4,12,12">
-                <StackPanel>
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Background="{StaticResource WindowBackgroundBrush}"
+                          BorderThickness="0"
+                          Padding="12,4,12,12">
+                <Grid>
+                    <StackPanel Visibility="{Binding ShowSectionedList, Converter={StaticResource BooleanToVisibility}}">
                     <TextBlock Style="{StaticResource SectionHeaderStyle}">
                         <Run Text="{Binding Text.NewSection, Mode=OneWay}"/>
                         <Run Text=" ("/>
@@ -144,7 +204,16 @@
                         <Run Text=")"/>
                     </TextBlock>
                     <ItemsControl ItemsSource="{Binding UnknownItems}"/>
-                </StackPanel>
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ShowFilteredList, Converter={StaticResource BooleanToVisibility}}">
+                        <ItemsControl ItemsSource="{Binding FilteredItems}"/>
+                    </StackPanel>
+                    <TextBlock Visibility="{Binding ShowEmptyFilter, Converter={StaticResource BooleanToVisibility}}"
+                               Style="{StaticResource MutedTextStyle}"
+                               Margin="0,16,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding EmptyFilterText}"/>
+                </Grid>
             </ScrollViewer>
         </DockPanel>
     </Border>

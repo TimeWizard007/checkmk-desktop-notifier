@@ -1,7 +1,9 @@
 using System.IO;
 using CheckmkDesktopNotifier.App.Localization;
+using CheckmkDesktopNotifier.Core.Notifications;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Notifications;
 using CheckmkDesktopNotifier.Infrastructure.Rest;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,19 +15,34 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly GuiConfigurationService _gui;
     private readonly CheckmkConnectionTester _tester;
     private readonly IMonitoringCoordinator? _coordinator;
+    private readonly IAlertSoundService? _sound;
+    private readonly IUserPreferences? _preferences;
+    private readonly NotificationSoundStore? _sounds;
     private readonly bool _requireSecretOnSave;
 
     public SettingsViewModel(
         GuiConfigurationService gui,
         CheckmkConnectionTester tester,
         ILocalizationService text,
-        IMonitoringCoordinator? coordinator)
+        IMonitoringCoordinator? coordinator,
+        IAlertSoundService? sound = null,
+        IUserPreferences? preferences = null,
+        NotificationSoundStore? sounds = null)
     {
         _gui = gui ?? throw new ArgumentNullException(nameof(gui));
         _tester = tester ?? throw new ArgumentNullException(nameof(tester));
         Text = text ?? throw new ArgumentNullException(nameof(text));
         _coordinator = coordinator;
+        _sound = sound;
+        _preferences = preferences;
+        _sounds = sounds;
         _requireSecretOnSave = !gui.HasStoredSecret;
+        if (_preferences is not null)
+        {
+            _volumePercent = _preferences.VolumePercent;
+            _muteSound = _preferences.MuteSound;
+            _preferences.Changed += (_, _) => RefreshSoundFromPreferences();
+        }
 
         var existing = gui.LoadSettings();
         BaseUrl = existing?.BaseUrl ?? string.Empty;
@@ -38,6 +55,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public ILocalizationService Text { get; }
 
     public Func<string>? ReadSecret { get; set; }
+
+    public Func<string?>? PickWavFile { get; set; }
 
     public event EventHandler<bool>? CloseRequested;
 
@@ -63,6 +82,41 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _isBusy;
 
     public bool CanInteract => !IsBusy;
+
+    public bool ShowMuteToggle => _preferences is not null;
+
+    public bool IsDefaultSound =>
+        _preferences is null || _preferences.SoundSource == NotificationSoundSource.Default;
+
+    public bool IsCustomSound =>
+        _preferences?.SoundSource == Core.Notifications.NotificationSoundSource.Custom;
+
+    public string CustomSoundDisplayName =>
+        string.IsNullOrWhiteSpace(_preferences?.CustomSoundFileName)
+            ? string.Empty
+            : _preferences.CustomSoundFileName;
+
+    public bool HasCustomSoundName => !string.IsNullOrWhiteSpace(CustomSoundDisplayName);
+
+    public string VolumePercentText => $"{VolumePercent}%";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(VolumePercentText))]
+    private int _volumePercent = 30;
+
+    [ObservableProperty]
+    private bool _muteSound;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSoundStatus))]
+    private string _soundStatusText = string.Empty;
+
+    public bool HasSoundStatus => !string.IsNullOrWhiteSpace(SoundStatusText);
+
+    public string MuteActionLabel =>
+        _preferences is null
+            ? string.Empty
+            : MuteCommands.MenuHeader(_preferences, Text.MenuMuteSound, Text.MenuUnmuteSound);
 
     [RelayCommand]
     private async Task TestConnectionAsync()
@@ -163,6 +217,108 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private void TestNotificationSound()
+    {
+        if (_sound is null)
+        {
+            return;
+        }
+
+        AlertSoundPreview.Play(_sound);
+    }
+
+    [RelayCommand]
+    private void SelectDefaultSound()
+    {
+        _preferences?.SetSoundSource(NotificationSoundSource.Default);
+        SoundStatusText = string.Empty;
+        NotifySoundProperties();
+    }
+
+    [RelayCommand]
+    private void SelectCustomSound()
+    {
+        if (_sounds?.TryReadCustomBytes() is not null)
+        {
+            _preferences?.SetSoundSource(NotificationSoundSource.Custom);
+            SoundStatusText = string.Empty;
+            NotifySoundProperties();
+            return;
+        }
+
+        ChooseCustomWav();
+    }
+
+    [RelayCommand]
+    private void ChooseCustomWav()
+    {
+        if (_preferences is null || _sounds is null)
+        {
+            return;
+        }
+
+        var path = PickWavFile?.Invoke();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            NotifySoundProperties();
+            return;
+        }
+
+        var imported = _sounds.ImportFrom(path);
+        if (!imported.Succeeded)
+        {
+            SoundStatusText = Text.SoundInvalidWav;
+            NotifySoundProperties();
+            return;
+        }
+
+        _preferences.SetCustomSoundFileName(imported.FileName);
+        _preferences.SetSoundSource(NotificationSoundSource.Custom);
+        SoundStatusText = string.Empty;
+        NotifySoundProperties();
+    }
+
+    [RelayCommand]
+    private void RestoreDefaultSound()
+    {
+        if (_preferences is null)
+        {
+            return;
+        }
+
+        _sounds?.DeleteCustomIfPresent();
+        _preferences.SetCustomSoundFileName(null);
+        _preferences.SetSoundSource(NotificationSoundSource.Default);
+        SoundStatusText = string.Empty;
+        NotifySoundProperties();
+    }
+
+    partial void OnVolumePercentChanged(int value) => _preferences?.SetVolumePercent(value);
+
+    partial void OnMuteSoundChanged(bool value) => _preferences?.SetMuteSound(value);
+
+    private void RefreshSoundFromPreferences()
+    {
+        if (_preferences is null)
+        {
+            return;
+        }
+
+        MuteSound = _preferences.MuteSound;
+        VolumePercent = _preferences.VolumePercent;
+        OnPropertyChanged(nameof(MuteActionLabel));
+        NotifySoundProperties();
+    }
+
+    private void NotifySoundProperties()
+    {
+        OnPropertyChanged(nameof(IsDefaultSound));
+        OnPropertyChanged(nameof(IsCustomSound));
+        OnPropertyChanged(nameof(CustomSoundDisplayName));
+        OnPropertyChanged(nameof(HasCustomSoundName));
     }
 
     private bool TryCreateOptions(bool requireSecret, out CheckmkOptions? options, out string? error)

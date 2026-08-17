@@ -10,6 +10,7 @@ using CheckmkDesktopNotifier.Core.Persistence;
 using CheckmkDesktopNotifier.Core.State;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Notifications;
 using CheckmkDesktopNotifier.Infrastructure.Rest;
 using CheckmkDesktopNotifier.Infrastructure.Secrets;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,7 +61,14 @@ public partial class App : Application
                 services.AddSingleton(loaded);
                 services.AddSingleton<CheckmkConnectionTester>();
                 services.AddSingleton<ILocalizationService, LocalizationService>();
+                services.AddSingleton<IUriLauncher, ShellUriLauncher>();
                 services.AddSingleton<WindowSessionState>();
+                services.AddSingleton<IUserPreferences>(new JsonUserPreferencesStore(paths.PreferencesPath));
+                services.AddSingleton<NotificationSoundStore>();
+                services.AddSingleton<DeferredNotificationService>();
+                services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<DeferredNotificationService>());
+                services.AddSingleton<IAlertSoundService, WindowsAlertSoundService>();
+                services.AddSingleton<INotificationCoordinator, NotificationCoordinator>();
 
                 if (loaded.IsMock)
                 {
@@ -94,8 +102,16 @@ public partial class App : Application
                 services.AddSingleton<CompactBarWindow>();
                 services.AddSingleton<ProblemListWindow>();
                 services.AddSingleton<UiShell>();
+                services.AddSingleton<IShellCommands>(sp => sp.GetRequiredService<UiShell>());
+                services.AddSingleton(sp => new Lazy<IShellCommands>(sp.GetRequiredService<IShellCommands>));
             })
             .Build();
+
+        var bar = _host.Services.GetRequiredService<CompactBarWindow>();
+        MainWindow = bar;
+        var shell = _host.Services.GetRequiredService<UiShell>();
+        var viewModel = _host.Services.GetRequiredService<ShellViewModel>();
+        shell.Show();
 
         var client = _host.Services.GetRequiredService<ICheckmkClient>();
         var alerts = _host.Services.GetRequiredService<IAlertStateService>();
@@ -122,12 +138,8 @@ public partial class App : Application
             }
         }
 
-        var bar = _host.Services.GetRequiredService<CompactBarWindow>();
-        MainWindow = bar;
-        var shell = _host.Services.GetRequiredService<UiShell>();
-
         await _host.StartAsync().ConfigureAwait(true);
-        shell.Show();
+        viewModel.CompleteInitialization();
 
         if (loaded.NeedsFirstRunSetup)
         {

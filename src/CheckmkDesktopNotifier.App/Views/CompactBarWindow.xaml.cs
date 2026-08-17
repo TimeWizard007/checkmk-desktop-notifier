@@ -63,6 +63,21 @@ public partial class CompactBarWindow : Window
         _dragging = false;
     }
 
+    private void OnGearClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.ContextMenu is null)
+        {
+            return;
+        }
+
+        var menu = button.ContextMenu;
+        menu.DataContext = button.DataContext;
+        menu.PlacementTarget = button;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
+        e.Handled = true;
+    }
+
     private static bool IsFromButton(MouseButtonEventArgs e) =>
         AncestorSearch.IsInside<DependencyObject, Button>(
             e.OriginalSource as DependencyObject,

@@ -63,35 +63,55 @@ Background polling for the real Checkmk client, wired into Core and the WPF UI. 
 - `last-poll.txt` updates after successful polls
 - Mock keeps `DemoBootstrapper`; Real uses REST polling only
 
-Do not start Phase 4 until explicitly requested.
+Do not start Phase 4C (host-DOWN grouping / autostart) until asked. Phase 4B is complete.
 
 ## Phase 3D — complete
 
-GUI first-run / Settings, Windows Credential Manager for the automation secret, per-user `settings.json`. Manually validated on Windows 11 (no Administrator privileges): Test connection, Save, restart without `CHECKMK_CONFIG`, Credential Manager storage, isolated alert-state, poll-interval change, wrong/restored secret, VPN loss, Reset, and compact-bar `Run` mouse-input crash fix. Do not start Phase 4 yet.
+GUI first-run / Settings, Windows Credential Manager for the automation secret, per-user `settings.json`. Manually validated on Windows 11 (no Administrator privileges): Test connection, Save, restart without `CHECKMK_CONFIG`, Credential Manager storage, isolated alert-state, poll-interval change, wrong/restored secret, VPN loss, Reset, and compact-bar `Run` mouse-input crash fix.
+
+## Phase 4A — COMPLETE / Windows-tested
+
+Desktop shell / UX foundation: Initializing status, gear menu, About, graceful Exit, system tray, application icon. Manually validated on Windows 11. Remaining boxed menu visuals were carried into Phase 4B (no separate polish phase).
 
 ## Phase 3 (remaining, later)
 
 - Optional in-app language switcher / DPAPI is not used (Credential Manager is the secret store)
 - Keep mock for UI development and tests
 
-## Phase 4 — not started (backlog only)
+## Phase 4A — desktop shell (complete)
 
-Do not implement these until explicitly requested:
+Implemented and Windows-tested:
 
-1. Startup Initializing / Loading state
-2. Prevent unsafe/awkward interaction before initialization is ready
-3. Settings gear menu with exactly: Connection settings, Help / About, Exit
-4. Help / About: Checkmk Desktop Notifier; application version from assembly/build metadata (not hardcoded in UI); Author: TimeWizard007; clickable GitHub repository link `https://github.com/TimeWizard007/checkmk-desktop-notifier`
-5. Proper graceful Exit action
-6. System tray icon
-7. Application / window / executable icon
-8. Tray menu
-9. Windows toast / popup notifications
-10. Alert sound
-11. Mute
-12. Local Seen-aware notification behavior
-13. Host DOWN / UNREACHABLE notification grouping/coalescing so one failed host does not create a notification storm from all child services
-14. Reuse the same commands/logic for Exit/Settings between compact-bar menu and tray where appropriate
+- Startup Initializing / Loading state; block unsafe actions until ready
+- Settings gear menu: Connection settings, Help / About, Exit (Mute added in 4B)
+- Help / About with assembly version and GitHub link
+- Graceful Exit (shared with tray)
+- System tray icon + menu (Open / Connection settings / Help About / Exit; Mute added in 4B)
+- Application / window / executable / tray icon (`Assets/app.ico`, replaceable original placeholder)
+- Shared shell commands between gear and tray
+
+## Phase 4B — COMPLETE / Windows-tested
+
+Windows balloon notifications, alert sound (bundled WAV + optional imported custom WAV, per-app volume), mute, Seen-aware / de-duplicated notify-on-Opened, dark gear/tray menu polish, hide-to-tray, dark problem-list chrome, presentation-only problem-list filter with counter toggle, Settings Connection/Notifications tabs. Manually validated on Windows 11.
+
+## Phase 4C — not started
+
+- Host DOWN / UNREACHABLE notification grouping/coalescing
+- Avoid notification storms from child services caused by the failed host
+- Preserve full host/service visibility in the problem list
+- Start with Windows / per-user autostart
+- Shared autostart state for application Settings and a future installer
+
+## Phase 4D — not started
+
+- Per-user installer/package
+- Install without Administrator privileges where practical
+- Upgrade behavior
+- Start Menu shortcut
+- Optional desktop shortcut
+- Installer option for Start with Windows
+- Preserving Settings / Credential Manager / Seen state on upgrade
+- Uninstall behavior
 
 ## Phase 5 / V1 release — not started
 
@@ -103,10 +123,11 @@ Keep this visible; do not start until Phase 4 is done unless a later decision sa
 - Explanation of NEW / Seen / Checkmk ACK / downtime
 - Build-from-source documentation
 - Review/update of `docs/`
+- Final icon review
 - Clean self-contained Windows package
 - Final Windows regression tests
-- GitHub tag/release
+- Version / GitHub tag / GitHub Release
 - MIT / open-source release hygiene
 - No Checkmk logos/trademarks bundled without permission
 - Logging with secret redaction
-- Start with Windows (optional), single-instance
+- Single-instance

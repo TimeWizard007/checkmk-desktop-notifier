@@ -236,6 +236,117 @@ Do not log or commit the automation secret, Authorization header, host names, or
 
 Phase 3C wrote `%LocalAppData%\CheckmkDesktopNotifier\alert-state.json`. Phase 3D reads that file **only** when the isolated `state\<hash>\alert-state.json` does not exist yet. It is not copied or auto-deleted. After the isolated file exists, the root file is unused and may be removed **manually** later. Do not delete it as part of Reset or startup.
 
+## Phase 4A — desktop shell (COMPLETE / Windows-tested)
+
+Gear menu and tray share `IShellCommands` (`ShowBar`, `HideToTray`, `ToggleBar`, `ShowSettings`, `ShowAbout`, `Exit`). Exit stops polling, closes Settings/About, hides the problem list, disposes the tray icon, then `Application.Shutdown()`. `ShutdownMode` is `OnExplicitShutdown`. Closing Settings, About, or the problem list does not exit the app. **Hide to tray** hides the existing compact bar and problem list; monitoring, polling, and notifications continue.
+
+Tray uses built-in `System.Windows.Forms.NotifyIcon` (no extra NuGet). Left-click toggles bar visibility. Tray **Open** always restores the existing compact bar.
+
+Version in About is `AssemblyInformationalVersion` / assembly version from the App project (`0.4.0`), not a string literal in XAML. Icon: replaceable original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256). Do not spend time redesigning the placeholder in code; a final icon may be supplied before V1.
+
+Windows 11 checklist A–T: **PASSED**. Gear/tray visual leftover (system-boxed menus) is addressed in Phase 4B.
+
+## Phase 4B — notifications (COMPLETE / Windows-tested)
+
+Notifications are driven by Core `AlertDelta.Opened` only. The UI does not reimplement incident lifecycle.
+
+**Implementation:** unpackaged WinForms balloon via the existing tray `NotifyIcon.ShowBalloonTip`. No Windows App SDK, no extra NuGet, no Administrator rights, no Start Menu shortcut / AppUserModelID registration. Works from a self-contained unpackaged exe on Windows 10/11. Limitation: balloon chrome is older than Action Center toasts; rapid multiple NEW incidents in one poll may visually replace each other (each is still recorded as notified). Title ≤ 63 characters, body ≤ 255.
+
+**Sound:** bundled `Assets/notifier.wav` (PCM WAV) via `SoundPlayer`. Volume is applied in-process by scaling PCM samples (default **30%**). Custom WAV is copied into `%LocalAppData%/CheckmkDesktopNotifier/assets/custom-notification.wav` — playback never depends on the original path. MP3/MP4 are out of V1. Mute is a separate preference (visual balloon still shown). Settings **Test notification sound** plays the selected source at the configured volume and **bypasses Mute**.
+
+**Mute:** notifications may still appear; custom sound is disabled. Mute does not pause monitoring, mark Seen, hide the list, or call Checkmk ACK. Gear, tray, and Settings share the same `IUserPreferences`. Persisted in `%LocalAppData%/CheckmkDesktopNotifier/preferences.json` (not `settings.json`) together with volume and Default/Custom. Reset configuration does not clear these preferences.
+
+**Startup baseline:** if local state is virgin (`GetOpenIncidents().Count == 0` and `LastSuccessfulPollUtc is null`), the first successful snapshot is the baseline — existing Checkmk problems appear in the UI with no toasts/sound. Failed polls keep the store virgin. If persisted state already exists, normal lifecycle applies (no replay of existing incidents as NEW notifications).
+
+**De-duplication:** only `AlertDelta.Opened` notifies. The same NEW incident on later polls is not Opened. Seen / restart with persisted incidents do not notify. Recovery then recurrence Opens a new incident and may notify again.
+
+**Menus:** dark compact WPF `ContextMenu` templates and a WinForms `ToolStripProfessionalRenderer` (subtle outer border, compact padding, thin separator, muted Exit). Gear: Connection settings, Help / About, Mute/Unmute, Hide to tray, Exit. Tray: Open, Connection settings, Help / About, Mute/Unmute, Exit.
+
+**Problem list chrome:** `WindowChrome` with `GlassFrameThickness=0` removes the default light DWM/resize outline on `WindowStyle=None`. Dark `ScrollBar`/`ScrollViewer` templates replace the system light scrollbar (including the `ScrollViewer` corner cell). The remaining top-right light rectangle was the default Aero2 **`Button` ControlTemplate** on “Mark all new as seen” — WPF ignores `Background` unless `OverridesDefaultStyle` is set. App-level dark `Button` templates fix that; the top-right slot is now a dark ALL/NEW/CRIT/WARN/UNK filter.
+
+**Problem list filter:** presentation-only (`ProblemListFilter` / `ProblemListFilterLogic`). Compact-bar counters **toggle**: closed → open that filter; same filter again → close; different filter → stay open and switch (no close/reopen). Filter chips in the list select without closing. Clicking the Checkmk title / non-counter bar area toggles **ALL**. Gear does not change the filter. Counters remain `Button`s excluded from drag via `IsFromButton` / `AncestorSearch`.
+
+**Settings:** Connection / Notifications tabs with dark `TabControl` templates (no system tab chrome). Test connection and Test notification sound are secondary actions. Save is primary. Reset is separated.
+
+**Compact bar width:** `SizeToContent=Width` with no `MinWidth`. The previous `MinWidth="640"` left empty dark space after the gear when content was shorter than 640px. The window now ends after the gear plus the existing 10px border padding. Status and counter text can grow and shrink the bar.
+
+**Windows 11 manual validation: PASSED.** Do not start Phase 4C (host-DOWN grouping / autostart).
+
+### Windows 11 polish retest (Phase 4B)
+
+No Administrator privileges. Use a self-contained win-x64 publish.
+
+| | Test | Expected |
+|---|------|----------|
+| A | Gear menu spacing | Compact; no large empty area around the separator |
+| B | Separator | Thin subtle line; Exit sits close underneath |
+| C | Problem list border | No bright/light top line or system chrome |
+| D | Problem-list scrollbar | Dark track/thumb; still scrolls; hover/drag visible |
+| E | Hide to tray | Compact bar and list hide; process/monitoring/notifications continue |
+| F | Tray Open | Restores the existing compact bar (not a second window) |
+| G | Tray left-click | Toggles hide/restore |
+| H | Custom sound | Distinct from Windows Exclamation |
+| I | Mute | Visual notification still shows; custom sound does not play |
+| J | Unmute | Custom sound plays again on a NEW incident |
+| K | Settings → Test notification sound | Plays the custom WAV; no new incident |
+| L | Real NEW incident | Exactly one visual notification + custom sound (if unmuted) |
+| M | Regression | 4A/4B: Settings, About, Exit, Seen, VPN freeze, baseline suppression still work |
+| N | Problem list fill | No white/light rectangle remains in ProblemListWindow |
+| O | Gear separator | Separator/Exit spacing looks clean; Exit aligned with other items |
+| P | Tray separator | Separator/Exit spacing looks clean; Exit aligned with other items |
+| Q | Settings tabs | Connection/Notifications match the dark app style; no default light TabControl chrome |
+| R | Compact bar width | Compact bar ends shortly after the gear icon with only small right padding |
+| S | Compact bar trailing fill | No empty rectangle remains after gear |
+| T | Compact bar resize | EN/PL and different status/counter lengths resize naturally without clipping |
+| U | Filter chrome | White rectangle is gone and replaced by a dark filter control |
+| V | List filters | ALL / NEW / CRIT / WARN / UNK filters work |
+| W | Compact-bar counters | Clicking CRIT/WARN/UNKNOWN/NEW counters opens the corresponding filtered list |
+| X | NEW + Seen | Marking one NEW Seen removes only that incident from the NEW filter |
+| Y | Live polling | Filtered list updates correctly (recoveries leave, new matches appear) |
+
+The original functional 4B checklist (baseline storm, WARN/CRIT/UNKNOWN, Seen, recurrence, restart, VPN) still applies. **Windows 11 polish retest: PASSED.**
+
+### Windows 11 remaining 4B retest (counters + sound)
+
+| | Test | Expected |
+|---|------|----------|
+| A | CRIT click | Opens CRIT view |
+| B | CRIT click again | Closes ProblemListWindow |
+| C | CRIT → WARN | List stays open and switches to WARN |
+| D | WARN click again | Closes |
+| E | NEW → NEW | Same toggle as CRIT |
+| F | UNKNOWN → UNKNOWN | Same toggle as CRIT |
+| G | Filter switch | No close/reopen flash |
+| H | Notifications tab | Default / Custom WAV / Volume / Test / Restore default / Mute |
+| I | Default sound | Bundled notifier plays |
+| J | Volume 100% vs 30% | Clearly different loudness |
+| K | Volume 0% | Silent |
+| L | Choose Custom WAV | Import succeeds |
+| M | App-owned copy | File exists under LocalAppData `assets/custom-notification.wav` |
+| N | Delete original source WAV | Custom notification still works |
+| O | Custom after delete | Still plays from app-owned copy |
+| P | Restart | Preserves Custom + Volume |
+| Q | Restore default | Bundled notifier.wav |
+| R | Restart after restore | Preserves Default |
+| S | Mute from gear | Real notification is silent |
+| T | Tray | Same Mute state |
+| U | Unmute | Sound returns |
+| V | Test notification sound | Selected source + configured volume; bypasses Mute |
+| W | One NEW incident | Exactly one balloon + one sound |
+| X | Next poll | No duplicate |
+| Y | Restart | No replay of existing incidents |
+| Z | Seen single-row | Unchanged |
+| AA | Mark all new as seen | Unchanged |
+| AB | Filters | ALL / NEW / CRIT / WARN / UNK still correct |
+| AC | Hide/restore tray | Unchanged |
+| AD | VPN | Unchanged |
+| AE | Settings / Credential Manager | Unchanged |
+| AF | About / Exit / Seen persistence | Unchanged |
+
+**Windows 11 remaining 4B retest: PASSED.** Sanitized confirmation: CRIT/NEW/UNKNOWN same-filter click closes the list; CRIT→WARN stays open and switches with no close/reopen flash. Notifications tab shows Default / Custom WAV / Volume / Test / Restore default / Mute. Bundled default plays; 30% is quieter than 100%; 0% is silent; custom WAV is copied to LocalAppData `assets/custom-notification.wav` and survives deleting the original source; restart preserves Custom + Volume; Restore default returns to the bundled sound; Mute/Unmute are shared between gear and tray. One NEW incident → one balloon + one sound; later polls and restart do not replay. Previously validated 4A/4B behavior (baseline, dark list/scrollbar, filters, Seen, tray, VPN, Credential Manager, compact-bar sizing) remains confirmed.
+
+Do not start Phase 4C.
+
 ## Windows — self-contained win-x64 publish
 
 No admin required. From the repository root:
@@ -270,9 +381,9 @@ Run `publish\win-x64\CheckmkDesktopNotifier.exe` on Windows 11.
 dotnet test CheckmkDesktopNotifier.sln
 ```
 
-Core tests cover lifecycle, persistence (including isolated vs legacy alert-state fallback), identities, recurrence, the demo snapshot mix, and compact-bar ancestor/pointer-origin logic (`Run` vs Visual vs Button).
+Core tests cover lifecycle, persistence (including isolated vs legacy alert-state fallback), identities, recurrence, the demo snapshot mix, compact-bar ancestor/pointer-origin logic (`Run` vs Visual vs Button, including counter buttons), and presentation-only problem-list filtering.
 
-Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, merged service+host snapshots, polling (immediate first poll, interval, no overlap, cancellation, failed poll freeze, persistence reload), GUI settings / Credential Manager / connection tester, and Mock vs Real startup flags.
+Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, merged service+host snapshots, polling (immediate first poll, interval, no overlap, cancellation, failed poll freeze, persistence reload), GUI settings / Credential Manager / connection tester, Mock vs Real startup flags, and Phase 4B notifications (Opened-only, baseline storm suppression, mute, sound preview, backend failure isolation). Core also covers hide/restore/tray-toggle visibility and the bundled notifier WAV header.
 
 There is no WPF UI test project yet.
 
@@ -295,4 +406,4 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not put Checkmk REST DTOs in Core.
 - Do not call Checkmk ACK from the eye button.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Do not start Phase 4 until explicitly requested.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Do not start Phase 4C.

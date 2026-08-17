@@ -38,6 +38,7 @@ public interface ILocalizationService
     string ConnectionRefreshing { get; }
     string ConnectionError { get; }
     string ConnectionSetupRequired { get; }
+    string ConnectionInitializing { get; }
     string Settings { get; }
     string SettingsTitle { get; }
     string SettingsIntro { get; }
@@ -65,4 +66,40 @@ public interface ILocalizationService
     string TestHostsReachable { get; }
     string SettingsSaved { get; }
     string SettingsValidationFailed { get; }
+    string TestNotificationSound { get; }
+    string SoundSection { get; }
+    string SoundDefault { get; }
+    string SoundCustomWav { get; }
+    string SoundChooseWav { get; }
+    string SoundVolume { get; }
+    string SoundRestoreDefault { get; }
+    string SoundMute { get; }
+    string SoundInvalidWav { get; }
+    string SoundWavFilter { get; }
+    string SettingsTabConnection { get; }
+    string SettingsTabNotifications { get; }
+    string SettingsNotificationsIntro { get; }
+    string FilterAll { get; }
+    string FilterNew { get; }
+    string FilterCritical { get; }
+    string FilterWarning { get; }
+    string FilterUnknown { get; }
+    string EmptyFilterAll { get; }
+    string EmptyFilterNew { get; }
+    string EmptyFilterCritical { get; }
+    string EmptyFilterWarning { get; }
+    string EmptyFilterUnknown { get; }
+    string MenuConnectionSettings { get; }
+    string MenuHelpAbout { get; }
+    string MenuExit { get; }
+    string MenuOpen { get; }
+    string MenuMuteSound { get; }
+    string MenuUnmuteSound { get; }
+    string MenuHideToTray { get; }
+    string AboutTitle { get; }
+    string AboutDescription { get; }
+    string AboutVersion { get; }
+    string AboutAuthor { get; }
+    string AboutGitHub { get; }
+    string AboutClose { get; }
 }

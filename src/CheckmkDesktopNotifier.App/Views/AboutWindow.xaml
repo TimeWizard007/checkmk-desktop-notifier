@@ -1,0 +1,44 @@
+<Window x:Class="CheckmkDesktopNotifier.App.Views.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Text.AboutTitle}"
+        Width="420"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{StaticResource WindowBackgroundBrush}"
+        Icon="pack://application:,,,/Assets/app.ico">
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Background" Value="{StaticResource ButtonBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BarBorderBrush}"/>
+        </Style>
+    </Window.Resources>
+    <StackPanel Margin="20">
+        <TextBlock Text="{Binding ProductName}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <TextBlock Text="{Binding Text.AboutDescription}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+
+        <TextBlock Foreground="{StaticResource MutedBrush}" Text="{Binding Text.AboutVersion}"/>
+        <TextBlock Text="{Binding Version}" Margin="0,0,0,10" FontWeight="SemiBold"/>
+
+        <TextBlock Foreground="{StaticResource MutedBrush}" Text="{Binding Text.AboutAuthor}"/>
+        <TextBlock Text="{Binding Author}" Margin="0,0,0,10"/>
+
+        <TextBlock Foreground="{StaticResource MutedBrush}" Text="{Binding Text.AboutGitHub}"/>
+        <TextBlock Margin="0,0,0,16">
+            <Hyperlink Command="{Binding OpenRepositoryCommand}" Foreground="#5EEAD4">
+                <Run Text="{Binding RepositoryUrl, Mode=OneWay}"/>
+            </Hyperlink>
+        </TextBlock>
+
+        <Button Content="{Binding Text.AboutClose}" HorizontalAlignment="Right" IsCancel="True" Click="OnCloseClick"/>
+    </StackPanel>
+</Window>

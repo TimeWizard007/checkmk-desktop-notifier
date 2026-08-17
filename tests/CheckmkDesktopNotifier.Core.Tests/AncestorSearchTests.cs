@@ -62,6 +62,19 @@ public sealed class AncestorSearchTests
     }
 
     [Fact]
+    public void Compact_bar_counter_button_is_excluded_from_drag_and_toggle()
+    {
+        var counter = new FakeButton { Name = "CritCount" };
+        var text = new FakeTextBlock { Parent = counter };
+        var run = new FakeRun { Parent = text };
+
+        Assert.False(ShouldHandleAsBarBackground(run));
+        Assert.False(ShouldHandleAsBarBackground(text));
+        Assert.False(ShouldHandleAsBarBackground(counter));
+        Assert.True(ShouldHandleAsBarBackground(new FakeTextBlock()));
+    }
+
+    [Fact]
     public void Non_interactive_compact_bar_content_is_treated_as_bar_background()
     {
         var grid = new FakeGrid();

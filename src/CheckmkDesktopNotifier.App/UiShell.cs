@@ -1,15 +1,18 @@
+using System.ComponentModel;
+using System.Reflection;
+using System.Windows;
 using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.App.ViewModels;
 using CheckmkDesktopNotifier.App.Views;
+using CheckmkDesktopNotifier.Core;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Notifications;
 using CheckmkDesktopNotifier.Infrastructure.Rest;
-using System.ComponentModel;
-using System.Windows;
 
 namespace CheckmkDesktopNotifier.App;
 
-public sealed class UiShell
+public sealed class UiShell : IShellCommands
 {
     private readonly CompactBarWindow _bar;
     private readonly ProblemListWindow _list;
@@ -18,7 +21,19 @@ public sealed class UiShell
     private readonly GuiConfigurationService _gui;
     private readonly CheckmkConnectionTester _tester;
     private readonly ILocalizationService _text;
+    private readonly IUriLauncher _uris;
     private readonly IMonitoringCoordinator? _coordinator;
+    private readonly IUserPreferences _preferences;
+    private readonly DeferredNotificationService _notifications;
+    private readonly IAlertSoundService _sound;
+    private readonly NotificationSoundStore _sounds;
+    private readonly ShellBarVisibility _barVisibility = new();
+    private readonly SingleInstanceGate _settingsGate = new();
+    private readonly SingleInstanceGate _aboutGate = new();
+    private readonly ShutdownGate _shutdown = new();
+    private SettingsWindow? _settingsWindow;
+    private AboutWindow? _aboutWindow;
+    private NotifyIconTray? _tray;
 
     public UiShell(
         CompactBarWindow bar,
@@ -28,6 +43,11 @@ public sealed class UiShell
         GuiConfigurationService gui,
         CheckmkConnectionTester tester,
         ILocalizationService text,
+        IUriLauncher uris,
+        IUserPreferences preferences,
+        DeferredNotificationService notifications,
+        IAlertSoundService sound,
+        NotificationSoundStore sounds,
         IMonitoringCoordinator? coordinator = null)
     {
         _bar = bar;
@@ -37,14 +57,17 @@ public sealed class UiShell
         _gui = gui;
         _tester = tester;
         _text = text;
+        _uris = uris;
+        _preferences = preferences;
+        _notifications = notifications;
+        _sound = sound;
+        _sounds = sounds;
         _coordinator = coordinator;
 
         _bar.DataContext = _viewModel;
         _list.DataContext = _viewModel;
-        _viewModel.SettingsRequested += (_, _) => ShowSettings();
-
-        _bar.DataContext = _viewModel;
-        _list.DataContext = _viewModel;
+        _bar.Icon = AppIcon.WindowSource;
+        _list.Icon = AppIcon.WindowSource;
 
         _bar.LocationChanged += (_, _) =>
         {
@@ -56,27 +79,217 @@ public sealed class UiShell
         _bar.SizeChanged += (_, _) => PositionList();
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _list.Closing += OnListClosing;
-        _bar.Closed += (_, _) => Application.Current.Shutdown();
+        _bar.Closing += OnBarClosing;
     }
 
     public void Show()
     {
+        var firstPlace = _session.BarLeft is null || _session.BarTop is null;
         RestoreOrPlaceBar();
+        _barVisibility.Restore();
         _bar.Show();
+        if (firstPlace)
+        {
+            PlaceBarTopRight();
+        }
         AttachListOwner();
         PositionList();
         ApplyExpandedState();
+        _tray ??= new NotifyIconTray(this, _text, _preferences, NotifyIconTray.LoadApplicationIcon());
+        _notifications.SetInner(_tray);
+    }
+
+    public void ShowBar()
+    {
+        if (_shutdown.HasStarted)
+        {
+            return;
+        }
+
+        _barVisibility.Restore();
+        ApplyBarVisibility();
+    }
+
+    public void HideToTray()
+    {
+        if (_shutdown.HasStarted || HasOpenDialog)
+        {
+            return;
+        }
+
+        _barVisibility.HideToTray();
+        ApplyBarVisibility();
+    }
+
+    public void ToggleBar()
+    {
+        if (_shutdown.HasStarted)
+        {
+            return;
+        }
+
+        if (_barVisibility.IsVisible && HasOpenDialog)
+        {
+            return;
+        }
+
+        _barVisibility.ToggleFromTrayClick();
+        ApplyBarVisibility();
     }
 
     public void ShowSettings()
     {
-        var viewModel = new SettingsViewModel(_gui, _tester, _text, _coordinator);
+        if (_shutdown.HasStarted || !_viewModel.IsReady || !_viewModel.SettingsAvailable)
+        {
+            return;
+        }
+
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+
+        if (!_settingsGate.TryEnter())
+        {
+            _settingsWindow?.Activate();
+            return;
+        }
+
+        var viewModel = new SettingsViewModel(_gui, _tester, _text, _coordinator, _sound, _preferences, _sounds);
         var window = new SettingsWindow(viewModel)
         {
+            Owner = _bar.IsVisible ? _bar : null,
+            Icon = AppIcon.WindowSource
+        };
+        _settingsWindow = window;
+        window.Closed += (_, _) =>
+        {
+            _settingsWindow = null;
+            _settingsGate.Exit();
+            _viewModel.Reload();
+        };
+
+        window.ShowDialog();
+    }
+
+    public void ShowAbout()
+    {
+        if (_shutdown.HasStarted)
+        {
+            return;
+        }
+
+        if (_aboutWindow is not null)
+        {
+            _aboutWindow.Activate();
+            return;
+        }
+
+        if (!_aboutGate.TryEnter())
+        {
+            _aboutWindow?.Activate();
+            return;
+        }
+
+        var version = ApplicationVersion.FromAssembly(Assembly.GetEntryAssembly() ?? typeof(App).Assembly);
+        var window = new AboutWindow
+        {
+            DataContext = new AboutViewModel(_text, version, _uris),
             Owner = _bar.IsVisible ? _bar : null
         };
-        window.ShowDialog();
-        _viewModel.Reload();
+        _aboutWindow = window;
+        window.Closed += (_, _) =>
+        {
+            _aboutWindow = null;
+            _aboutGate.Exit();
+        };
+        window.Show();
+    }
+
+    public void Exit()
+    {
+        if (!_shutdown.TryBegin())
+        {
+            return;
+        }
+
+        _viewModel.BeginShutdown();
+        _ = ExitCoreAsync();
+    }
+
+    private async Task ExitCoreAsync()
+    {
+        try
+        {
+            if (_coordinator is not null)
+            {
+                await _coordinator.ResetPollingAsync().ConfigureAwait(true);
+            }
+        }
+        catch (Exception)
+        {
+        }
+
+        CloseQuietly(_settingsWindow);
+        CloseQuietly(_aboutWindow);
+        if (_list.IsVisible)
+        {
+            _viewModel.IsExpanded = false;
+        }
+
+        _notifications.SetInner(null);
+        _tray?.Dispose();
+        _tray = null;
+        Application.Current?.Shutdown();
+    }
+
+    private bool HasOpenDialog => _settingsWindow is not null || _aboutWindow is not null;
+
+    private void ApplyBarVisibility()
+    {
+        if (_barVisibility.IsVisible)
+        {
+            var firstPlace = _session.BarLeft is null || _session.BarTop is null;
+            RestoreOrPlaceBar();
+            if (!_bar.IsVisible)
+            {
+                _bar.Show();
+            }
+
+            if (firstPlace)
+            {
+                PlaceBarTopRight();
+            }
+
+            AttachListOwner();
+            _bar.Activate();
+            _bar.Topmost = false;
+            _bar.Topmost = true;
+            ApplyExpandedState();
+            return;
+        }
+
+        if (_list.IsVisible)
+        {
+            _list.Hide();
+        }
+
+        if (_bar.IsVisible)
+        {
+            _bar.Hide();
+        }
+    }
+
+    private void OnBarClosing(object? sender, CancelEventArgs e)
+    {
+        if (_shutdown.HasStarted)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        HideToTray();
     }
 
     private void AttachListOwner()
@@ -137,8 +350,21 @@ public sealed class UiShell
         }
 
         _bar.WindowStartupLocation = WindowStartupLocation.Manual;
+        PlaceBarTopRight();
+    }
+
+    private void PlaceBarTopRight()
+    {
         var work = SystemParameters.WorkArea;
-        _bar.Left = Math.Max(work.Left, work.Right - 720);
+        var width = _bar.ActualWidth > 1 ? _bar.ActualWidth : _bar.DesiredSize.Width;
+        if (width < 1)
+        {
+            _bar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            width = _bar.DesiredSize.Width;
+        }
+
+        const double margin = 12;
+        _bar.Left = Math.Max(work.Left, work.Right - Math.Max(width, 1) - margin);
         _bar.Top = work.Top + 12;
         _session.BarLeft = _bar.Left;
         _session.BarTop = _bar.Top;
@@ -155,5 +381,16 @@ public sealed class UiShell
 
         _list.Left = Math.Min(_bar.Left, work.Right - _list.Width);
         _list.Top = top;
+    }
+
+    private static void CloseQuietly(Window? window)
+    {
+        try
+        {
+            window?.Close();
+        }
+        catch (Exception)
+        {
+        }
     }
 }
