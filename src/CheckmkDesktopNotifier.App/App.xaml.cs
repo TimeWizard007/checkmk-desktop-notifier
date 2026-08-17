@@ -6,6 +6,7 @@ using CheckmkDesktopNotifier.App.Mock;
 using CheckmkDesktopNotifier.App.ViewModels;
 using CheckmkDesktopNotifier.App.Views;
 using CheckmkDesktopNotifier.Core.Abstractions;
+using CheckmkDesktopNotifier.Core.Autostart;
 using CheckmkDesktopNotifier.Core.Persistence;
 using CheckmkDesktopNotifier.Core.State;
 using CheckmkDesktopNotifier.Infrastructure;
@@ -69,6 +70,11 @@ public partial class App : Application
                 services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<DeferredNotificationService>());
                 services.AddSingleton<IAlertSoundService, WindowsAlertSoundService>();
                 services.AddSingleton<INotificationCoordinator, NotificationCoordinator>();
+                services.AddSingleton<IApplicationExecutable, CurrentProcessExecutable>();
+                services.AddSingleton<IAutostartStore>(_ => OperatingSystem.IsWindows()
+                    ? new WindowsHkcuRunAutostartStore()
+                    : new InMemoryAutostartStore());
+                services.AddSingleton<AutostartService>();
 
                 if (loaded.IsMock)
                 {
@@ -110,6 +116,13 @@ public partial class App : Application
         var bar = _host.Services.GetRequiredService<CompactBarWindow>();
         MainWindow = bar;
         var shell = _host.Services.GetRequiredService<UiShell>();
+        try
+        {
+            _host.Services.GetRequiredService<AutostartService>().RepairIfRegistered();
+        }
+        catch (Exception)
+        {
+        }
         var viewModel = _host.Services.GetRequiredService<ShellViewModel>();
         shell.Show();
 

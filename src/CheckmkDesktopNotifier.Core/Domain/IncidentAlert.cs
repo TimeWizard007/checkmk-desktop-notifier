@@ -12,4 +12,10 @@ public sealed record IncidentAlert
     public required string Title { get; init; }
 
     public required string Body { get; init; }
+
+    /// <summary>
+    /// True when this balloon represents a host DOWN/UNREACHABLE group rather than a single service.
+    /// Grouping never changes Core incident identities or Seen state.
+    /// </summary>
+    public bool IsGroupedHostFailure { get; init; }
 }

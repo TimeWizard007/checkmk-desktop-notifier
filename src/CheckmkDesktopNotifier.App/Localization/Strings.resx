@@ -225,11 +225,20 @@
   <data name="AboutClose" xml:space="preserve">
     <value>Close</value>
   </data>
+  <data name="SettingsTabGeneral" xml:space="preserve">
+    <value>General</value>
+  </data>
   <data name="SettingsTabConnection" xml:space="preserve">
     <value>Connection</value>
   </data>
   <data name="SettingsTabNotifications" xml:space="preserve">
     <value>Notifications</value>
+  </data>
+  <data name="SettingsStartWithWindows" xml:space="preserve">
+    <value>Start with Windows</value>
+  </data>
+  <data name="SettingsAutostartFailed" xml:space="preserve">
+    <value>Could not update Start with Windows.</value>
   </data>
   <data name="SettingsNotificationsIntro" xml:space="preserve">
     <value>Test the bundled notification sound. Mute is also available from the gear and tray menus.</value>

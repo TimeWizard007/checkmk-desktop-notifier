@@ -63,7 +63,7 @@ Background polling for the real Checkmk client, wired into Core and the WPF UI. 
 - `last-poll.txt` updates after successful polls
 - Mock keeps `DemoBootstrapper`; Real uses REST polling only
 
-Do not start Phase 4C (host-DOWN grouping / autostart) until asked. Phase 4B is complete.
+Do not start Phase 4D (installer) until asked. Phase 4C is complete.
 
 ## Phase 3D — complete
 
@@ -94,39 +94,48 @@ Implemented and Windows-tested:
 
 Windows balloon notifications, alert sound (bundled WAV + optional imported custom WAV, per-app volume), mute, Seen-aware / de-duplicated notify-on-Opened, dark gear/tray menu polish, hide-to-tray, dark problem-list chrome, presentation-only problem-list filter with counter toggle, Settings Connection/Notifications tabs. Manually validated on Windows 11.
 
-## Phase 4C — not started
+## Phase 4C — COMPLETE / Windows-tested
 
-- Host DOWN / UNREACHABLE notification grouping/coalescing
-- Avoid notification storms from child services caused by the failed host
-- Preserve full host/service visibility in the problem list
-- Start with Windows / per-user autostart
-- Shared autostart state for application Settings and a future installer
+- Host DOWN / UNREACHABLE notification grouping/coalescing from the merged snapshot (no child-service balloon storm; full host/service visibility in the problem list)
+- Per-user Start with Windows (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier`, shared with a future installer)
+- Settings General tab
+
+Manually validated on Windows 11. Do not start Phase 4D packaging.
 
 ## Phase 4D — not started
 
-- Per-user installer/package
+- Per-user Windows installer/package
 - Install without Administrator privileges where practical
-- Upgrade behavior
+- Installation under a per-user location, e.g. `%LocalAppData%\Programs\CheckmkDesktopNotifier`
 - Start Menu shortcut
 - Optional desktop shortcut
 - Installer option for Start with Windows
-- Preserving Settings / Credential Manager / Seen state on upgrade
+- Installer and app must share the **same** autostart mechanism/state (`HKCU\...\Run` value `CheckmkDesktopNotifier`; no second Startup-folder source)
+- Upgrade existing installation without losing: GUI settings, Credential Manager secret, Seen/open incident persistence, custom WAV, volume/mute preferences
 - Uninstall behavior
+- User-data preservation by default
+- Optional explicit user-data removal if appropriate
+- Application versioning
+- Icon / executable metadata
+- Clean packaging for Phase 5 release
 
 ## Phase 5 / V1 release — not started
 
 Keep this visible; do not start until Phase 4 is done unless a later decision says otherwise:
 
-- `README.md` (English) and `README.pl.md` (Polish), with language links between the files
+- `README.md` (English)
+- `README.pl.md` (Polish)
+- Links between language versions
 - Screenshots
 - Installation/setup instructions
-- Explanation of NEW / Seen / Checkmk ACK / downtime
+- Checkmk automation-user configuration guide
+- Explanation of NEW / Seen / ACK / downtime / grouping
 - Build-from-source documentation
-- Review/update of `docs/`
 - Final icon review
-- Clean self-contained Windows package
+- Final docs review
 - Final Windows regression tests
-- Version / GitHub tag / GitHub Release
+- GitHub tag/release
+- `v1.0.0` release
 - MIT / open-source release hygiene
 - No Checkmk logos/trademarks bundled without permission
 - Logging with secret redaction

@@ -23,6 +23,9 @@ public sealed class LocalizationKeyTests
             "TestNotificationSound",
             "SettingsTabConnection",
             "SettingsTabNotifications",
+            "SettingsTabGeneral",
+            "SettingsStartWithWindows",
+            "SettingsAutostartFailed",
             "FilterAll",
             "FilterNew",
             "FilterCritical",
@@ -74,6 +77,10 @@ public sealed class LocalizationKeyTests
         Assert.Equal("Połączenie", pl["SettingsTabConnection"]);
         Assert.Equal("Notifications", en["SettingsTabNotifications"]);
         Assert.Equal("Powiadomienia", pl["SettingsTabNotifications"]);
+        Assert.Equal("General", en["SettingsTabGeneral"]);
+        Assert.Equal("Ogólne", pl["SettingsTabGeneral"]);
+        Assert.Equal("Start with Windows", en["SettingsStartWithWindows"]);
+        Assert.Equal("Uruchamiaj z systemem Windows", pl["SettingsStartWithWindows"]);
         Assert.Equal("ALL", en["FilterAll"]);
         Assert.Equal("WSZYSTKIE", pl["FilterAll"]);
         Assert.Equal("NEW", en["FilterNew"]);

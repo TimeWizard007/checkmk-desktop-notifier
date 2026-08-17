@@ -76,8 +76,11 @@ public interface ILocalizationService
     string SoundMute { get; }
     string SoundInvalidWav { get; }
     string SoundWavFilter { get; }
+    string SettingsTabGeneral { get; }
     string SettingsTabConnection { get; }
     string SettingsTabNotifications { get; }
+    string SettingsStartWithWindows { get; }
+    string SettingsAutostartFailed { get; }
     string SettingsNotificationsIntro { get; }
     string FilterAll { get; }
     string FilterNew { get; }

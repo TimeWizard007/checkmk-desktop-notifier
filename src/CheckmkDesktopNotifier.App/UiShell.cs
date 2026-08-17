@@ -5,6 +5,7 @@ using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.App.ViewModels;
 using CheckmkDesktopNotifier.App.Views;
 using CheckmkDesktopNotifier.Core;
+using CheckmkDesktopNotifier.Core.Autostart;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
 using CheckmkDesktopNotifier.Infrastructure.Notifications;
@@ -27,6 +28,7 @@ public sealed class UiShell : IShellCommands
     private readonly DeferredNotificationService _notifications;
     private readonly IAlertSoundService _sound;
     private readonly NotificationSoundStore _sounds;
+    private readonly AutostartService _autostart;
     private readonly ShellBarVisibility _barVisibility = new();
     private readonly SingleInstanceGate _settingsGate = new();
     private readonly SingleInstanceGate _aboutGate = new();
@@ -48,6 +50,7 @@ public sealed class UiShell : IShellCommands
         DeferredNotificationService notifications,
         IAlertSoundService sound,
         NotificationSoundStore sounds,
+        AutostartService autostart,
         IMonitoringCoordinator? coordinator = null)
     {
         _bar = bar;
@@ -62,6 +65,7 @@ public sealed class UiShell : IShellCommands
         _notifications = notifications;
         _sound = sound;
         _sounds = sounds;
+        _autostart = autostart;
         _coordinator = coordinator;
 
         _bar.DataContext = _viewModel;
@@ -156,7 +160,7 @@ public sealed class UiShell : IShellCommands
             return;
         }
 
-        var viewModel = new SettingsViewModel(_gui, _tester, _text, _coordinator, _sound, _preferences, _sounds);
+        var viewModel = new SettingsViewModel(_gui, _tester, _text, _coordinator, _sound, _preferences, _sounds, _autostart);
         var window = new SettingsWindow(viewModel)
         {
             Owner = _bar.IsVisible ? _bar : null,

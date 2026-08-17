@@ -37,23 +37,18 @@ public sealed class NotificationCoordinator : INotificationCoordinator
             return;
         }
 
-        foreach (var opened in delta.Opened)
+        IReadOnlyList<IncidentAlert> alerts;
+        try
         {
-            if (opened.IsSeen)
-            {
-                continue;
-            }
+            alerts = HostFailureNotificationGrouping.SelectAlerts(snapshot, delta);
+        }
+        catch (Exception)
+        {
+            return;
+        }
 
-            IncidentAlert alert;
-            try
-            {
-                alert = IncidentAlertFormatter.From(opened);
-            }
-            catch (Exception)
-            {
-                continue;
-            }
-
+        foreach (var alert in alerts)
+        {
             try
             {
                 _notifications.Show(alert);

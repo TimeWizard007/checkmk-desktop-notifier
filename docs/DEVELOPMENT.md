@@ -266,11 +266,11 @@ Notifications are driven by Core `AlertDelta.Opened` only. The UI does not reimp
 
 **Problem list filter:** presentation-only (`ProblemListFilter` / `ProblemListFilterLogic`). Compact-bar counters **toggle**: closed → open that filter; same filter again → close; different filter → stay open and switch (no close/reopen). Filter chips in the list select without closing. Clicking the Checkmk title / non-counter bar area toggles **ALL**. Gear does not change the filter. Counters remain `Button`s excluded from drag via `IsFromButton` / `AncestorSearch`.
 
-**Settings:** Connection / Notifications tabs with dark `TabControl` templates (no system tab chrome). Test connection and Test notification sound are secondary actions. Save is primary. Reset is separated.
+**Settings:** General / Connection / Notifications tabs with dark `TabControl` templates (no system tab chrome). Test connection and Test notification sound are secondary actions. Save is primary. Reset is separated. Start with Windows lives on General and applies immediately from OS autostart state.
 
 **Compact bar width:** `SizeToContent=Width` with no `MinWidth`. The previous `MinWidth="640"` left empty dark space after the gear when content was shorter than 640px. The window now ends after the gear plus the existing 10px border padding. Status and counter text can grow and shrink the bar.
 
-**Windows 11 manual validation: PASSED.** Do not start Phase 4C (host-DOWN grouping / autostart).
+**Windows 11 manual validation: PASSED.** Phase 4C grouping/autostart is a separate phase.
 
 ### Windows 11 polish retest (Phase 4B)
 
@@ -345,7 +345,41 @@ The original functional 4B checklist (baseline storm, WARN/CRIT/UNKNOWN, Seen, r
 
 **Windows 11 remaining 4B retest: PASSED.** Sanitized confirmation: CRIT/NEW/UNKNOWN same-filter click closes the list; CRIT→WARN stays open and switches with no close/reopen flash. Notifications tab shows Default / Custom WAV / Volume / Test / Restore default / Mute. Bundled default plays; 30% is quieter than 100%; 0% is silent; custom WAV is copied to LocalAppData `assets/custom-notification.wav` and survives deleting the original source; restart preserves Custom + Volume; Restore default returns to the bundled sound; Mute/Unmute are shared between gear and tray. One NEW incident → one balloon + one sound; later polls and restart do not replay. Previously validated 4A/4B behavior (baseline, dark list/scrollbar, filters, Seen, tray, VPN, Credential Manager, compact-bar sizing) remains confirmed.
 
-Do not start Phase 4C.
+## Phase 4C — host grouping + Start with Windows (COMPLETE / Windows-tested)
+
+Grouping is notification-only (`HostFailureNotificationGrouping`). Core/UI still list every host and service incident. Autostart is `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier` (quoted current exe; no secrets; no HKLM). Settings General checkbox reflects the real OS entry.
+
+**Windows 11 manual validation: PASSED.** Do not start Phase 4D.
+
+### Windows 11 checklist (Phase 4C)
+
+No Administrator privileges. Use a self-contained win-x64 publish.
+
+| | Test | Expected |
+|---|------|----------|
+| A | Host goes DOWN with multiple service failures | One host/group balloon; one sound; child incidents remain visible/NEW; no service notification storm |
+| B | Next poll while host remains DOWN | No repeat grouped alert |
+| C | Host recovers then fails again | New grouped alert |
+| D | UNREACHABLE host | One grouped UNKNOWN-style notification (`HOST UNREACHABLE`) |
+| E | Service fails on an otherwise UP host | Normal individual service notification |
+| F | Mute | Grouped balloon yes; grouped sound no |
+| G | Filters / Seen | ALL/NEW/CRIT/WARN/UNK and Seen remain correct; grouping does not MarkSeen |
+| H | Enable Start with Windows | Checkbox on; no UAC |
+| I | Per-user startup entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier` exists (quoted exe path) |
+| J | Restart application | Checkbox remains enabled |
+| K | Disable | Startup entry removed |
+| L | Path with spaces | Launch from the registered command works |
+| M | No Administrator prompt | Enable/disable never elevates |
+| N | Settings / Credential Manager | Unchanged |
+| O | Real monitoring | Still works |
+| P | VPN failure/recovery | Still works |
+| Q | Tray / Settings / About / Exit | Still work |
+| R | Custom sound / volume / mute | Still work |
+| S | Counter toggle / filter | Still work |
+
+**Windows 11 Phase 4C validation: PASSED.** Sanitized confirmation: Settings → General → Start with Windows creates the per-user HKCU Run entry; restart preserves enabled; disable removes it; no UAC; Settings / Credential Manager unchanged. A controlled host failure produced one grouped host balloon and exactly one sound; child service incidents stayed visible/NEW; child notifications were suppressed while grouping-active; no service storm; later polls while the host stayed failed did not repeat; after recovery, a later host failure produced a new grouped notification.
+
+Do not start Phase 4D.
 
 ## Windows — self-contained win-x64 publish
 
@@ -383,7 +417,7 @@ dotnet test CheckmkDesktopNotifier.sln
 
 Core tests cover lifecycle, persistence (including isolated vs legacy alert-state fallback), identities, recurrence, the demo snapshot mix, compact-bar ancestor/pointer-origin logic (`Run` vs Visual vs Button, including counter buttons), and presentation-only problem-list filtering.
 
-Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, merged service+host snapshots, polling (immediate first poll, interval, no overlap, cancellation, failed poll freeze, persistence reload), GUI settings / Credential Manager / connection tester, Mock vs Real startup flags, and Phase 4B notifications (Opened-only, baseline storm suppression, mute, sound preview, backend failure isolation). Core also covers hide/restore/tray-toggle visibility and the bundled notifier WAV header.
+Infrastructure tests cover service JSON mapping, WARN/CRIT/UNKNOWN, SOFT/HARD, ACK/downtime, Unix timestamps, malformed JSON, HTTP non-success, auth header construction, config validation, Core independence from REST DTOs, host collection inspection/mapping, merged service+host snapshots, polling (immediate first poll, interval, no overlap, cancellation, failed poll freeze, persistence reload), GUI settings / Credential Manager / connection tester, Mock vs Real startup flags, Phase 4B notifications (Opened-only, baseline storm suppression, mute, sound preview, backend failure isolation), and Phase 4C host-failure grouping plus autostart (fake store). Core also covers hide/restore/tray-toggle visibility, the bundled notifier WAV header, grouped host alert copy, and HKCU Run command formatting.
 
 There is no WPF UI test project yet.
 
@@ -406,4 +440,4 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not put Checkmk REST DTOs in Core.
 - Do not call Checkmk ACK from the eye button.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Do not start Phase 4C.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Do not start Phase 4D.

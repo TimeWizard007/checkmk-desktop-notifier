@@ -52,6 +52,31 @@ public sealed class IncidentAlertFormatterTests
     }
 
     [Fact]
+    public void Grouped_host_down_counts_affected_services()
+    {
+        var alert = IncidentAlertFormatter.FromGroupedHost(
+            Create(ProblemFactory.HostId("SRV-SQL01"), Severity.Critical, "ignored plugin"),
+            15);
+
+        Assert.True(alert.IsGroupedHostFailure);
+        Assert.Equal(Severity.Critical, alert.Severity);
+        Assert.Equal("HOST DOWN\nSRV-SQL01\n15 affected services", alert.Body);
+        Assert.DoesNotContain("ignored plugin", alert.Body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Grouped_unreachable_host_uses_unknown_severity()
+    {
+        var alert = IncidentAlertFormatter.FromGroupedHost(
+            Create(ProblemFactory.HostId("edge01"), Severity.Unknown, "UNREACHABLE"),
+            1);
+
+        Assert.True(alert.IsGroupedHostFailure);
+        Assert.Equal(Severity.Unknown, alert.Severity);
+        Assert.Equal("HOST UNREACHABLE\nedge01\n1 affected service", alert.Body);
+    }
+
+    [Fact]
     public void Plugin_output_is_truncated()
     {
         var summary = new string('x', 400);

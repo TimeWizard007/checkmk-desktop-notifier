@@ -92,8 +92,11 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
     public string SoundMute => Get();
     public string SoundInvalidWav => Get();
     public string SoundWavFilter => Get();
+    public string SettingsTabGeneral => Get();
     public string SettingsTabConnection => Get();
     public string SettingsTabNotifications => Get();
+    public string SettingsStartWithWindows => Get();
+    public string SettingsAutostartFailed => Get();
     public string SettingsNotificationsIntro => Get();
     public string FilterAll => Get();
     public string FilterNew => Get();

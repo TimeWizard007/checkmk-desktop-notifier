@@ -94,7 +94,31 @@ Custom WAV is **imported** into `%LocalAppData%/CheckmkDesktopNotifier/assets/cu
 
 Mute persists in `preferences.json` (non-secret) and remains a separate switch from volume 0%. Mute never means pause, Seen, or Checkmk ACK. Settings **Test notification sound** plays the selected source at the configured volume without creating an incident; it bypasses mute so the asset can be heard while muted.
 
-Notifications fire only for Core `AlertDelta.Opened`. First successful snapshot on virgin local state is a silent baseline. Host-DOWN grouping, autostart, and installer work remain later phases (4C / 4D). Phase 4B is COMPLETE / Windows-tested.
+Notifications fire only for Core `AlertDelta.Opened` after host-failure grouping. First successful snapshot on virgin local state is a silent baseline. Host-DOWN grouping and per-user autostart are Phase 4C (**COMPLETE / Windows-tested**). Installer work remains Phase 4D.
+
+## Host-failure notification grouping (Phase 4C, COMPLETE / Windows-tested)
+
+Grouping is a **notification/presentation** decision. Core identities, ProblemListWindow rows, NEW/Seen, ACK badges, downtime, and plugin output are unchanged.
+
+Algorithm (same successful `ProblemSnapshot`, no sleep window):
+
+1. Grouping hosts = snapshot host problems that are HARD + Critical (DOWN) or Unknown (UNREACHABLE). Do not infer host failure from services.
+2. If a grouping host is in `AlertDelta.Opened` and not Seen → one grouped balloon (`HOST DOWN` / `HOST UNREACHABLE` + hostname + `{n} affected service(s)`) and one sound.
+3. NEW child services of a grouping host (same SiteId + HostName) are not notified.
+4. Later polls while the host stays down do not repeat the grouped balloon. New children in those polls still open as NEW in Core/UI with no storm.
+5. Recovery has no sound. A later host recurrence may group again.
+
+**Affected-service count** uses merged snapshot service problems for that host, not REST `num_services_hard_*` (those counters are not on `MonitoredProblem`; the snapshot is what the list shows).
+
+**ACK / downtime:** do not suppress grouped (or individual) notifications. Same as Phase 4B: ACK and downtime are Checkmk metadata; local Seen is independent; grouping suppression is a third concept. A child ACK does not suppress a host group. A host ACK/downtime does not suppress the grouped balloon in Phase 4C.
+
+## Start with Windows (Phase 4C, COMPLETE / Windows-tested)
+
+Mechanism: per-user `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value name `CheckmkDesktopNotifier`, command = quoted `Environment.ProcessPath` only. No arguments, no secrets, no HKLM, no scheduled task, no elevation.
+
+If the publish/install path changes, re-enable or opening Settings / startup `RepairIfRegistered` rewrites the command to the current exe. Settings checkbox reads the **actual** Run value, not `preferences.json`.
+
+**Phase 4D installer:** use this same HKCU Run value as the single source of truth. Do not add a parallel Startup-folder shortcut for “Start with Windows”. The installer checkbox should write/delete this value; the app General tab should keep showing OS state.
 
 ## Dark compact menus (Phase 4B)
 

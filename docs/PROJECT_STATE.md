@@ -4,11 +4,11 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**Phase 4B (Notifications, mute, sound, filter polish) — COMPLETE / Windows-tested.**
+**Phase 4C (host-DOWN grouping + Start with Windows) — COMPLETE / Windows-tested.**
 
-Phase 4A is **COMPLETE / Windows-tested**.
+Phase 4A and Phase 4B are **COMPLETE / Windows-tested**.
 
-Do **not** start Phase 4C (host-DOWN grouping / coalescing, autostart). Do **not** start Phase 4D (installer).
+Do **not** start Phase 4D (installer). Do **not** start Phase 5.
 
 ## Git checkpoint
 
@@ -17,8 +17,8 @@ Do **not** start Phase 4C (host-DOWN grouping / coalescing, autostart). Do **not
 - Phase 3C completion: `4604f01` — `Complete Phase 3C polling and persistence`
 - Phase 2 completion: `2b85065` — `Mark Phase 2 as Windows-tested and complete`
 - Phase 3D complete — `a255b7e` `Complete Phase 3D secure GUI configuration`
-- Phase 4A: COMPLETE / Windows-tested
-- Phase 4B: COMPLETE / Windows-tested
+- Phase 4B complete — `1ce8616` `Complete Phase 4B notifications and sound controls`
+- Phase 4C: COMPLETE / Windows-tested
 
 ## Phase 1 — complete
 
@@ -217,70 +217,95 @@ Implemented and manually validated on Windows 11 (no Administrator privileges):
 - Startup baseline: empty local state (`openCount == 0` and `LastSuccessfulPollUtc is null`) — first successful snapshot is ingested into the UI **without** toasts/sound. Later NEW incidents notify. Persisted state continues normal lifecycle (no replay on restart).
 - Visual: unpackaged WinForms `NotifyIcon.ShowBalloonTip` (no Windows App SDK, no extra NuGet). Sound: bundled `Assets/notifier.wav` via `SoundPlayer` at per-app PCM volume (default 30%); optional imported custom WAV in LocalAppData `assets/custom-notification.wav`. WAV-only in V1. Deleting the original source file does not break playback.
 - Mute: visual still shown; sound off; not pause/Seen/ACK. Gear/tray/Settings share `IUserPreferences`. Persisted in `preferences.json` with volume and Default/Custom (Reset configuration does not clear these).
-- Settings: Connection / Notifications tabs. Notifications include Default notifier sound / Custom WAV / Volume / Test notification sound / Restore default sound / Mute. Test sound bypasses Mute and does not create incidents.
+- Settings: General / Connection / Notifications tabs. Notifications include Default notifier sound / Custom WAV / Volume / Test notification sound / Restore default sound / Mute. Test sound bypasses Mute and does not create incidents.
 - Compact-bar counters toggle the problem list (same filter closes; a different filter switches in place with no close/reopen flash). Gear does not change the filter.
 - Dark problem list, dark scrollbar, no empty strip after the gear, content-driven compact-bar width. Hide/restore tray and left-click tray toggle work.
 
 **Windows 11 manual validation: PASSED** (counters, Notifications sound UI, volume 100/30/0, custom WAV import + source deletion, restart persistence, Restore default, Mute/Unmute, one NEW → one balloon + one sound, no poll/restart replay). Previously validated 4A/4B behavior also confirmed: baseline suppression, filters, Seen, Mark all new as seen, tray, VPN, Credential Manager, About/Exit, compact-bar sizing.
 
-Host-DOWN grouping/coalescing is **not** implemented (Phase 4C).
+Host-DOWN grouping/coalescing and Start with Windows are Phase 4C (**COMPLETE / Windows-tested**).
 
-### Phase 4C backlog (do not implement now)
+### Phase 4C — COMPLETE / Windows-tested (host grouping + Start with Windows)
 
-- Host DOWN / UNREACHABLE notification grouping/coalescing
-- Avoid notification storms from child services of a failed host
-- Preserve full host/service visibility in the problem list
-- Start with Windows / per-user autostart
-- Shared autostart state for application Settings and a future installer
+Implemented and manually validated on Windows 11 (no Administrator privileges):
+
+**Host DOWN / UNREACHABLE grouping (notification-only):**
+
+- Core `HostFailureNotificationGrouping` plans balloons from the same successful `ProblemSnapshot` + `AlertDelta`. No wall-clock wait.
+- A host is grouping-active only when the snapshot contains that **host object** as HARD DOWN (`Severity.Critical`) or HARD UNREACHABLE (`Severity.Unknown`). Child services are never used to infer host failure. Same `SiteId` + `HostName` is required.
+- NEW grouping host → one grouped balloon + one sound. Child NEW services on that host in the same snapshot are not notified separately.
+- If the host is already DOWN and more child services become NEW later, those children stay NEW in the UI with **no** extra balloons/sounds and **no** repeated host balloon.
+- ProblemListWindow / Core still show host + every service incident (severity, NEW/Seen, ACK, downtime, plugin output). Identities are not merged. Grouping does not call `MarkSeen`.
+- Affected-service count = number of **service** problems in the merged snapshot with the same `SiteId` + `HostName`. REST `num_services_hard_*` is not mapped onto `MonitoredProblem` and is not used (the snapshot matches what the UI lists).
+- DOWN vs UNREACHABLE: `HOST DOWN` / Critical vs `HOST UNREACHABLE` / Unknown.
+- ACK / scheduled downtime on the host or on children do **not** suppress the grouped balloon (same as Phase 4B individual notify). They remain metadata, distinct from local Seen and from grouping suppression.
+- Mute: grouped balloon yes, sound no. Failed snapshots emit nothing. Recurrence after recovery may notify again.
+
+**Start with Windows (per-user):**
+
+- Settings **General** tab checkbox. Source of truth is the OS entry, not `preferences.json`.
+- Mechanism: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier`. Quoted current executable path only. No secrets, no HKLM, no scheduled task, no elevation.
+- Enable writes/updates the entry; disable deletes only this value. Opening Settings (and app startup) repairs a stale path if the entry already exists.
+- Phase 4D installer must use this **same** HKCU Run value. Do not also create a Startup-folder shortcut for the same option.
+
+**Windows 11 manual validation: PASSED.** Autostart: Settings → General → Start with Windows creates the per-user HKCU Run entry; restart preserves enabled; disable removes the entry; no UAC; Settings / Credential Manager unchanged. Grouping: one grouped host balloon and exactly one sound; child service incidents stayed visible/NEW; child service notifications were suppressed while grouping-active; no service storm; later polls while the host stayed failed did not repeat; after recovery, a later host failure produced a new grouped notification.
 
 ### Phase 4D backlog (do not implement now)
 
-- Per-user installer/package
+- Per-user Windows installer/package
 - Install without Administrator privileges where practical
-- Upgrade behavior
+- Installation under a per-user location, e.g. `%LocalAppData%\Programs\CheckmkDesktopNotifier`
 - Start Menu shortcut
 - Optional desktop shortcut
 - Installer option for Start with Windows
-- Preserving Settings / Credential Manager / Seen state on upgrade
+- Installer and app must share the **same** autostart mechanism/state (`HKCU\...\Run` value `CheckmkDesktopNotifier`; no second Startup-folder source)
+- Upgrade existing installation without losing: GUI settings, Credential Manager secret, Seen/open incident persistence, custom WAV, volume/mute preferences
 - Uninstall behavior
+- User-data preservation by default
+- Optional explicit user-data removal if appropriate
+- Application versioning
+- Icon / executable metadata
+- Clean packaging for Phase 5 release
 
 ### Phase 5 / V1 release (keep visible; do not start now)
 
-- `README.md` (English) and `README.pl.md` (Polish), with language links between them
+- `README.md` (English)
+- `README.pl.md` (Polish)
+- Links between language versions
 - Screenshots
 - Installation/setup instructions
-- Explanation of NEW / Seen / Checkmk ACK / downtime
+- Checkmk automation-user configuration guide
+- Explanation of NEW / Seen / ACK / downtime / grouping
 - Build-from-source documentation
-- Review/update of `docs/`
 - Final icon review
-- Clean self-contained Windows package
+- Final docs review
 - Final Windows regression tests
-- Version / GitHub tag / GitHub Release
+- GitHub tag/release
+- `v1.0.0` release
 - MIT / open-source release hygiene
 - No Checkmk logos/trademarks bundled without permission
 - Do not create README until Phase 5
 
 ## Tests
 
-Last automated run (Linux agent, Phase 4B close-out):
+Last automated run (Linux agent, Phase 4C close-out):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 244 passed, 0 failed
-  Core.Tests:            98 passed
-  Infrastructure.Tests:  146 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 287 passed, 0 failed
+  Core.Tests:            123 passed
+  Infrastructure.Tests:  164 passed
 ```
 
 Re-run after any further change. Record the new numbers here if they change.
 
 ## What is NOT implemented
 
-- Phase 4C: host-DOWN / UNREACHABLE child-service notification grouping/coalescing; Start with Windows / autostart
-- Phase 4D: per-user installer/package, shortcuts, upgrade/uninstall
+- Phase 4D: per-user installer/package, shortcuts, upgrade/uninstall, versioning/metadata packaging
 - Persistent window position on disk
 - Phase 5: MIT `LICENSE`, `README.md`, `README.pl.md`, screenshots, install docs, packaging/release, final icon review
 - Windows Service (out of V1 by decision)
 
 ## Immediate next steps
 
-Do not start Phase 4C until asked. Do not invent a host POST. Do not use `host_config`.
+Do not start Phase 4D until asked. Do not start Phase 5. Do not invent a host POST. Do not use `host_config`.

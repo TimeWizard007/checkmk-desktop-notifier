@@ -1,5 +1,6 @@
 using System.IO;
 using CheckmkDesktopNotifier.App.Localization;
+using CheckmkDesktopNotifier.Core.Autostart;
 using CheckmkDesktopNotifier.Core.Notifications;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
@@ -18,7 +19,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IAlertSoundService? _sound;
     private readonly IUserPreferences? _preferences;
     private readonly NotificationSoundStore? _sounds;
+    private readonly AutostartService? _autostart;
     private readonly bool _requireSecretOnSave;
+    private bool _suppressAutostartApply;
 
     public SettingsViewModel(
         GuiConfigurationService gui,
@@ -27,7 +30,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         IMonitoringCoordinator? coordinator,
         IAlertSoundService? sound = null,
         IUserPreferences? preferences = null,
-        NotificationSoundStore? sounds = null)
+        NotificationSoundStore? sounds = null,
+        AutostartService? autostart = null)
     {
         _gui = gui ?? throw new ArgumentNullException(nameof(gui));
         _tester = tester ?? throw new ArgumentNullException(nameof(tester));
@@ -36,6 +40,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _sound = sound;
         _preferences = preferences;
         _sounds = sounds;
+        _autostart = autostart;
         _requireSecretOnSave = !gui.HasStoredSecret;
         if (_preferences is not null)
         {
@@ -50,6 +55,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         Username = existing?.Username ?? string.Empty;
         PollIntervalText = (existing?.PollIntervalSeconds ?? CheckmkOptions.DefaultPollIntervalSeconds).ToString();
         HasStoredSecret = gui.HasStoredSecret;
+        RefreshAutostartFromOs();
     }
 
     public ILocalizationService Text { get; }
@@ -112,6 +118,15 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _soundStatusText = string.Empty;
 
     public bool HasSoundStatus => !string.IsNullOrWhiteSpace(SoundStatusText);
+
+    [ObservableProperty]
+    private bool _startWithWindows;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAutostartStatus))]
+    private string _autostartStatusText = string.Empty;
+
+    public bool HasAutostartStatus => !string.IsNullOrWhiteSpace(AutostartStatusText);
 
     public string MuteActionLabel =>
         _preferences is null
@@ -299,6 +314,47 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnVolumePercentChanged(int value) => _preferences?.SetVolumePercent(value);
 
     partial void OnMuteSoundChanged(bool value) => _preferences?.SetMuteSound(value);
+
+    partial void OnStartWithWindowsChanged(bool value)
+    {
+        if (_suppressAutostartApply || _autostart is null)
+        {
+            return;
+        }
+
+        var result = _autostart.SetEnabled(value);
+        if (!result.Succeeded)
+        {
+            AutostartStatusText = Text.SettingsAutostartFailed;
+            SetStartWithWindowsFromOs(result.IsEnabled);
+            return;
+        }
+
+        AutostartStatusText = string.Empty;
+        if (result.IsEnabled != value)
+        {
+            SetStartWithWindowsFromOs(result.IsEnabled);
+        }
+    }
+
+    private void RefreshAutostartFromOs()
+    {
+        if (_autostart is null)
+        {
+            return;
+        }
+
+        _autostart.RepairIfRegistered();
+        AutostartStatusText = string.Empty;
+        SetStartWithWindowsFromOs(_autostart.IsEnabled);
+    }
+
+    private void SetStartWithWindowsFromOs(bool enabled)
+    {
+        _suppressAutostartApply = true;
+        StartWithWindows = enabled;
+        _suppressAutostartApply = false;
+    }
 
     private void RefreshSoundFromPreferences()
     {

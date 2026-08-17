@@ -16,7 +16,9 @@ public interface IAlertSoundService
 public interface INotificationCoordinator
 {
     /// <summary>
-    /// Emit visual/sound alerts for <see cref="AlertDelta.Opened"/> only.
+    /// Emit visual/sound alerts for <see cref="AlertDelta.Opened"/> after host-failure grouping.
+    /// Child services of an active HARD host DOWN/UNREACHABLE are not notified separately.
+    /// Grouping never marks Seen and never changes Core incident identities.
     /// <paramref name="wasVirginLocalState"/> must be captured <em>before</em> <c>ApplySnapshot</c>.
     /// </summary>
     void Process(ProblemSnapshot snapshot, AlertDelta delta, bool wasVirginLocalState);

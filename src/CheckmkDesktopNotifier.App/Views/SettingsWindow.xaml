@@ -193,6 +193,19 @@
         </Style>
     </Window.Resources>
     <TabControl>
+        <TabItem Header="{Binding Text.SettingsTabGeneral}">
+            <StackPanel>
+                <CheckBox Style="{StaticResource DarkCheckBox}"
+                          Content="{Binding Text.SettingsStartWithWindows}"
+                          IsChecked="{Binding StartWithWindows}"/>
+                <TextBlock Text="{Binding AutostartStatusText}"
+                           TextWrapping="Wrap"
+                           Foreground="{StaticResource CriticalBrush}"
+                           FontSize="11"
+                           Margin="0,8,0,0"
+                           Visibility="{Binding HasAutostartStatus, Converter={StaticResource BooleanToVisibility}}"/>
+            </StackPanel>
+        </TabItem>
         <TabItem Header="{Binding Text.SettingsTabConnection}">
             <StackPanel>
                 <Grid>

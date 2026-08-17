@@ -97,9 +97,10 @@ No URL, site, username, or automation secret is hardcoded.
 End-user sources:
 
 - `%LocalAppData%/CheckmkDesktopNotifier/settings.json` (non-secret fields only)
-- `%LocalAppData%/CheckmkDesktopNotifier/preferences.json` (mute, volume, Default vs Custom; not secrets; not cleared by Reset)
+- `%LocalAppData%/CheckmkDesktopNotifier/preferences.json` (mute, volume, Default vs Custom; not secrets; not cleared by Reset; **not** autostart)
 - `%LocalAppData%/CheckmkDesktopNotifier/assets/custom-notification.wav` (imported custom sound copy)
 - Windows Credential Manager Generic Credential `CheckmkDesktopNotifier` (automation secret)
+- Per-user autostart: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier` (quoted exe path only; OS is source of truth)
 
 Developer/CI sources (do not override saved GUI settings unless `CHECKMK_CONFIG` is set):
 
@@ -123,9 +124,11 @@ API base URI: `{BaseUrl}/{Site}/check_mk/api/1.0/`.
 
 `MarkSeen` / `MarkAllNewAsSeen` are local only. Checkmk `acknowledged` is metadata, never local Seen.
 
-Notifications (Phase 4B, COMPLETE / Windows-tested) consume `AlertDelta` only. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Host-DOWN notification grouping is Phase 4C (not started).
+Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only.
 
 **Virgin baseline:** `openIncidentCount == 0 && LastSuccessfulPollUtc is null` before `ApplySnapshot`. If that first snapshot succeeds, Opened incidents are persisted for the UI and **must not** emit notifications/sound. Subsequent successful polls notify only newly Opened incidents.
+
+**Host-failure grouping (Phase 4C, COMPLETE / Windows-tested, notification layer only):** `HostFailureNotificationGrouping.SelectAlerts` runs on the merged successful snapshot. Grouping hosts are HARD host problems with Critical (DOWN) or Unknown (UNREACHABLE). Child services with the same `SiteId` + `HostName` are omitted from balloons/sound while that host is grouping-active. Affected-service count is the snapshot service-problem count for that host. Core incidents stay separate and may remain NEW.
 
 ## Incident identity
 

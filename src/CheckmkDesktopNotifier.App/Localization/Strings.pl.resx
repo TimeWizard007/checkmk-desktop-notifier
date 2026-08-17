@@ -225,11 +225,20 @@
   <data name="AboutClose" xml:space="preserve">
     <value>Zamknij</value>
   </data>
+  <data name="SettingsTabGeneral" xml:space="preserve">
+    <value>Ogólne</value>
+  </data>
   <data name="SettingsTabConnection" xml:space="preserve">
     <value>Połączenie</value>
   </data>
   <data name="SettingsTabNotifications" xml:space="preserve">
     <value>Powiadomienia</value>
+  </data>
+  <data name="SettingsStartWithWindows" xml:space="preserve">
+    <value>Uruchamiaj z systemem Windows</value>
+  </data>
+  <data name="SettingsAutostartFailed" xml:space="preserve">
+    <value>Nie można zaktualizować opcji Uruchamiaj z systemem Windows.</value>
   </data>
   <data name="SettingsNotificationsIntro" xml:space="preserve">
     <value>Przetestuj dołączony dźwięk powiadomienia. Wyciszenie jest też dostępne w menu koła zębatego i zasobnika.</value>

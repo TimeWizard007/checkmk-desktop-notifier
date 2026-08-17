@@ -26,6 +26,35 @@ public static class IncidentAlertFormatter
         };
     }
 
+    public static IncidentAlert FromGroupedHost(OpenIncident hostIncident, int affectedServiceCount)
+    {
+        ArgumentNullException.ThrowIfNull(hostIncident);
+        if (hostIncident.ObjectId.Kind != ObjectKind.Host)
+        {
+            throw new ArgumentException("Grouped host alerts require a host incident.", nameof(hostIncident));
+        }
+
+        ArgumentOutOfRangeException.ThrowIfNegative(affectedServiceCount);
+
+        var countLine = affectedServiceCount == 1
+            ? "1 affected service"
+            : $"{affectedServiceCount} affected services";
+        var body = string.Join(
+            "\n",
+            SeverityHeadline(hostIncident),
+            hostIncident.ObjectId.HostName,
+            countLine);
+
+        return new IncidentAlert
+        {
+            ObjectId = hostIncident.ObjectId,
+            Severity = hostIncident.Severity,
+            Title = Truncate(ProductInfo.ProductName, MaxTitleLength),
+            Body = Truncate(body, MaxBodyLength),
+            IsGroupedHostFailure = true
+        };
+    }
+
     public static string SeverityHeadline(OpenIncident incident)
     {
         ArgumentNullException.ThrowIfNull(incident);
