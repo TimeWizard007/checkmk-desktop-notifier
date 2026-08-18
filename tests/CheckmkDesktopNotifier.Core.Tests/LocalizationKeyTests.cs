@@ -62,7 +62,11 @@ public sealed class LocalizationKeyTests
             "TakeForbidden",
             "OpenInCheckmk",
             "MarkAsSeen",
-            "MarkAsUnseen"
+            "MarkAsUnseen",
+            "Release",
+            "Releasing",
+            "ReleaseConfirmTitle",
+            "ReleaseCouldNot"
         ];
 
         foreach (var key in required)
@@ -163,6 +167,16 @@ public sealed class LocalizationKeyTests
         Assert.Equal("Oznacz jako przeczytane", pl["MarkAsSeen"]);
         Assert.Equal("Mark unseen", en["MarkAsUnseen"]);
         Assert.Equal("Oznacz jako nieprzeczytane", pl["MarkAsUnseen"]);
+        Assert.Equal("Release", en["Release"]);
+        Assert.Equal("Zwolnij", pl["Release"]);
+        Assert.Equal("Releasing...", en["Releasing"]);
+        Assert.Equal("Zwalnianie...", pl["Releasing"]);
+        Assert.Equal("Release this problem?", en["ReleaseConfirmTitle"]);
+        Assert.Equal("Zwolnić ten problem?", pl["ReleaseConfirmTitle"]);
+        Assert.Equal("Could not release the problem.", en["ReleaseCouldNot"]);
+        Assert.Equal("Nie udało się zwolnić problemu.", pl["ReleaseCouldNot"]);
+        Assert.Contains("taken by {0}", en["ReleaseConfirmBody"], StringComparison.Ordinal);
+        Assert.Contains("przejęty przez {0}", pl["ReleaseConfirmBody"], StringComparison.Ordinal);
     }
 
     private static Dictionary<string, string> LoadKeys(string path)

@@ -17,4 +17,13 @@ public interface ICheckmkAcknowledgementClient
         string serviceDescription,
         string displayName,
         CancellationToken cancellationToken = default);
+
+    Task<AcknowledgementWriteResult> DeleteHostAsync(
+        string hostName,
+        CancellationToken cancellationToken = default);
+
+    Task<AcknowledgementWriteResult> DeleteServiceAsync(
+        string hostName,
+        string serviceDescription,
+        CancellationToken cancellationToken = default);
 }

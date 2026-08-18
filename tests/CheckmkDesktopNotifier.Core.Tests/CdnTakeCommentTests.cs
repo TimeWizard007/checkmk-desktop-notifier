@@ -144,6 +144,17 @@ public sealed class CdnTakeCommentTests
         Assert.Equal(CheckmkAcknowledgementInfo.None, info);
     }
 
+    [Fact]
+    public void Explicit_acknowledgement_type_zero_clears_leftover_cdn_comments()
+    {
+        var comments = new[]
+        {
+            new CheckmkCommentRecord(1, "ITS", CdnTakeComment.Format("Michał"), 4, 100)
+        };
+        var info = CdnTakeComment.Resolve(acknowledged: true, acknowledgementType: 0, comments);
+        Assert.Equal(CheckmkAcknowledgementInfo.None, info);
+    }
+
     [Theory]
     [InlineData(1, AcknowledgementType.Normal)]
     [InlineData(2, AcknowledgementType.Sticky)]

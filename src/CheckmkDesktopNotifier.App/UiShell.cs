@@ -71,23 +71,9 @@ public sealed class UiShell : IShellCommands
 
         _bar.DataContext = _viewModel;
         _list.DataContext = _viewModel;
-        _viewModel.ConfirmTake = (_, _) =>
-        {
-            Window? owner = _list.IsVisible ? _list : _bar.IsVisible ? _bar : null;
-            var window = new TakeConfirmWindow(_text)
-            {
-                Owner = owner,
-                Icon = AppIcon.WindowSource,
-                Topmost = true
-            };
-            return TakeConfirmation.ShouldProceed(window.ShowDialog());
-        };
-        _viewModel.ShowTakeMessage = message =>
-            MessageBox.Show(
-                message,
-                ProductInfo.ProductName,
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+        _viewModel.ConfirmTake = (title, body) => ShowDarkConfirm(title, body, _text.Take);
+        _viewModel.ConfirmRelease = (title, body) => ShowDarkConfirm(title, body, _text.Release);
+        _viewModel.ShowTakeMessage = ShowDarkMessage;
         _bar.Icon = AppIcon.WindowSource;
         _list.Icon = AppIcon.WindowSource;
 
@@ -390,6 +376,35 @@ public sealed class UiShell : IShellCommands
         _bar.Top = work.Top + 12;
         _session.BarLeft = _bar.Left;
         _session.BarTop = _bar.Top;
+    }
+
+    private bool ShowDarkConfirm(string title, string body, string confirm)
+    {
+        Window? owner = _list.IsVisible ? _list : _bar.IsVisible ? _bar : null;
+        var window = new TakeConfirmWindow(title, body, confirm, _text.SettingsCancel)
+        {
+            Owner = owner,
+            Icon = AppIcon.WindowSource,
+            Topmost = true
+        };
+        return TakeConfirmation.ShouldProceed(window.ShowDialog());
+    }
+
+    private void ShowDarkMessage(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        Window? owner = _list.IsVisible ? _list : _bar.IsVisible ? _bar : null;
+        var window = new TakeConfirmWindow(ProductInfo.ProductName, message, _text.AboutClose, cancel: string.Empty)
+        {
+            Owner = owner,
+            Icon = AppIcon.WindowSource,
+            Topmost = true
+        };
+        _ = window.ShowDialog();
     }
 
     private void PositionList()

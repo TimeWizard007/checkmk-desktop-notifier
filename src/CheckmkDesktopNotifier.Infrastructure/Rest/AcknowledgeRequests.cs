@@ -46,3 +46,24 @@ internal sealed class AcknowledgeHostRequest
     [JsonPropertyName("host_name")]
     public required string HostName { get; init; }
 }
+
+internal sealed class DeleteServiceAcknowledgementRequest
+{
+    [JsonPropertyName("acknowledge_type")]
+    public string AcknowledgeType { get; init; } = "service";
+
+    [JsonPropertyName("host_name")]
+    public required string HostName { get; init; }
+
+    [JsonPropertyName("service_description")]
+    public required string ServiceDescription { get; init; }
+}
+
+internal sealed class DeleteHostAcknowledgementRequest
+{
+    [JsonPropertyName("acknowledge_type")]
+    public string AcknowledgeType { get; init; } = "host";
+
+    [JsonPropertyName("host_name")]
+    public required string HostName { get; init; }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "all",
+  "domainType": "service",
+  "value": [
+    {
+      "id": "GO-S11:Update",
+      "domainType": "service",
+      "title": "Update",
+      "extensions": {
+        "host_name": "GO-S11",
+        "description": "Update",
+        "state": 2,
+        "state_type": 1,
+        "plugin_output": "CRIT - Windows Update",
+        "last_state_change": 1787078400,
+        "last_hard_state_change": 1787078400,
+        "last_time_ok": 1786992000,
+        "acknowledged": 0,
+        "acknowledgement_type": 0,
+        "comments_with_extra_info": [],
+        "scheduled_downtime_depth": 0
+      }
+    }
+  ]
+}

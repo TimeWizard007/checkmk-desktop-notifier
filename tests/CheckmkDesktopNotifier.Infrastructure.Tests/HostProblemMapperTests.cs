@@ -106,6 +106,30 @@ public sealed class HostProblemMapperTests
     }
 
     [Fact]
+    public void Cleared_host_ack_is_not_taken()
+    {
+        var commentJson = JsonSerializer.Serialize(CdnTakeComment.Format("Michał"));
+        var json = """
+            {"value":[{"extensions":{
+              "name":"KIDL",
+              "state":1,
+              "state_type":1,
+              "plugin_output":"DOWN",
+              "acknowledged":0,
+              "acknowledgement_type":0,
+              "comments_with_extra_info":[PLACEHOLDER],
+              "scheduled_downtime_depth":0,
+              "last_time_up":1704067200
+            }}]}
+            """.Replace("PLACEHOLDER", $"[10,\"ITS\",{commentJson},4,1787078432]", StringComparison.Ordinal);
+        var problem = Assert.Single(HostProblemMapper.MapCollection(json, TestOptions.Site));
+        Assert.False(problem.IsAcknowledgedInCheckmk);
+        Assert.False(problem.IsTakenByNotifier);
+        Assert.Null(problem.TakenByDisplayName);
+        Assert.Equal(AcknowledgementType.None, problem.AcknowledgementType);
+    }
+
+    [Fact]
     public void Skips_up_hosts()
     {
         var problems = HostProblemMapper.MapCollection(

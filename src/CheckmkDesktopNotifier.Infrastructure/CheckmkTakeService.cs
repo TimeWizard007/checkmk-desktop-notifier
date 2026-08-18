@@ -116,6 +116,86 @@ public sealed class CheckmkTakeService : ITakeService
         }
     }
 
+    public async Task<TakeOperationResult> ReleaseAsync(
+        MonitoredObjectId id,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+
+        try
+        {
+            if (_session.AcknowledgeForbidden)
+            {
+                return TakeOperationResult.Forbidden;
+            }
+
+            await TryRefreshAsync(cancellationToken).ConfigureAwait(false);
+
+            var current = Find(id);
+            if (current is null || !TakeEligibility.IsCdnTake(current.IsAcknowledgedInCheckmk, current.IsTakenByNotifier))
+            {
+                return TakeOperationResult.NotEligible;
+            }
+
+            AcknowledgementWriteResult write;
+            if (id.Kind == ObjectKind.Host)
+            {
+                write = await _acknowledgements
+                    .DeleteHostAsync(id.HostName, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                write = await _acknowledgements
+                    .DeleteServiceAsync(
+                        id.HostName,
+                        id.ServiceDescription ?? string.Empty,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            if (write.Status == AcknowledgementWriteStatus.Forbidden)
+            {
+                _session.MarkAcknowledgeForbidden();
+            }
+
+            var refreshSucceeded = await TryRefreshAsync(cancellationToken).ConfigureAwait(false);
+            var after = Find(id);
+            var stillTaken = TakeEligibility.IsCdnTake(
+                after?.IsAcknowledgedInCheckmk == true,
+                after?.IsTakenByNotifier == true);
+            return ResultFor(TakeWorkflow.AfterDelete(write.Status, refreshSucceeded, stillTaken));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return TakeOperationResult.Unavailable;
+        }
+    }
+
+    private OpenIncident? Find(MonitoredObjectId id) =>
+        _alerts.GetOpenIncidents().FirstOrDefault(incident => incident.ObjectId.Equals(id));
+
+    private async Task<bool> TryRefreshAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _poller.RefreshWhenIdleAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     private static TakeOperationResult ResultFor(TakeOperationStatus status) =>
         status switch
         {
@@ -126,6 +206,7 @@ public sealed class CheckmkTakeService : ITakeService
             TakeOperationStatus.InvalidRequest => TakeOperationResult.InvalidRequest,
             TakeOperationStatus.FeatureDisabled => TakeOperationResult.FeatureDisabled,
             TakeOperationStatus.AlreadyAcknowledged => TakeOperationResult.AlreadyAcknowledged,
+            TakeOperationStatus.NotEligible => TakeOperationResult.NotEligible,
             _ => TakeOperationResult.Unavailable
         };
 }

@@ -362,4 +362,24 @@ Checkmk przestanie wysyłać kolejne powiadomienia dotyczące tego bieżącego p
   <data name="TakeAwaitingRefresh" xml:space="preserve">
     <value>Potwierdzenie wysłane; oczekiwanie na odświeżenie Checkmk.</value>
   </data>
+  <data name="Release" xml:space="preserve">
+    <value>Zwolnij</value>
+  </data>
+  <data name="Releasing" xml:space="preserve">
+    <value>Zwalnianie...</value>
+  </data>
+  <data name="ReleaseConfirmTitle" xml:space="preserve">
+    <value>Zwolnić ten problem?</value>
+  </data>
+  <data name="ReleaseConfirmBody" xml:space="preserve">
+    <value>Ten problem jest obecnie przejęty przez {0}.
+Zwolnienie usunie potwierdzenie ACK w Checkmk.
+Problem pozostanie aktywny i może ponownie zacząć generować powiadomienia.</value>
+  </data>
+  <data name="ReleaseCouldNot" xml:space="preserve">
+    <value>Nie udało się zwolnić problemu.</value>
+  </data>
+  <data name="ReleaseAwaitingRefresh" xml:space="preserve">
+    <value>Zwolnienie wysłane; oczekiwanie na odświeżenie Checkmk.</value>
+  </data>
 </root>

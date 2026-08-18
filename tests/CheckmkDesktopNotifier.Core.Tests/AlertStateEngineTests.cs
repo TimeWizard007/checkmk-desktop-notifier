@@ -1,3 +1,4 @@
+using CheckmkDesktopNotifier.Core;
 using CheckmkDesktopNotifier.Core.Domain;
 using CheckmkDesktopNotifier.Core.Mock;
 using CheckmkDesktopNotifier.Core.Persistence;
@@ -391,5 +392,100 @@ public sealed class AlertStateEngineTests
         Assert.True(open.IsTakenByNotifier);
         Assert.Equal("Michał", open.TakenByDisplayName);
         Assert.False(open.IsSeen);
+    }
+
+    [Fact]
+    public void Same_incident_ack_cleared_clears_taken_by()
+    {
+        var sut = CreateSut();
+        var taken = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Michał",
+            takenByNotifier: true);
+        sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, taken));
+        sut.MarkSeen(ProblemFactory.ServiceId("web01", "CPU"));
+        _clock.UtcNow = _clock.UtcNow.AddMinutes(1);
+
+        var cleared = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            acknowledged: false,
+            acknowledgementType: AcknowledgementType.None);
+        var delta = sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, cleared));
+
+        Assert.Empty(delta.Opened);
+        Assert.Empty(delta.Recovered);
+        var open = Assert.Single(sut.GetOpenIncidents());
+        Assert.False(open.IsAcknowledgedInCheckmk);
+        Assert.Equal(AcknowledgementType.None, open.AcknowledgementType);
+        Assert.False(open.IsTakenByNotifier);
+        Assert.Null(open.TakenByDisplayName);
+        Assert.True(open.IsSeen);
+        Assert.Equal(Severity.Critical, open.Severity);
+        Assert.Empty(ProblemListFilterLogic.Apply(sut.GetOpenIncidents(), ProblemListFilter.Taken));
+        Assert.Equal(0, ProblemListFilterLogic.CountTaken(sut.GetOpenIncidents()));
+    }
+
+    [Fact]
+    public void Unacked_snapshot_clears_stale_taken_fields_even_if_mapper_left_them()
+    {
+        var sut = CreateSut();
+        var taken = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Michał",
+            takenByNotifier: true);
+        sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, taken));
+        _clock.UtcNow = _clock.UtcNow.AddMinutes(1);
+
+        var stale = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            acknowledged: false,
+            acknowledgementType: AcknowledgementType.None,
+            takenBy: "Michał",
+            takenByNotifier: true);
+        var delta = sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, stale));
+
+        Assert.Empty(delta.Opened);
+        var open = Assert.Single(sut.GetOpenIncidents());
+        Assert.False(open.IsAcknowledgedInCheckmk);
+        Assert.Equal(AcknowledgementType.None, open.AcknowledgementType);
+        Assert.False(open.IsTakenByNotifier);
+        Assert.Null(open.TakenByDisplayName);
+    }
+
+    [Fact]
+    public void Repeated_unacked_refresh_stays_stable()
+    {
+        var sut = CreateSut();
+        var taken = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Michał",
+            takenByNotifier: true);
+        sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, taken));
+        var cleared = ProblemFactory.Service("web01", "CPU", Severity.Critical);
+        sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, cleared));
+
+        var second = sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, cleared));
+
+        Assert.Empty(second.Opened);
+        var open = Assert.Single(sut.GetOpenIncidents());
+        Assert.False(open.IsTakenByNotifier);
+        Assert.Null(open.TakenByDisplayName);
+        Assert.False(open.IsAcknowledgedInCheckmk);
     }
 }

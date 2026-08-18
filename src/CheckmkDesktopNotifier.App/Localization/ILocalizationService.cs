@@ -125,4 +125,10 @@ public interface ILocalizationService
     string TakeCouldNot { get; }
     string TakeForbidden { get; }
     string TakeAwaitingRefresh { get; }
+    string Release { get; }
+    string Releasing { get; }
+    string ReleaseConfirmTitle { get; }
+    string ReleaseConfirmBody { get; }
+    string ReleaseCouldNot { get; }
+    string ReleaseAwaitingRefresh { get; }
 }

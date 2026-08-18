@@ -104,4 +104,24 @@ public sealed class CheckmkCommentMapperTests
         Assert.False(ack.IsTakenByNotifier);
         Assert.Null(ack.TakenByDisplayName);
     }
+
+    [Fact]
+    public void Acknowledged_zero_with_leftover_cdn_comment_is_none()
+    {
+        using var doc = JsonDocument.Parse("""
+            {
+              "acknowledged": 0,
+              "acknowledgement_type": 0,
+              "comments_with_extra_info": [
+                [36783, "ITS", "Taken by Michał via Checkmk Desktop Notifier cdn.v1 take name=\"Michał\"", 4, 1787078432]
+              ]
+            }
+            """);
+
+        var ack = CheckmkCommentMapper.ReadAcknowledgement(doc.RootElement);
+        Assert.False(ack.IsAcknowledged);
+        Assert.Equal(AcknowledgementType.None, ack.AcknowledgementType);
+        Assert.False(ack.IsTakenByNotifier);
+        Assert.Null(ack.TakenByDisplayName);
+    }
 }

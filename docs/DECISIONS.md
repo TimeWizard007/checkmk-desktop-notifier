@@ -138,7 +138,7 @@ Installed + Start Menu + autostart + desktop would otherwise start multiple poll
 
 ## Central version (Phase 4D, COMPLETE / Windows-tested)
 
-`Directory.Build.props` defines `Version` / `AssemblyVersion` / `FileVersion` / `InformationalVersion`. About reads informational version. Inno uses `/DMyAppVersion` with the same value (fallback `#define` in the `.iss` must match; PackagingTests checks). Do not hardcode the version in the About UI. Product version is **1.1.0**.
+`Directory.Build.props` defines `Version` / `AssemblyVersion` / `FileVersion` / `InformationalVersion`. About reads informational version. Inno uses `/DMyAppVersion` with the same value (fallback `#define` in the `.iss` must match; PackagingTests checks). Do not hardcode the version in the About UI. Product version is **1.2.0**.
 
 ## Dark compact menus (Phase 4B)
 
@@ -203,7 +203,7 @@ Display name lives in `preferences.json` with mute/volume (non-secret per-user p
 
 `ICheckmkClient` stays read-only. Writes use `ICheckmkAcknowledgementClient`. Same automation secret. Take requires `action.acknowledge` and remains optional; a read-only account continues to monitor.
 
-No Untake in v1.1: ACK ends on OK/UP; manual removal is Checkmk UI. Safe Release/Untake is planned for **v1.2.0** and requires separate live validation of `POST /domain-types/acknowledge/actions/delete/invoke`. Do not make Taken-by clickable in v1.1. No `expire_on` (HTTP 400 on validated RAW 2.4.0p34). No custom backend. Concurrent Takes may leave multiple ACK comments; UI shows the newest valid CDN Take.
+No Untake in v1.1: ACK ends on OK/UP; manual removal is Checkmk UI. Safe Release/Untake is **v1.2.0 / Phase 7A COMPLETE / Windows-tested**. Live-validated `POST /domain-types/acknowledge/actions/delete/invoke` removes CDN Takes only. Generic/manual ACK is never deleted. `Taken by <name>` is the Release action. Any admin may release any CDN Take. Successful Take/Release waits on Checkmk read-back (`Taking...` / `Releasing...`) and does not show a native Windows MessageBox. No `expire_on` (HTTP 400 on validated RAW 2.4.0p34). No custom backend. Concurrent Takes may leave multiple ACK comments; UI shows the newest valid CDN Take. ACK/Taken fields must refresh on every successful snapshot.
 
 Sticky is intentional so WARN → Take → CRIT stays Taken (same local incident).
 

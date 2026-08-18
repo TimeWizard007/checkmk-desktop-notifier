@@ -8,10 +8,10 @@ namespace CheckmkDesktopNotifier.Core.Tests;
 public sealed class PackagingTests
 {
     [Fact]
-    public void Central_version_is_1_1_0()
+    public void Central_version_is_1_2_0()
     {
         var version = ReadCentralVersion();
-        Assert.Equal("1.1.0", version);
+        Assert.Equal("1.2.0", version);
         Assert.Equal(version, ApplicationVersion.FromAssembly(typeof(ProductInfo).Assembly));
     }
 
@@ -29,8 +29,27 @@ public sealed class PackagingTests
         Assert.Contains("TimeWizard007", license, StringComparison.Ordinal);
         Assert.DoesNotContain("vscode-file://", readme, StringComparison.Ordinal);
         Assert.DoesNotContain("vscode-file://", readmePl, StringComparison.Ordinal);
-        Assert.Contains("![Compact Always-on-Top bar](docs/images/compact-bar.png)", readme, StringComparison.Ordinal);
-        Assert.Contains("![Kompaktowy pasek Always-on-Top](docs/images/compact-bar.png)", readmePl, StringComparison.Ordinal);
+        Assert.Contains("(docs/images/problem-list-v1.2.png)", readme, StringComparison.Ordinal);
+        Assert.Contains("(docs/images/problem-list-v1.2.png)", readmePl, StringComparison.Ordinal);
+        Assert.Contains("(docs/images/taken-filter-v1.2.png)", readme, StringComparison.Ordinal);
+        Assert.Contains("(docs/images/take-dialog-v1.2.png)", readme, StringComparison.Ordinal);
+        Assert.Contains("(docs/images/release-dialog-v1.2.png)", readme, StringComparison.Ordinal);
+        Assert.Contains("(docs/images/settings-team-v1.2.png)", readme, StringComparison.Ordinal);
+        Assert.Contains("(docs/images/settings-connection.png)", readme, StringComparison.Ordinal);
+        Assert.Contains("(docs/images/settings-notifications-v1.2.png)", readme, StringComparison.Ordinal);
+        Assert.Contains("(docs/images/tray-menu-v1.2.png)", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/compact-bar.png", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/about.png", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/problem-list.png)", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/settings-notifications.png)", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/settings-general.png", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/tray-menu.png)", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/compact-bar.png", readmePl, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/about.png", readmePl, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/problem-list.png)", readmePl, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/settings-notifications.png)", readmePl, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/settings-general.png", readmePl, StringComparison.Ordinal);
+        Assert.DoesNotContain("docs/images/tray-menu.png)", readmePl, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -40,13 +59,15 @@ public sealed class PackagingTests
         foreach (var relative in new[]
                  {
                      "SHA256SUMS.txt",
-                     "docs/images/compact-bar.png",
-                     "docs/images/problem-list.png",
+                     "docs/RELEASE_NOTES_1.2.0.md",
+                     "docs/images/problem-list-v1.2.png",
+                     "docs/images/taken-filter-v1.2.png",
+                     "docs/images/take-dialog-v1.2.png",
+                     "docs/images/release-dialog-v1.2.png",
+                     "docs/images/settings-team-v1.2.png",
                      "docs/images/settings-connection.png",
-                     "docs/images/settings-notifications.png",
-                     "docs/images/settings-general.png",
-                     "docs/images/tray-menu.png",
-                     "docs/images/about.png"
+                     "docs/images/settings-notifications-v1.2.png",
+                     "docs/images/tray-menu-v1.2.png"
                  })
         {
             Assert.True(File.Exists(Path.Combine(root, relative)), relative);

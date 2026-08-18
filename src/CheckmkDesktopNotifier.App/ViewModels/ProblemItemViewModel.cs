@@ -37,6 +37,14 @@ public sealed class ProblemItemViewModel
 
     public bool CanTake => TakeVisual == TakeRowVisual.Take;
 
-    public bool ShowAcknowledgementBadge =>
-        TakeVisual is TakeRowVisual.Taken or TakeRowVisual.Acknowledged;
+    public bool ShowGenericAckBadge => TakeVisual == TakeRowVisual.Acknowledged;
+
+    public bool ShowTakenBadge => TakeVisual == TakeRowVisual.Taken && !CanRelease;
+
+    public bool ShowReleaseButton =>
+        TakeVisual == TakeRowVisual.Releasing || CanRelease;
+
+    public required bool CanRelease { get; init; }
+
+    public string? TakenByDisplayName { get; init; }
 }

@@ -362,4 +362,24 @@ Checkmk will stop sending further notifications for this current problem until i
   <data name="TakeAwaitingRefresh" xml:space="preserve">
     <value>Acknowledgement sent; waiting for Checkmk refresh.</value>
   </data>
+  <data name="Release" xml:space="preserve">
+    <value>Release</value>
+  </data>
+  <data name="Releasing" xml:space="preserve">
+    <value>Releasing...</value>
+  </data>
+  <data name="ReleaseConfirmTitle" xml:space="preserve">
+    <value>Release this problem?</value>
+  </data>
+  <data name="ReleaseConfirmBody" xml:space="preserve">
+    <value>This problem is currently taken by {0}.
+Releasing it will remove the Checkmk acknowledgement.
+The problem will remain active and may start generating notifications again.</value>
+  </data>
+  <data name="ReleaseCouldNot" xml:space="preserve">
+    <value>Could not release the problem.</value>
+  </data>
+  <data name="ReleaseAwaitingRefresh" xml:space="preserve">
+    <value>Release sent; waiting for Checkmk refresh.</value>
+  </data>
 </root>

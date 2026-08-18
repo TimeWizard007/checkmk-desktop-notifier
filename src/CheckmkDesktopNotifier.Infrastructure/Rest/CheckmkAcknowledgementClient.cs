@@ -14,6 +14,7 @@ public sealed class CheckmkAcknowledgementClient : ICheckmkAcknowledgementClient
 {
     public const string ServiceAcknowledgePath = "domain-types/acknowledge/collections/service";
     public const string HostAcknowledgePath = "domain-types/acknowledge/collections/host";
+    public const string DeleteAcknowledgePath = "domain-types/acknowledge/actions/delete/invoke";
 
     private readonly HttpClient _http;
     private readonly CheckmkOptions _options;
@@ -65,6 +66,32 @@ public sealed class CheckmkAcknowledgementClient : ICheckmkAcknowledgementClient
             ServiceDescription = serviceDescription.Trim()
         };
         return SendAsync(ServiceAcknowledgePath, body, cancellationToken);
+    }
+
+    public Task<AcknowledgementWriteResult> DeleteHostAsync(
+        string hostName,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new DeleteHostAcknowledgementRequest
+        {
+            AcknowledgeType = "host",
+            HostName = hostName.Trim()
+        };
+        return SendAsync(DeleteAcknowledgePath, body, cancellationToken);
+    }
+
+    public Task<AcknowledgementWriteResult> DeleteServiceAsync(
+        string hostName,
+        string serviceDescription,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new DeleteServiceAcknowledgementRequest
+        {
+            AcknowledgeType = "service",
+            HostName = hostName.Trim(),
+            ServiceDescription = serviceDescription.Trim()
+        };
+        return SendAsync(DeleteAcknowledgePath, body, cancellationToken);
     }
 
     private async Task<AcknowledgementWriteResult> SendAsync(
@@ -173,6 +200,21 @@ public sealed class DelegatingCheckmkAcknowledgementClient : ICheckmkAcknowledge
     {
         return Inner.AcknowledgeServiceAsync(hostName, serviceDescription, displayName, cancellationToken);
     }
+
+    public Task<AcknowledgementWriteResult> DeleteHostAsync(
+        string hostName,
+        CancellationToken cancellationToken = default)
+    {
+        return Inner.DeleteHostAsync(hostName, cancellationToken);
+    }
+
+    public Task<AcknowledgementWriteResult> DeleteServiceAsync(
+        string hostName,
+        string serviceDescription,
+        CancellationToken cancellationToken = default)
+    {
+        return Inner.DeleteServiceAsync(hostName, serviceDescription, cancellationToken);
+    }
 }
 
 public sealed class UnavailableCheckmkAcknowledgementClient : ICheckmkAcknowledgementClient
@@ -190,6 +232,23 @@ public sealed class UnavailableCheckmkAcknowledgementClient : ICheckmkAcknowledg
         string hostName,
         string serviceDescription,
         string displayName,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(AcknowledgementWriteResult.NotConfigured);
+    }
+
+    public Task<AcknowledgementWriteResult> DeleteHostAsync(
+        string hostName,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(AcknowledgementWriteResult.NotConfigured);
+    }
+
+    public Task<AcknowledgementWriteResult> DeleteServiceAsync(
+        string hostName,
+        string serviceDescription,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

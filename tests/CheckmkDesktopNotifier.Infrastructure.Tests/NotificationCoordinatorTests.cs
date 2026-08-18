@@ -226,6 +226,26 @@ public sealed class NotificationCoordinatorTests
     }
 
     [Fact]
+    public void Releasing_ack_does_not_notify_or_play_sound()
+    {
+        var harness = CreateHarness();
+        harness.BaselineEmpty();
+        harness.Apply(Ok(Warn("web01", "CPU", "80%", acknowledged: true, takenBy: "Michał")));
+        harness.Notifications.Shown.Clear();
+        harness.Sound.Reset();
+
+        harness.Apply(Ok(Warn("web01", "CPU", "80%")));
+
+        Assert.Empty(harness.Notifications.Shown);
+        Assert.Equal(0, harness.Sound.PlayCount);
+        var open = Assert.Single(harness.Alerts.GetOpenIncidents());
+        Assert.False(open.IsSeen);
+        Assert.False(open.IsAcknowledgedInCheckmk);
+        Assert.False(open.IsTakenByNotifier);
+        Assert.Null(open.TakenByDisplayName);
+    }
+
+    [Fact]
     public void Downtime_metadata_does_not_imply_seen()
     {
         var harness = CreateHarness();
@@ -440,8 +460,14 @@ public sealed class NotificationCoordinatorTests
     private ProblemSnapshot Failed() =>
         ProblemSnapshot.Failure(_clock.UtcNow, SnapshotErrorKind.Unavailable, "Checkmk unreachable");
 
-    private static MonitoredProblem Warn(string host, string service, string output, bool acknowledged = false, int downtime = 0) =>
-        Problem(host, service, Severity.Warning, output, acknowledged, downtime);
+    private static MonitoredProblem Warn(
+        string host,
+        string service,
+        string output,
+        bool acknowledged = false,
+        int downtime = 0,
+        string? takenBy = null) =>
+        Problem(host, service, Severity.Warning, output, acknowledged, downtime, takenBy: takenBy);
 
     private static MonitoredProblem Crit(string host, string service, string output, DateTimeOffset? lastOk = null) =>
         Problem(host, service, Severity.Critical, output, lastOk: lastOk);
@@ -456,7 +482,8 @@ public sealed class NotificationCoordinatorTests
         string output,
         bool acknowledged = false,
         int downtime = 0,
-        DateTimeOffset? lastOk = null) =>
+        DateTimeOffset? lastOk = null,
+        string? takenBy = null) =>
         new()
         {
             Id = MonitoredObjectId.Service(new SiteId("itssrv"), host, service),
@@ -465,6 +492,11 @@ public sealed class NotificationCoordinatorTests
             PluginOutput = output,
             LastTimeOk = lastOk ?? new DateTimeOffset(2026, 8, 16, 10, 0, 0, TimeSpan.Zero),
             IsAcknowledgedInCheckmk = acknowledged,
+            AcknowledgementType = acknowledged && takenBy is not null
+                ? AcknowledgementType.Sticky
+                : AcknowledgementType.None,
+            TakenByDisplayName = takenBy,
+            IsTakenByNotifier = takenBy is not null,
             ScheduledDowntimeDepth = downtime
         };
 

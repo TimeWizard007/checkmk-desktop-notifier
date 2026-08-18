@@ -4,13 +4,13 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**v1.1.0 FEATURE COMPLETE / READY FOR RELEASE** — Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. Feature freeze: no further v1.1.0 functionality.
+**v1.2.0 FEATURE COMPLETE / RELEASE CANDIDATE** — Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. Phase 7A COMPLETE / Windows-tested. No further feature phase. Tag `v1.1.0` is unchanged and was **not** published as a GitHub Release. Do not start ticketing.
 
-Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. Do not retag 1.0.0. Git tag `v1.1.0` is created as part of this close-out. GitHub Release is a separate follow-up and is **not** created here.
+Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. v1.1.0 tagged (no GitHub Release). Phase 7A COMPLETE / Windows-tested.
 
-Product version **1.1.0** (from `Directory.Build.props`). Do not implement Untake/Release (reserved for v1.2.0). Do not start ticketing.
+Product version **1.2.0** (from `Directory.Build.props`). Remaining release work is installer build, SHA-256, tag, and GitHub Release — not further product features.
 
-Installer SHA-256 below is the **1.0.0** installer (`SHA256SUMS.txt`). Do not treat it as a 1.1.0 checksum.
+Installer SHA-256 below is the **1.0.0** installer (`SHA256SUMS.txt`). Do not treat it as a 1.1.0 or 1.2.0 checksum.
 
 ```
 71C5A97C461B513DF2B977F4FEC39C2E739E5817779EF9BA205C44EDEF847B2E  CheckmkDesktopNotifier-Setup-x64.exe
@@ -28,7 +28,8 @@ Installer SHA-256 below is the **1.0.0** installer (`SHA256SUMS.txt`). Do not tr
 - Phase 4D complete — `0bfd177` `Complete Phase 4D Windows installer and packaging`
 - Phase 5: COMPLETE / V1 READY
 - Phase 6A: COMPLETE / Windows-tested (Take / shared ACK).
-- Phase 6B: COMPLETE / Windows-tested (Open in Checkmk + Seen/Unseen). v1.1.0 feature freeze.
+- Phase 6B: COMPLETE / Windows-tested (Open in Checkmk + Seen/Unseen). v1.1.0 tagged.
+- Phase 7A: COMPLETE / Windows-tested (safe Release / Untake). v1.2.0 FEATURE COMPLETE / RELEASE CANDIDATE.
 
 ## Phase 1 — complete
 
@@ -328,30 +329,46 @@ Validated on Windows 11. Phase 6A Take behavior remains intact.
 
 **Windows 11 Phase 6B validation: PASSED.**
 
+### Phase 7A — COMPLETE / Windows-tested (safe Release / Untake)
+
+Version **1.2.0**. FEATURE COMPLETE / RELEASE CANDIDATE. Live Checkmk RAW 2.4.0p34 validated `POST /domain-types/acknowledge/actions/delete/invoke` (service payload HTTP **204**). Host uses the same endpoint with `acknowledge_type: host`. No comment id. No secrets in the payload. Windows-tested.
+
+- Release is offered only for CDN Takes (`Taken by <name>`). Generic/manual ACK stays a non-clickable **ACK** badge and is never deleted.
+- Any admin may Release any CDN Take (team coordination, not ACL). Display name identifies who took the problem; it does not restrict who may release it.
+- Before delete: refresh when practical and proceed only if still `IsAcknowledgedInCheckmk && IsTakenByNotifier`. Abort and refresh if the problem is no longer a CDN Take.
+- No optimistic UI. Flow: Taken by → dark confirm → Releasing... → delete REST → immediate refresh → show Take only after Checkmk `acknowledged == 0`. Successful Take/Release does **not** show a native MessageBox; waiting uses `Taking...` / `Releasing...` until read-back confirms. Errors use the dark in-app dialog.
+- Failed refresh after a successful delete keeps the previous Taken state (or a waiting message). Do not invent local released state.
+- ACK metadata is overwritten on every successful snapshot. Same incident identity must not keep `TakenByDisplayName` after Checkmk reports `acknowledged = 0` / `acknowledgement_type = 0`.
+- Release does not change local Seen/Unseen or NEW counts.
+- Release does not emit a notifier balloon or sound (`AlertDelta.Opened` stays empty). Checkmk itself may resume its own notifications; the confirm dialog says so.
+- 400/422/no-longer-acknowledged are tolerated; never crash; never remove generic ACK.
+
+**Windows 11 Phase 7A validation: PASSED.**
+
 ## Tests
 
-Last automated run (Linux, v1.1.0 feature-freeze close-out; Windows live validation COMPLETE for 6A and 6B):
+Last automated run (Linux, v1.2.0 documentation / release-preparation pass):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 415 passed, 0 failed
-  Core.Tests:            215 passed
-  Infrastructure.Tests:  200 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 457 passed, 0 failed
+  Core.Tests:            230 passed
+  Infrastructure.Tests:  227 passed
 ```
 
-Phase 6A close-out was 382 passed. Phase 6B implementation was 415 passed. v1.1.0 is FEATURE COMPLETE / READY FOR RELEASE.
+Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. Phase 7A / v1.2.0 documentation pass is 457 passed.
 
 ## What is NOT implemented
 
 - Authenticode signing / trusted SmartScreen reputation
 - Persistent window position on disk
 - Shared/team Seen (local Seen remains per Windows user)
-- Untake / Release from the notifier (reserved for **v1.2.0** after live delete-ACK validation; remove ACK in Checkmk UI in v1.1)
 - Ticketing / Zoho; custom shared backend/database
 - `expire_on` ACK expiry (HTTP 400 on validated RAW 2.4.0p34)
-- GitHub Release (follow-up after tag `v1.1.0`; not created in this close-out)
+- GitHub Release (follow-up; `v1.1.0` is tagged but was not published; `v1.2.0` is not tagged yet)
 - Windows Service (out of V1 by decision)
+- 1.2.0 installer SHA-256 (do not reuse the 1.0.0 checksum in `SHA256SUMS.txt`)
 
 ## Immediate next steps
 
-v1.1.0 is feature-frozen. After tag `v1.1.0`: build the Windows installer from tagged source, record SHA-256, then GitHub Release as a separate follow-up. Do not start v1.2.0 / Untake / ticketing. Do not revert CDN Take comments to a multiline format.
+v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE. Remaining release work: Windows installer build from 1.2.0 source, SHA-256, tag `v1.2.0`, GitHub Release. Do not start a further feature phase. Do not start ticketing. Do not revert CDN Take comments to a multiline format. Do not alter tag `v1.1.0`.

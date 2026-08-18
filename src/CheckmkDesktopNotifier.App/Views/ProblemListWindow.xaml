@@ -57,10 +57,29 @@
                             </Border>
                             <Border Style="{StaticResource BadgeStyle}"
                                     ToolTip="{Binding AcknowledgementLabel}"
-                                    Visibility="{Binding ShowAcknowledgementBadge, Converter={StaticResource BooleanToVisibility}}">
+                                    Visibility="{Binding ShowGenericAckBadge, Converter={StaticResource BooleanToVisibility}}">
                                 <TextBlock Foreground="{StaticResource TextBrush}" FontSize="11"
                                            Text="{Binding AcknowledgementLabel}"/>
                             </Border>
+                            <Border Style="{StaticResource BadgeStyle}"
+                                    ToolTip="{Binding AcknowledgementLabel}"
+                                    Visibility="{Binding ShowTakenBadge, Converter={StaticResource BooleanToVisibility}}">
+                                <TextBlock Foreground="{StaticResource TextBrush}" FontSize="11"
+                                           Text="{Binding AcknowledgementLabel}"/>
+                            </Border>
+                            <Button Padding="6,2"
+                                    Margin="0,0,6,0"
+                                    FontSize="11"
+                                    Cursor="Hand"
+                                    ToolTip="{Binding AcknowledgementLabel}"
+                                    Content="{Binding AcknowledgementLabel}"
+                                    Command="{Binding DataContext.ReleaseCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    IsEnabled="{Binding CanRelease}"
+                                    Visibility="{Binding ShowReleaseButton, Converter={StaticResource BooleanToVisibility}}"
+                                    Background="{StaticResource BadgeBackgroundBrush}"
+                                    BorderThickness="0"
+                                    Foreground="{StaticResource TextBrush}"/>
                             <Border Style="{StaticResource BadgeStyle}"
                                     ToolTip="{Binding DataContext.Text.DowntimeTooltip, RelativeSource={RelativeSource AncestorType=Window}}"
                                     Visibility="{Binding IsInDowntime, Converter={StaticResource BooleanToVisibility}}">

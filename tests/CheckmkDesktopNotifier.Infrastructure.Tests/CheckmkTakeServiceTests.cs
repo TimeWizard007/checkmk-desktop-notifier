@@ -109,6 +109,248 @@ public sealed class CheckmkTakeServiceTests
         Assert.Equal(0, harness.Acks.ServiceCalls);
     }
 
+    [Fact]
+    public async Task Successful_service_release_deletes_and_confirms_after_refresh()
+    {
+        var harness = CreateHarness();
+        harness.AckOpenService();
+        harness.Acks.Next = AcknowledgementWriteResult.Success;
+        harness.Poller.OnRefresh = () =>
+        {
+            if (harness.Acks.ServiceDeletes > 0)
+            {
+                harness.ClearAck();
+            }
+        };
+
+        var result = await harness.Sut.ReleaseAsync(ProblemId());
+
+        Assert.Equal(TakeOperationStatus.Confirmed, result.Status);
+        Assert.Equal(1, harness.Acks.ServiceDeletes);
+        Assert.Equal(0, harness.Acks.HostDeletes);
+        Assert.Equal(2, harness.Poller.RefreshCount);
+        Assert.Equal("web01", harness.Acks.LastHost);
+        Assert.Equal("CPU", harness.Acks.LastService);
+        var open = Assert.Single(harness.Alerts.GetOpenIncidents());
+        Assert.False(open.IsTakenByNotifier);
+        Assert.Null(open.TakenByDisplayName);
+        Assert.False(open.IsAcknowledgedInCheckmk);
+    }
+
+    [Fact]
+    public async Task Successful_host_release_deletes_host_only()
+    {
+        var harness = CreateHarness();
+        var hostId = MonitoredObjectId.Host(new SiteId("itssrv"), "web01");
+        harness.Alerts.ApplySnapshot(ProblemSnapshot.Success(
+            DateTimeOffset.UtcNow,
+            new SiteId("itssrv"),
+            [
+                new MonitoredProblem
+                {
+                    Id = hostId,
+                    Severity = Severity.Critical,
+                    StateType = StateType.Hard,
+                    IsAcknowledgedInCheckmk = true,
+                    IsTakenByNotifier = true,
+                    TakenByDisplayName = "Michał"
+                }
+            ]));
+        harness.Acks.Next = AcknowledgementWriteResult.Success;
+        harness.Poller.OnRefresh = () =>
+        {
+            if (harness.Acks.HostDeletes > 0)
+            {
+                harness.Alerts.ApplySnapshot(ProblemSnapshot.Success(
+                    DateTimeOffset.UtcNow,
+                    new SiteId("itssrv"),
+                    [
+                        new MonitoredProblem
+                        {
+                            Id = hostId,
+                            Severity = Severity.Critical,
+                            StateType = StateType.Hard
+                        }
+                    ]));
+            }
+        };
+
+        var result = await harness.Sut.ReleaseAsync(hostId);
+        Assert.Equal(TakeOperationStatus.Confirmed, result.Status);
+        Assert.Equal(1, harness.Acks.HostDeletes);
+        Assert.Equal(0, harness.Acks.ServiceDeletes);
+    }
+
+    [Fact]
+    public async Task Generic_ack_cannot_release()
+    {
+        var harness = CreateHarness();
+        harness.OpenGenericAck();
+        var result = await harness.Sut.ReleaseAsync(ProblemId());
+        Assert.Equal(TakeOperationStatus.NotEligible, result.Status);
+        Assert.Equal(0, harness.Acks.ServiceDeletes);
+        Assert.Equal(0, harness.Acks.HostDeletes);
+        Assert.True(Assert.Single(harness.Alerts.GetOpenIncidents()).IsAcknowledgedInCheckmk);
+    }
+
+    [Fact]
+    public async Task Another_admins_cdn_take_can_release()
+    {
+        var harness = CreateHarness();
+        harness.AckOpenService("Paweł");
+        harness.Acks.Next = AcknowledgementWriteResult.Success;
+        harness.Poller.OnRefresh = () =>
+        {
+            if (harness.Acks.ServiceDeletes > 0)
+            {
+                harness.ClearAck();
+            }
+        };
+
+        var result = await harness.Sut.ReleaseAsync(ProblemId());
+        Assert.Equal(TakeOperationStatus.Confirmed, result.Status);
+        Assert.Equal(1, harness.Acks.ServiceDeletes);
+    }
+
+    [Fact]
+    public async Task Release_does_not_change_seen()
+    {
+        var harness = CreateHarness();
+        harness.AckOpenService();
+        harness.Alerts.MarkSeen(ProblemId());
+        harness.Acks.Next = AcknowledgementWriteResult.Success;
+        harness.Poller.OnRefresh = () =>
+        {
+            if (harness.Acks.ServiceDeletes > 0)
+            {
+                harness.ClearAck();
+            }
+        };
+
+        await harness.Sut.ReleaseAsync(ProblemId());
+        Assert.True(Assert.Single(harness.Alerts.GetOpenIncidents()).IsSeen);
+    }
+
+    [Fact]
+    public async Task Release_does_not_change_unseen()
+    {
+        var harness = CreateHarness();
+        harness.AckOpenService();
+        harness.Acks.Next = AcknowledgementWriteResult.Success;
+        harness.Poller.OnRefresh = () =>
+        {
+            if (harness.Acks.ServiceDeletes > 0)
+            {
+                harness.ClearAck();
+            }
+        };
+
+        await harness.Sut.ReleaseAsync(ProblemId());
+        Assert.False(Assert.Single(harness.Alerts.GetOpenIncidents()).IsSeen);
+    }
+
+    [Fact]
+    public async Task Successful_delete_with_failed_refresh_does_not_invent_released_state()
+    {
+        var harness = CreateHarness();
+        harness.AckOpenService();
+        harness.Acks.Next = AcknowledgementWriteResult.Success;
+        var refreshes = 0;
+        harness.Poller.OnRefresh = () =>
+        {
+            refreshes++;
+            if (refreshes > 1)
+            {
+                throw new InvalidOperationException("refresh failed");
+            }
+        };
+
+        var result = await harness.Sut.ReleaseAsync(ProblemId());
+        Assert.Equal(TakeOperationStatus.SentAwaitingRefresh, result.Status);
+        var open = Assert.Single(harness.Alerts.GetOpenIncidents());
+        Assert.True(open.IsTakenByNotifier);
+        Assert.Equal("Michał", open.TakenByDisplayName);
+    }
+
+    [Fact]
+    public async Task Concurrent_no_longer_taken_is_confirmed_without_delete_when_precheck_fails()
+    {
+        var harness = CreateHarness();
+        harness.AckOpenService();
+        harness.Poller.OnRefresh = () => harness.ClearAck();
+
+        var result = await harness.Sut.ReleaseAsync(ProblemId());
+        Assert.Equal(TakeOperationStatus.NotEligible, result.Status);
+        Assert.Equal(0, harness.Acks.ServiceDeletes);
+        Assert.False(Assert.Single(harness.Alerts.GetOpenIncidents()).IsTakenByNotifier);
+    }
+
+    [Fact]
+    public async Task Concurrent_400_after_delete_confirms_when_refresh_shows_released()
+    {
+        var harness = CreateHarness();
+        harness.AckOpenService();
+        harness.Acks.Next = AcknowledgementWriteResult.InvalidRequest;
+        harness.Poller.OnRefresh = () =>
+        {
+            if (harness.Acks.ServiceDeletes > 0)
+            {
+                harness.ClearAck();
+            }
+        };
+
+        var result = await harness.Sut.ReleaseAsync(ProblemId());
+        Assert.Equal(TakeOperationStatus.Confirmed, result.Status);
+        Assert.Equal(1, harness.Acks.ServiceDeletes);
+    }
+
+    [Theory]
+    [InlineData(AcknowledgementWriteStatus.Unauthorized, TakeOperationStatus.Unauthorized)]
+    [InlineData(AcknowledgementWriteStatus.Forbidden, TakeOperationStatus.Forbidden)]
+    [InlineData(AcknowledgementWriteStatus.Unavailable, TakeOperationStatus.Unavailable)]
+    public async Task Release_maps_write_failures(
+        AcknowledgementWriteStatus write,
+        TakeOperationStatus expected)
+    {
+        var harness = CreateHarness();
+        harness.AckOpenService();
+        harness.Acks.Next = write switch
+        {
+            AcknowledgementWriteStatus.Unauthorized => AcknowledgementWriteResult.Unauthorized,
+            AcknowledgementWriteStatus.Forbidden => AcknowledgementWriteResult.Forbidden,
+            _ => AcknowledgementWriteResult.Unavailable
+        };
+
+        var result = await harness.Sut.ReleaseAsync(ProblemId());
+        Assert.Equal(expected, result.Status);
+        Assert.Equal(1, harness.Acks.ServiceDeletes);
+        Assert.True(Assert.Single(harness.Alerts.GetOpenIncidents()).IsTakenByNotifier);
+        if (expected == TakeOperationStatus.Forbidden)
+        {
+            Assert.True(harness.Session.AcknowledgeForbidden);
+        }
+    }
+
+    [Fact]
+    public async Task Feature_disabled_still_releases_cdn_take()
+    {
+        var harness = CreateHarness();
+        harness.Preferences.SetTakeEnabled(false);
+        harness.AckOpenService();
+        harness.Acks.Next = AcknowledgementWriteResult.Success;
+        harness.Poller.OnRefresh = () =>
+        {
+            if (harness.Acks.ServiceDeletes > 0)
+            {
+                harness.ClearAck();
+            }
+        };
+
+        var result = await harness.Sut.ReleaseAsync(ProblemId());
+        Assert.Equal(TakeOperationStatus.Confirmed, result.Status);
+        Assert.Equal(1, harness.Acks.ServiceDeletes);
+    }
+
     private static MonitoredObjectId ProblemId() =>
         MonitoredObjectId.Service(new SiteId("itssrv"), "web01", "CPU");
 
@@ -150,7 +392,7 @@ public sealed class CheckmkTakeServiceTests
                 ]));
         }
 
-        public void AckOpenService()
+        public void AckOpenService(string takenBy = "Michał")
         {
             Alerts.ApplySnapshot(ProblemSnapshot.Success(
                 DateTimeOffset.UtcNow,
@@ -164,9 +406,46 @@ public sealed class CheckmkTakeServiceTests
                         IsAcknowledgedInCheckmk = true,
                         AcknowledgementType = AcknowledgementType.Sticky,
                         IsTakenByNotifier = true,
-                        TakenByDisplayName = "Michał"
+                        TakenByDisplayName = takenBy
                     }
                 ]));
+        }
+
+        public void OpenGenericAck()
+        {
+            Alerts.ApplySnapshot(ProblemSnapshot.Success(
+                DateTimeOffset.UtcNow,
+                new SiteId("itssrv"),
+                [
+                    new MonitoredProblem
+                    {
+                        Id = ProblemId(),
+                        Severity = Severity.Critical,
+                        StateType = StateType.Hard,
+                        IsAcknowledgedInCheckmk = true,
+                        AcknowledgementType = AcknowledgementType.Sticky
+                    }
+                ]));
+        }
+
+        public void ClearAck(bool seen = false)
+        {
+            var existing = Alerts.GetOpenIncidents().FirstOrDefault(incident => incident.ObjectId.Equals(ProblemId()));
+            Alerts.ApplySnapshot(ProblemSnapshot.Success(
+                DateTimeOffset.UtcNow,
+                new SiteId("itssrv"),
+                [
+                    new MonitoredProblem
+                    {
+                        Id = ProblemId(),
+                        Severity = Severity.Critical,
+                        StateType = StateType.Hard
+                    }
+                ]));
+            if (seen || existing?.IsSeen == true)
+            {
+                Alerts.MarkSeen(ProblemId());
+            }
         }
     }
 
@@ -175,6 +454,8 @@ public sealed class CheckmkTakeServiceTests
         public AcknowledgementWriteResult Next { get; set; } = AcknowledgementWriteResult.Success;
         public int ServiceCalls { get; private set; }
         public int HostCalls { get; private set; }
+        public int ServiceDeletes { get; private set; }
+        public int HostDeletes { get; private set; }
         public string? LastHost { get; private set; }
         public string? LastService { get; private set; }
         public string? LastDisplayName { get; private set; }
@@ -200,6 +481,27 @@ public sealed class CheckmkTakeServiceTests
             LastHost = hostName;
             LastService = serviceDescription;
             LastDisplayName = displayName;
+            return Task.FromResult(Next);
+        }
+
+        public Task<AcknowledgementWriteResult> DeleteHostAsync(
+            string hostName,
+            CancellationToken cancellationToken = default)
+        {
+            HostDeletes++;
+            LastHost = hostName;
+            LastService = null;
+            return Task.FromResult(Next);
+        }
+
+        public Task<AcknowledgementWriteResult> DeleteServiceAsync(
+            string hostName,
+            string serviceDescription,
+            CancellationToken cancellationToken = default)
+        {
+            ServiceDeletes++;
+            LastHost = hostName;
+            LastService = serviceDescription;
             return Task.FromResult(Next);
         }
     }

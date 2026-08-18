@@ -6,4 +6,6 @@ namespace CheckmkDesktopNotifier.Core.Abstractions;
 public interface ITakeService
 {
     Task<TakeOperationResult> TakeAsync(MonitoredObjectId id, CancellationToken cancellationToken = default);
+
+    Task<TakeOperationResult> ReleaseAsync(MonitoredObjectId id, CancellationToken cancellationToken = default);
 }

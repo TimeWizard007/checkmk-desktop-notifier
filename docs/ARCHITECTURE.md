@@ -27,8 +27,8 @@ App references Core and Infrastructure. Tests: Core.Tests → Core only. Infrast
 - Domain: `SiteId`, `ObjectKind`, `MonitoredObjectId`, `Severity`, `StateType`, `MonitoredProblem`, `ProblemSnapshot`
 - Incident engine: `IAlertStateService` / `AlertStateService`
 - Read-only Checkmk port: `ICheckmkClient` → `ProblemSnapshot`
-- Optional Checkmk write port: `ICheckmkAcknowledgementClient` (ACK only; not mixed into the read client)
-- Take workflow: `ITakeService` / `TakeEligibility` / `CdnTakeComment`
+- Optional Checkmk write port: `ICheckmkAcknowledgementClient` (ACK create/delete; not mixed into the read client)
+- Take / Release workflow: `ITakeService` / `TakeEligibility` / `CdnTakeComment`
 - Checkmk GUI navigation: `CheckmkGuiUriBuilder` / `ICheckmkProblemNavigator` (no REST `show` hrefs)
 - Persistence port: `IAlertStateStore` (`InMemoryAlertStateStore`, `JsonAlertStateStore`)
 - Mock: `MockCheckmkClient`, `DemoSnapshotFactory`
@@ -49,8 +49,8 @@ Core must stay independently testable.
 - `PollDiagnosticsWriter` — `%LocalAppData%/CheckmkDesktopNotifier/last-poll.txt` (counts and error kind only)
 - GUI settings store, `ISecretStore` / Windows Credential Manager, `CheckmkConfigurationResolver`, `MonitoringCoordinator`, `CheckmkConnectionTester`
 - Notification policy (`INotificationCoordinator` / `NotificationCoordinator`) maps `AlertDelta.Opened` to desktop alerts after ACK suppression and host-failure grouping; `IUserPreferences` / `preferences.json` (mute, volume, Default vs Custom WAV, Take enabled, display name)
-- `ICheckmkAcknowledgementClient` / `CheckmkAcknowledgementClient` — optional Take writes (`POST .../acknowledge/collections/service` and `.../host`)
-- `CheckmkTakeService` — ACK POST then `IProblemPoller.RefreshWhenIdleAsync` (no second poll loop)
+- `ICheckmkAcknowledgementClient` / `CheckmkAcknowledgementClient` — optional Take writes (`POST .../acknowledge/collections/service` and `.../host`) and Release deletes (`POST .../acknowledge/actions/delete/invoke`)
+- `CheckmkTakeService` — ACK POST or delete then `IProblemPoller.RefreshWhenIdleAsync` (no second poll loop)
 - `INotificationService` / `IAlertSoundService` abstractions (Windows balloon/sound live in App); PCM volume scaling and WAV validation live in Core
 
 ## App responsibilities
@@ -77,7 +77,7 @@ App must not implement NEW / SEEN / RECOVERED itself.
 ```
 Views  →  ShellViewModel  →  IAlertStateService  →  in-memory (Mock) / JSON (Real)
                 │
-                ├── ITakeService (optional Take → Checkmk ACK write, then one refresh)
+                ├── ITakeService (optional Take/Release → Checkmk ACK write/delete, then refresh)
                 ├── ICheckmkProblemNavigator (GUI URL + default browser; no state change)
                 ├── IProblemPoller (StateChanged → Reload)
                 │         └── INotificationCoordinator (AlertDelta.Opened only; ACK’d Opened = no balloon/sound)
@@ -132,9 +132,9 @@ API base URI: `{BaseUrl}/{Site}/check_mk/api/1.0/`.
 - Same object, same recurrence marker → same incident; severity may change (`WARN → CRIT`).
 - Same object, newer usable recurrence marker → Recovered + NEW (offline OK gap).
 
-`MarkSeen` / `MarkUnseen` / `MarkAllNewAsSeen` are local only. Checkmk `acknowledged` is shared metadata, never local Seen. Take writes ACK through `ICheckmkAcknowledgementClient`; it does not mark Seen. Mark unseen does not create `AlertDelta.Opened`.
+`MarkSeen` / `MarkUnseen` / `MarkAllNewAsSeen` are local only. Checkmk `acknowledged` is shared metadata, never local Seen. Take writes ACK through `ICheckmkAcknowledgementClient`; Release deletes a CDN Take the same way. Neither marks Seen. Same incident identity always refreshes ACK/Taken fields from the current snapshot. Mark unseen does not create `AlertDelta.Opened`.
 
-Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested; Phase 6A ACK suppression COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. If the Opened incident is already acknowledged in that snapshot, no balloon and no sound are emitted (the row may remain locally NEW). Grouping hosts that are already ACK’d produce no grouped balloon/sound; child incidents stay listed. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only. Version numbers come from `Directory.Build.props` (`1.1.0`). Phase 4D Inno Setup (COMPLETE / Windows-tested) installs binaries under `%LocalAppData%/Programs/CheckmkDesktopNotifier`; user data stays under `%LocalAppData%/CheckmkDesktopNotifier`. Phase 5 (COMPLETE / V1 READY) is documentation, versioning, and packaging for 1.0.0. Phase 6A (COMPLETE / Windows-tested) is optional Take / shared sticky Checkmk ACK. Phase 6B (COMPLETE / Windows-tested) is Open in Checkmk plus reversible local Seen/Unseen. v1.1.0 is FEATURE COMPLETE / READY FOR RELEASE.
+Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested; Phase 6A ACK suppression COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. If the Opened incident is already acknowledged in that snapshot, no balloon and no sound are emitted (the row may remain locally NEW). Releasing an ACK is not a new Opened incident. Grouping hosts that are already ACK’d produce no grouped balloon/sound; child incidents stay listed. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only. Version numbers come from `Directory.Build.props` (`1.2.0`). Phase 4D Inno Setup (COMPLETE / Windows-tested) installs binaries under `%LocalAppData%/Programs/CheckmkDesktopNotifier`; user data stays under `%LocalAppData%/CheckmkDesktopNotifier`. Phase 5 (COMPLETE / V1 READY) is documentation, versioning, and packaging for 1.0.0. Phase 6A (COMPLETE / Windows-tested) is optional Take / shared sticky Checkmk ACK. Phase 6B (COMPLETE / Windows-tested) is Open in Checkmk plus reversible local Seen/Unseen. Phase 7A (COMPLETE / Windows-tested) is safe Release of CDN Takes. v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE.
 
 **Virgin baseline:** `openIncidentCount == 0 && LastSuccessfulPollUtc is null` before `ApplySnapshot`. If that first snapshot succeeds, Opened incidents are persisted for the UI and **must not** emit notifications/sound. Subsequent successful polls notify only newly Opened incidents.
 
@@ -220,7 +220,7 @@ A search field sits below the filter chips and above the list. Search is present
 
 Compact-bar NEW/CRIT/WARN/UNKNOWN/TAKEN counts are global (not search-scoped). Clicking a count **toggles** that filter (same filter closes; a different filter switches in place). Clicking Checkmk / non-counter area toggles the list and opens ALL. Gear does not change the filter.
 
-Eye button is on every active row: open eye = Mark seen (NEW), slashed eye = Mark unseen (Seen). Mark unseen returns the incident to local NEW immediately and never replays balloon/sound (`AlertDelta.Opened` is unchanged). Compact Open-in-Checkmk icon is first in the action cluster, then eye, then Take when available. Open uses `ICheckmkProblemNavigator` and does not mutate incident state. Take is a compact row action when the feature is enabled and the problem is not already ACK’d. CDN Takes show **Taken by {name}**; other ACKs show **ACK**. Checkmk ACK and downtime are badges only and may coexist with Taken. Take never removes the row. Take confirmation is an application-owned dark modal (Take / Cancel), not a Windows MessageBox. CDN Take write comments are **single-line**; Checkmk RAW 2.4 truncates `\n` in ACK comments. Taken-by is not a Release action in v1.1.
+Eye button is on every active row: open eye = Mark seen (NEW), slashed eye = Mark unseen (Seen). Mark unseen returns the incident to local NEW immediately and never replays balloon/sound (`AlertDelta.Opened` is unchanged). Compact Open-in-Checkmk icon is first in the action cluster, then eye, then Take when available. Open uses `ICheckmkProblemNavigator` and does not mutate incident state. Take is a compact row action when the feature is enabled and the problem is not already ACK’d. CDN Takes show **Taken by {name}**; other ACKs show **ACK**. Checkmk ACK and downtime are badges only and may coexist with Taken. Take never removes the row. Take confirmation is an application-owned dark modal (Take / Cancel), not a Windows MessageBox. Release uses the same chrome. After a successful write, waiting uses the row visual (`Taking...` / `Releasing...`) until Checkmk read-back confirms; do not show a native MessageBox for that. CDN Take write comments are **single-line**; Checkmk RAW 2.4 truncates `\n` in ACK comments. Taken-by is the Release action for CDN Takes in v1.2.0 / Phase 7A.
 
 ## Rule: no Checkmk REST DTOs in Core
 

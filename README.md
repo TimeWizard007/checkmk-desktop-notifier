@@ -6,29 +6,33 @@ A lightweight Windows desktop monitor and notifier for Checkmk.
 
 This is an **independent open-source project**. It is **not affiliated with Checkmk GmbH**, and is not endorsed by or a product of Checkmk GmbH. “Checkmk” is used only to name the monitoring system this companion talks to.
 
-Current version: **1.1.0** (FEATURE COMPLETE / READY FOR RELEASE — Phase 6A Take / shared ACK and Phase 6B Open in Checkmk + Seen/Unseen, both COMPLETE / Windows-tested). GitHub Release is a separate follow-up after tag `v1.1.0`.
+Current version: **1.2.0** (FEATURE COMPLETE / RELEASE CANDIDATE — Phase 6A Take, Phase 6B Open in Checkmk + Seen/Unseen, and Phase 7A Release / Untake, all COMPLETE / Windows-tested). This is the consolidated public-release candidate. Tag `v1.1.0` is unchanged; a GitHub Release was not published for 1.1.0.
 
 ## Overview
 
 Checkmk Desktop Notifier is a per-user Windows 10/11 companion. It polls Checkmk over the REST API, shows current HARD host and service problems in a compact Always-on-Top bar, and raises desktop notifications when new local incidents open.
 
-It is **not** a replacement for the Checkmk web UI. Local **Seen** state lives on this Windows user only. Optional **Take** writes a sticky acknowledgement in Checkmk so other administrators can see that the problem is being handled. It does not replace the Checkmk UI for removing acknowledgements.
+It is **not** a replacement for the Checkmk web UI. Local **Seen** state lives on this Windows user only. Optional **Take** writes a sticky acknowledgement in Checkmk so other administrators can see that the problem is being handled. **Release** on a CDN Take removes that Checkmk acknowledgement. Generic/manual acknowledgements are not removed by the notifier.
 
 ## Screenshots
 
 Host names and internal URLs are omitted or replaced with examples.
 
-![Compact Always-on-Top bar](docs/images/compact-bar.png)
+![Problem list with NEW / CRIT / WARN / UNKNOWN, Take, Seen, and Open in Checkmk](docs/images/problem-list-v1.2.png)
 
-![Problem list and severity filters](docs/images/problem-list.png)
+![TAKEN filter, global TAKEN counter, and Taken by](docs/images/taken-filter-v1.2.png)
+
+![Dark Take confirmation](docs/images/take-dialog-v1.2.png)
+
+![Dark Release confirmation](docs/images/release-dialog-v1.2.png)
+
+![Settings — General / team coordination](docs/images/settings-team-v1.2.png)
 
 ![Settings — Connection](docs/images/settings-connection.png)
 
-![Settings — Notifications](docs/images/settings-notifications.png)
+![Settings — Notifications](docs/images/settings-notifications-v1.2.png)
 
-![System tray menu](docs/images/tray-menu.png)
-
-![About (version 1.0.0)](docs/images/about.png)
+![System tray menu](docs/images/tray-menu-v1.2.png)
 
 ## Features
 
@@ -139,14 +143,24 @@ Do not put a real username, secret, URL, or internal group name in this reposito
 - Seen is **not** sent to Checkmk
 - Seen is **not** shared with other administrators or other Windows users
 
-A compact **Open in Checkmk** icon opens the corresponding host or service in the Checkmk GUI (default browser). It does not change Seen, Take, ACK, or downtime.
+A compact **Open in Checkmk** icon opens the corresponding host or service **GUI view** in the default browser (not a REST API resource). Service rows open that service; host rows open that host. It does not change Seen, Take, ACK, or downtime.
 
 **Take** is a **shared** team action (Settings → General, off by default):
 
-- Creates a sticky Checkmk acknowledgement for that host or that service only
+- Creates a sticky Checkmk acknowledgement for that host or that service only (`sticky=true`, `persistent=false`, `notify=false`)
 - Does not hide the problem, change severity, mark it Seen, ACK child services, or create a ticket
 - Checkmk stops further notifications for the current problem until it returns to OK/UP
-- There is no Untake in 1.1.0; remove the ACK in the Checkmk UI if needed. ACK also ends on recovery to OK/UP
+- After confirm, the row shows **Taking...** until Checkmk read-back confirms **Taken by &lt;display name&gt;**. There is no optimistic Taken state and no native Windows MessageBox
+- Multiple notifier instances see the same Taken state after polling (Checkmk is the source of truth)
+
+Click **Taken by &lt;name&gt;** to **Release** a CDN Take (any administrator using the notifier, not only the person who took it):
+
+- Release deletes that Checkmk acknowledgement (`POST /domain-types/acknowledge/actions/delete/invoke`) after a fresh Checkmk read when practical
+- Allowed **only** for notifier-created CDN Takes. A generic/manual Checkmk ACK stays a non-clickable **ACK** badge and is never deleted
+- The row shows **Releasing...** until Checkmk reports no ACK, then the normal **Take** action returns. No optimistic Released state
+- Release does **not** resolve the Checkmk problem. Severity stays CRIT/WARN/UNKNOWN until Checkmk reports recovery. Checkmk itself may start sending notifications again
+- Release does not change local Seen/Unseen and does not raise a notifier balloon or sound
+- ACK also ends on recovery to OK/UP
 
 **Taken by** is shown only when the ACK comment was created by Checkmk Desktop Notifier (`cdn.v1 take name="..."`). A manual Checkmk ACK shows **ACK**, not a guessed person. The Checkmk comment author is the shared automation account and is never used as identity. Take comments are **single-line** (`Taken by {name} via Checkmk Desktop Notifier cdn.v1 take name="..."`) because Checkmk RAW 2.4 truncates multiline ACK comments.
 
@@ -162,6 +176,7 @@ A Windows balloon (via the tray icon) and, unless muted, one alert sound are emi
 - Mute turns **sound** off; balloons still appear
 - If a NEW incident is **already acknowledged** in Checkmk when it opens, it stays locally NEW but produces **no balloon and no sound**
 - ACK appearing later on an already-open incident does not create a new notification
+- Take and Release do **not** emit a balloon or sound by themselves
 - Scheduled downtime does **not** suppress balloons (unchanged)
 
 ## Checkmk ACK and downtime
@@ -294,10 +309,10 @@ Output (gitignored):
 artifacts\CheckmkDesktopNotifier-Setup-x64.exe
 ```
 
-The script reads version from `Directory.Build.props` (currently **1.1.0**) and passes `/DMyAppVersion` to `iscc`. Equivalent:
+The script reads version from `Directory.Build.props` (currently **1.2.0**) and passes `/DMyAppVersion` to `iscc`. Equivalent:
 
 ```text
-iscc /DMyAppVersion=1.1.0 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.2.0 installer\CheckmkDesktopNotifier.iss
 ```
 
 SHA-256 of a built installer (do not invent a hash before the file exists):
@@ -321,7 +336,7 @@ These are **intentional V1 boundaries**, not accidental omissions:
 - Windows only
 - Checkmk-specific (REST collections as documented in `docs/CHECKMK_API.md`)
 - Local Seen is **not** shared between administrators
-- Optional Take writes sticky Checkmk ACK; there is **no Untake** in 1.1.0
+- Optional Take writes sticky Checkmk ACK; **Release** removes a CDN Take only (never a generic/manual ACK)
 - No ticketing / Zoho integration
 - No custom shared backend/database
 - Custom alert sounds are **WAV-only**
@@ -332,12 +347,9 @@ These are **intentional V1 boundaries**, not accidental omissions:
 
 ## Roadmap
 
-**1.1.0 (FEATURE COMPLETE / READY FOR RELEASE):** Team Take / shared sticky Checkmk ACK, Taken by, TAKEN filter/counter, search, ACK-aware notification suppression, Open in Checkmk, reversible local Seen/Unseen. CDN comments are single-line because Checkmk RAW 2.4 truncates multiline ACK comments.
+**1.1.0 (tagged, not published as a GitHub Release):** Team Take / shared sticky Checkmk ACK, Taken by, TAKEN filter/counter, search, ACK-aware notification suppression, Open in Checkmk, reversible local Seen/Unseen. CDN comments are single-line because Checkmk RAW 2.4 truncates multiline ACK comments.
 
-**v1.2.0 candidate (not started):**
-
-- Safe Release / Untake after live validation of `POST /domain-types/acknowledge/actions/delete/invoke`
-- The notifier must never remove generic/manual ACK blindly
+**1.2.0 (FEATURE COMPLETE / RELEASE CANDIDATE):** Consolidated team workflow. Safe Release / Untake of CDN Takes (`POST /domain-types/acknowledge/actions/delete/invoke`), dark Take/Release confirmation, row waiting states instead of native MessageBoxes, Checkmk remaining source of truth. Phase 6A, 6B, and 7A are COMPLETE / Windows-tested. See [docs/RELEASE_NOTES_1.2.0.md](docs/RELEASE_NOTES_1.2.0.md).
 
 **Future / optional:**
 

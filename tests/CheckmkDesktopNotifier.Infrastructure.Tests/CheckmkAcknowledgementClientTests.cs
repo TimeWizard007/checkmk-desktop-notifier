@@ -168,6 +168,91 @@ public sealed class CheckmkAcknowledgementClientTests
         Assert.DoesNotContain(TestOptions.Secret, result.UserMessage, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Service_release_posts_validated_payload()
+    {
+        var handler = new RecordingHandler
+        {
+            Responder = _ => new HttpResponseMessage(HttpStatusCode.NoContent)
+        };
+        var client = CreateClient(handler);
+
+        var result = await client.DeleteServiceAsync("GO-S01", "Update");
+
+        Assert.Equal(AcknowledgementWriteStatus.Success, result.Status);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
+        Assert.Equal(
+            "https://checkmk.example.invalid/mysite/check_mk/api/1.0/domain-types/acknowledge/actions/delete/invoke",
+            handler.LastRequest.RequestUri?.ToString());
+        using var body = JsonDocument.Parse(handler.LastBody!);
+        var root = body.RootElement;
+        Assert.Equal("service", root.GetProperty("acknowledge_type").GetString());
+        Assert.Equal("GO-S01", root.GetProperty("host_name").GetString());
+        Assert.Equal("Update", root.GetProperty("service_description").GetString());
+        Assert.False(root.TryGetProperty("comment", out _));
+        Assert.False(root.TryGetProperty("sticky", out _));
+        Assert.False(root.TryGetProperty("expire_on", out _));
+        Assert.DoesNotContain(TestOptions.Secret, handler.LastBody!, StringComparison.Ordinal);
+        Assert.DoesNotContain("Authorization", result.UserMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Host_release_uses_same_endpoint_without_service()
+    {
+        var handler = new RecordingHandler
+        {
+            Responder = _ => new HttpResponseMessage(HttpStatusCode.NoContent)
+        };
+        var client = CreateClient(handler);
+
+        var result = await client.DeleteHostAsync("GO-S01");
+
+        Assert.Equal(AcknowledgementWriteStatus.Success, result.Status);
+        Assert.Equal(
+            "https://checkmk.example.invalid/mysite/check_mk/api/1.0/domain-types/acknowledge/actions/delete/invoke",
+            handler.LastRequest!.RequestUri?.ToString());
+        using var body = JsonDocument.Parse(handler.LastBody!);
+        Assert.Equal("host", body.RootElement.GetProperty("acknowledge_type").GetString());
+        Assert.Equal("GO-S01", body.RootElement.GetProperty("host_name").GetString());
+        Assert.False(body.RootElement.TryGetProperty("service_description", out _));
+        Assert.False(body.RootElement.TryGetProperty("comment", out _));
+        Assert.DoesNotContain(TestOptions.Secret, handler.LastBody!, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized, AcknowledgementWriteStatus.Unauthorized)]
+    [InlineData(HttpStatusCode.Forbidden, AcknowledgementWriteStatus.Forbidden)]
+    [InlineData(HttpStatusCode.BadRequest, AcknowledgementWriteStatus.InvalidRequest)]
+    [InlineData(HttpStatusCode.UnprocessableEntity, AcknowledgementWriteStatus.InvalidRequest)]
+    public async Task Delete_maps_http_failures(HttpStatusCode status, AcknowledgementWriteStatus expected)
+    {
+        var handler = new RecordingHandler
+        {
+            Responder = _ => new HttpResponseMessage(status)
+            {
+                Content = new StringContent("""{"secret":"must-not-leak"}""")
+            }
+        };
+        var client = CreateClient(handler);
+        var result = await client.DeleteServiceAsync("web01", "CPU");
+        Assert.Equal(expected, result.Status);
+        Assert.DoesNotContain("must-not-leak", result.UserMessage, StringComparison.Ordinal);
+        Assert.DoesNotContain(TestOptions.Secret, result.UserMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Delete_timeout_is_unavailable_without_secret()
+    {
+        var handler = new RecordingHandler
+        {
+            Responder = _ => throw new TaskCanceledException("timeout")
+        };
+        var client = CreateClient(handler);
+        var result = await client.DeleteHostAsync("web01");
+        Assert.Equal(AcknowledgementWriteStatus.Unavailable, result.Status);
+        Assert.DoesNotContain(TestOptions.Secret, result.UserMessage, StringComparison.Ordinal);
+    }
+
     private static CheckmkAcknowledgementClient CreateClient(RecordingHandler handler)
     {
         var http = new HttpClient(handler)

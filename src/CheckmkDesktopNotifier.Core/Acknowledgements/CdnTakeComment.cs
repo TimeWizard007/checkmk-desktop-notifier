@@ -45,7 +45,9 @@ public static class CdnTakeComment
         IEnumerable<CheckmkCommentRecord>? comments)
     {
         var type = MapAcknowledgementType(acknowledgementType);
-        if (!acknowledged)
+        // acknowledged=0, or an explicit acknowledgement_type=0, means no active ACK
+        // even if leftover CDN comments remain on the object after delete.
+        if (!acknowledged || acknowledgementType == 0)
         {
             return CheckmkAcknowledgementInfo.None;
         }

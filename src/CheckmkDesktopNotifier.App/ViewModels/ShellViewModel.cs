@@ -31,6 +31,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly bool _settingsAvailable;
     private ShellPhase _phase = ShellPhase.Initializing;
     private MonitoredObjectId? _takingId;
+    private MonitoredObjectId? _releasingId;
 
     public ShellViewModel(
         IAlertStateService alerts,
@@ -62,6 +63,7 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             OnPropertyChanged(nameof(MuteMenuHeader));
             TakeCommand.NotifyCanExecuteChanged();
+            ReleaseCommand.NotifyCanExecuteChanged();
             Reload();
         };
         if (_takeSession is not null)
@@ -69,6 +71,7 @@ public sealed partial class ShellViewModel : ObservableObject
             _takeSession.Changed += (_, _) =>
             {
                 TakeCommand.NotifyCanExecuteChanged();
+                ReleaseCommand.NotifyCanExecuteChanged();
                 Reload();
             };
         }
@@ -89,6 +92,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public ILocalizationService Text { get; }
 
     public Func<string, string, bool>? ConfirmTake { get; set; }
+
+    public Func<string, string, bool>? ConfirmRelease { get; set; }
 
     public Action<string>? ShowTakeMessage { get; set; }
 
@@ -248,6 +253,12 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public void Reload()
     {
+        if (ClearInFlightIfConverged())
+        {
+            TakeCommand.NotifyCanExecuteChanged();
+            ReleaseCommand.NotifyCanExecuteChanged();
+        }
+
         var incidents = _alerts.GetOpenIncidents();
         var newestFirst = incidents
             .OrderByDescending(incident => incident.OpenedAtUtc)
@@ -414,7 +425,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanTake))]
     private async Task TakeAsync(ProblemItemViewModel? item)
     {
-        if (item is null || _take is null || _takingId is not null || _phase != ShellPhase.Ready)
+        if (item is null || _take is null || _takingId is not null || _releasingId is not null || _phase != ShellPhase.Ready)
         {
             return;
         }
@@ -439,6 +450,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         _takingId = item.ObjectId;
         TakeCommand.NotifyCanExecuteChanged();
+        ReleaseCommand.NotifyCanExecuteChanged();
         Reload();
         TakeOperationResult result;
         try
@@ -449,41 +461,122 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             result = TakeOperationResult.Unavailable;
         }
-        finally
-        {
-            _takingId = null;
-            TakeCommand.NotifyCanExecuteChanged();
-            Reload();
-        }
 
-        var message = result.Status switch
-        {
-            TakeOperationStatus.Confirmed => null,
-            TakeOperationStatus.Cancelled => null,
-            TakeOperationStatus.AlreadyAcknowledged => null,
-            TakeOperationStatus.Forbidden => Text.TakeForbidden,
-            TakeOperationStatus.SentAwaitingRefresh => Text.TakeAwaitingRefresh,
-            _ => Text.TakeCouldNot
-        };
-
-        if (!string.IsNullOrWhiteSpace(message))
-        {
-            try
-            {
-                ShowTakeMessage?.Invoke(message);
-            }
-            catch (Exception)
-            {
-            }
-        }
+        FinishWrite(ref _takingId, result, Text.TakeCouldNot);
     }
 
     private bool CanTake(ProblemItemViewModel? item) =>
         item is not null
         && item.CanTake
         && _takingId is null
+        && _releasingId is null
         && _phase == ShellPhase.Ready
         && _take is not null;
+
+    [RelayCommand(CanExecute = nameof(CanRelease))]
+    private async Task ReleaseAsync(ProblemItemViewModel? item)
+    {
+        if (item is null || _take is null || _takingId is not null || _releasingId is not null || _phase != ShellPhase.Ready)
+        {
+            return;
+        }
+
+        if (!item.CanRelease)
+        {
+            return;
+        }
+
+        try
+        {
+            var body = string.Format(Text.ReleaseConfirmBody, item.TakenByDisplayName ?? string.Empty);
+            if (!TakeConfirmation.ShouldProceed(
+                    ConfirmRelease?.Invoke(Text.ReleaseConfirmTitle, body)))
+            {
+                return;
+            }
+        }
+        catch (Exception)
+        {
+            return;
+        }
+
+        _releasingId = item.ObjectId;
+        TakeCommand.NotifyCanExecuteChanged();
+        ReleaseCommand.NotifyCanExecuteChanged();
+        Reload();
+        TakeOperationResult result;
+        try
+        {
+            result = await _take.ReleaseAsync(item.ObjectId).ConfigureAwait(true);
+        }
+        catch (Exception)
+        {
+            result = TakeOperationResult.Unavailable;
+        }
+
+        FinishWrite(ref _releasingId, result, Text.ReleaseCouldNot);
+    }
+
+    private bool CanRelease(ProblemItemViewModel? item) =>
+        item is not null
+        && item.CanRelease
+        && _takingId is null
+        && _releasingId is null
+        && _phase == ShellPhase.Ready
+        && _take is not null;
+
+    private void FinishWrite(ref MonitoredObjectId? inFlightId, TakeOperationResult result, string fallbackError)
+    {
+        if (!TakeCompletionUi.KeepWaitingVisual(result.Status))
+        {
+            inFlightId = null;
+        }
+
+        TakeCommand.NotifyCanExecuteChanged();
+        ReleaseCommand.NotifyCanExecuteChanged();
+        Reload();
+
+        if (!TakeCompletionUi.ShowsErrorDialog(result.Status))
+        {
+            return;
+        }
+
+        var message = result.Status == TakeOperationStatus.Forbidden ? Text.TakeForbidden : fallbackError;
+        try
+        {
+            ShowTakeMessage?.Invoke(message);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private bool ClearInFlightIfConverged()
+    {
+        var changed = false;
+        var incidents = _alerts.GetOpenIncidents();
+        if (_takingId is { } taking)
+        {
+            var incident = incidents.FirstOrDefault(open => open.ObjectId.Equals(taking));
+            if (incident is null || incident.IsAcknowledgedInCheckmk)
+            {
+                _takingId = null;
+                changed = true;
+            }
+        }
+
+        if (_releasingId is { } releasing)
+        {
+            var incident = incidents.FirstOrDefault(open => open.ObjectId.Equals(releasing));
+            if (incident is null || !incident.IsTakenByNotifier)
+            {
+                _releasingId = null;
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
 
     private void OnPollerStateChanged(object? sender, EventArgs e)
     {
@@ -500,24 +593,35 @@ public sealed partial class ShellViewModel : ObservableObject
     private ProblemItemViewModel ToItem(OpenIncident incident)
     {
         var isTakingThis = _takingId is not null && _takingId.Equals(incident.ObjectId);
+        var isReleasingThis = _releasingId is not null && _releasingId.Equals(incident.ObjectId);
+        var isBusy = _takingId is not null || _releasingId is not null;
         var canOffer = TakeEligibility.CanOfferTake(
             _preferences.TakeEnabled,
             _preferences.TakeDisplayName,
             isRealMonitoring: _loaded?.IsMock != true && _take is not null,
             acknowledgeForbidden: _takeSession?.AcknowledgeForbidden == true,
             alreadyAcknowledged: incident.IsAcknowledgedInCheckmk,
-            isTaking: _takingId is not null,
+            isTaking: isBusy,
+            isReady: _phase == ShellPhase.Ready);
+        var canOfferRelease = TakeEligibility.CanOfferRelease(
+            incident.IsAcknowledgedInCheckmk,
+            incident.IsTakenByNotifier,
+            isRealMonitoring: _loaded?.IsMock != true && _take is not null,
+            acknowledgeForbidden: _takeSession?.AcknowledgeForbidden == true,
+            isBusy: isBusy,
             isReady: _phase == ShellPhase.Ready);
         var visual = TakeRowPresentation.Classify(
             incident.IsAcknowledgedInCheckmk,
             incident.IsTakenByNotifier,
             canOffer,
-            isTakingThis);
+            isTakingThis,
+            isReleasingThis);
         var acknowledgementLabel = visual switch
         {
             TakeRowVisual.Taken => string.Format(
                 Text.TakenByFormat,
                 incident.TakenByDisplayName ?? string.Empty),
+            TakeRowVisual.Releasing => Text.Releasing,
             TakeRowVisual.Acknowledged => Text.Acknowledged,
             _ => string.Empty
         };
@@ -544,6 +648,8 @@ public sealed partial class ShellViewModel : ObservableObject
             IsInDowntime = incident.ScheduledDowntimeDepth > 0,
             TakeVisual = visual,
             AcknowledgementLabel = acknowledgementLabel,
+            TakenByDisplayName = incident.TakenByDisplayName,
+            CanRelease = canOfferRelease && !isReleasingThis,
             TakeButtonText = visual == TakeRowVisual.Taking ? Text.Taking : Text.Take,
             EyeTooltip = incident.IsSeen ? Text.MarkAsUnseen : Text.MarkAsSeen
         };

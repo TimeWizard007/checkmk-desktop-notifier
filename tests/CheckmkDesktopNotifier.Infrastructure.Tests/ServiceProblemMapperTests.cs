@@ -218,6 +218,30 @@ public sealed class ServiceProblemMapperTests
     }
 
     [Fact]
+    public void Acknowledged_zero_clears_taken_even_with_leftover_cdn_comment()
+    {
+        var json = """
+            {"value":[{"extensions":{
+              "host_name":"GO-S11",
+              "description":"Update",
+              "state":2,
+              "state_type":1,
+              "plugin_output":"CRIT",
+              "acknowledged":0,
+              "acknowledgement_type":0,
+              "comments_with_extra_info":[
+                [36783,"ITS","Taken by Michał via Checkmk Desktop Notifier cdn.v1 take name=\"Michał\"",4,1787078432]
+              ]
+            }}]}
+            """;
+        var problem = Assert.Single(ServiceProblemMapper.MapCollection(json, TestOptions.Site));
+        Assert.False(problem.IsAcknowledgedInCheckmk);
+        Assert.Equal(AcknowledgementType.None, problem.AcknowledgementType);
+        Assert.False(problem.IsTakenByNotifier);
+        Assert.Null(problem.TakenByDisplayName);
+    }
+
+    [Fact]
     public void Malformed_comments_do_not_crash_mapping()
     {
         var json = """

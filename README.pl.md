@@ -6,29 +6,33 @@ Lekki monitor i powiadamiacz pulpitu Windows dla Checkmk.
 
 To **niezależny projekt open source**. **Nie jest powiązany z Checkmk GmbH**, nie jest przez nią sponsorowany ani nie jest jej produktem. Nazwa „Checkmk” opisuje wyłącznie system monitoringu, z którym współpracuje ta aplikacja.
 
-Aktualna wersja: **1.1.0** (FEATURE COMPLETE / READY FOR RELEASE — faza 6A Przejmij / współdzielone ACK i faza 6B Otwórz w Checkmk + Seen/Unseen, obie COMPLETE / przetestowane na Windows). GitHub Release to osobny follow-up po tagu `v1.1.0`.
+Aktualna wersja: **1.2.0** (FEATURE COMPLETE / RELEASE CANDIDATE — faza 6A Przejmij, faza 6B Otwórz w Checkmk + Seen/Unseen i faza 7A Zwolnij / Untake, wszystkie COMPLETE / przetestowane na Windows). To skonsolidowany kandydat na publiczne wydanie. Tag `v1.1.0` pozostaje bez zmian; GitHub Release dla 1.1.0 nie był publikowany.
 
 ## Przegląd
 
 Checkmk Desktop Notifier to towarzysz per-user dla Windows 10/11. Odpytuje Checkmk przez REST API, pokazuje bieżące problemy HARD hostów i usług na kompaktowym pasku Always-on-Top i wyświetla powiadomienia pulpitu, gdy otwierają się nowe **lokalne** incydenty.
 
-**Nie zastępuje** interfejsu WWW Checkmk. Stan **Seen** jest lokalny dla tego użytkownika Windows. Opcjonalne **Przejmij** zapisuje w Checkmk trwałe ACK, żeby inni administratorzy widzieli, że problem jest obsługiwany. Nie zastępuje Checkmk przy usuwaniu ACK.
+**Nie zastępuje** interfejsu WWW Checkmk. Stan **Seen** jest lokalny dla tego użytkownika Windows. Opcjonalne **Przejmij** zapisuje w Checkmk trwałe ACK, żeby inni administratorzy widzieli, że problem jest obsługiwany. **Zwolnij** na przejęciu CDN usuwa to ACK w Checkmk. Ręcznego/ogólnego ACK notifier nie usuwa.
 
 ## Zrzuty ekranu
 
 Nazwy hostów i wewnętrzne adresy URL są pominięte albo zastąpione przykładami.
 
-![Kompaktowy pasek Always-on-Top](docs/images/compact-bar.png)
+![Lista problemów z NEW / CRIT / WARN / UNKNOWN, Przejmij, Seen i Otwórz w Checkmk](docs/images/problem-list-v1.2.png)
 
-![Lista problemów i filtry wagi](docs/images/problem-list.png)
+![Filtr PRZEJĘTE, globalny licznik PRZEJĘTE i Przejęte przez](docs/images/taken-filter-v1.2.png)
+
+![Ciemne potwierdzenie Przejmij](docs/images/take-dialog-v1.2.png)
+
+![Ciemne potwierdzenie Zwolnij](docs/images/release-dialog-v1.2.png)
+
+![Ustawienia — Ogólne / koordynacja zespołu](docs/images/settings-team-v1.2.png)
 
 ![Ustawienia — Połączenie](docs/images/settings-connection.png)
 
-![Ustawienia — Powiadomienia](docs/images/settings-notifications.png)
+![Ustawienia — Powiadomienia](docs/images/settings-notifications-v1.2.png)
 
-![Menu zasobnika systemowego](docs/images/tray-menu.png)
-
-![O programie (wersja 1.0.0)](docs/images/about.png)
+![Menu zasobnika systemowego](docs/images/tray-menu-v1.2.png)
 
 ## Funkcje
 
@@ -139,14 +143,24 @@ Nie umieszczaj w tym repozytorium prawdziwej nazwy użytkownika, sekretu, URL-a 
 - Seen **nie** jest wysyłane do Checkmk
 - Seen **nie** jest współdzielone między administratorami ani innymi użytkownikami Windows
 
-Kompaktowa ikona **Otwórz w Checkmk** otwiera odpowiadający host albo usługę w GUI Checkmk (domyślna przeglądarka). Nie zmienia Seen, Przejmij, ACK ani przestoju.
+Kompaktowa ikona **Otwórz w Checkmk** otwiera odpowiadający **widok GUI** hosta albo usługi w domyślnej przeglądarce (nie zasób REST API). Wiersze usług otwierają tę usługę; wiersze hostów otwierają ten host. Nie zmienia Seen, Przejmij, ACK ani przestoju.
 
 **Przejmij** to **współdzielona** akcja zespołowa (Ustawienia → Ogólne, domyślnie wyłączone):
 
-- Tworzy trwałe ACK Checkmk tylko dla tego hosta albo tej usługi
+- Tworzy trwałe ACK Checkmk tylko dla tego hosta albo tej usługi (`sticky=true`, `persistent=false`, `notify=false`)
 - Nie ukrywa problemu, nie zmienia wagi, nie oznacza Seen, nie ACK-uje usług potomnych i nie tworzy zgłoszenia
 - Checkmk przestaje wysyłać kolejne powiadomienia dla bieżącego problemu do powrotu do OK/UP
-- W 1.1.0 nie ma Zwolnij / Untake; ACK usuwa się w UI Checkmk. ACK kończy się też przy powrocie do OK/UP
+- Po potwierdzeniu wiersz pokazuje **Przejmowanie...**, aż odczyt z Checkmk potwierdzi **Przejęte przez &lt;nazwa&gt;**. Nie ma optymistycznego stanu Przejęte i nie ma natywnego MessageBox Windows
+- Wiele instancji notyfikatora widzi ten sam stan Przejęte po odpytaniu (Checkmk jest źródłem prawdy)
+
+Kliknięcie **Przejęte przez &lt;nazwa&gt;** **zwalnia** przejęcie CDN (każdy administrator korzystający z notyfikatora, nie tylko osoba, która przejęła):
+
+- Zwolnij usuwa to ACK w Checkmk (`POST /domain-types/acknowledge/actions/delete/invoke`) po świeżym odczycie stanu, gdy to praktyczne
+- Dozwolone **tylko** dla przejęć CDN utworzonych przez notyfikator. Ręczne/ogólne ACK zostaje nieklikalnym znacznikiem **ACK** i nigdy nie jest usuwane
+- Wiersz pokazuje **Zwalnianie...**, aż Checkmk zgłosi brak ACK, potem wraca zwykłe **Przejmij**. Nie ma optymistycznego stanu Zwolnione
+- Zwolnij **nie** rozwiązuje problemu w Checkmk. Waga zostaje CRIT/WARN/UNKNOWN, aż Checkmk zgłosi odzyskanie. Sam Checkmk może znów zacząć wysyłać powiadomienia
+- Zwolnij nie zmienia lokalnego Seen/Unseen i nie emituje dymka ani dźwięku notyfikatora
+- ACK kończy się też przy powrocie do OK/UP
 
 **Przejęte przez** pokazuje osobę tylko gdy komentarz ACK pochodzi z Checkmk Desktop Notifier (`cdn.v1 take name="..."`). Ręczne ACK w Checkmk pokazuje **ACK**, nie zgadywaną osobę. Autorem komentarza w Checkmk jest wspólne konto automatyzacji i nigdy nie jest źródłem tożsamości. Komentarz Take jest **jednoliniowy** (`Taken by {nazwa} via Checkmk Desktop Notifier cdn.v1 take name="..."`), bo Checkmk RAW 2.4 obcina wieloliniowe komentarze ACK.
 
@@ -162,6 +176,7 @@ Dymek Windows (przez ikonę w zasobniku) oraz — o ile nie wyciszono — jeden 
 - Wyciszenie wyłącza **dźwięk**; dymki nadal się pojawiają
 - Jeśli nowy incydent jest **już potwierdzony** w Checkmk w chwili otwarcia, pozostaje lokalnie NEW, ale **nie** ma dymka ani dźwięku
 - ACK pojawiające się później na już otwartym incydencie nie tworzy nowego powiadomienia
+- Przejmij i Zwolnij **same z siebie** nie emitują dymka ani dźwięku
 - Zaplanowany przestój **nie** wycisza dymków (bez zmian)
 
 ## ACK i przestój Checkmk
@@ -294,10 +309,10 @@ Wynik (gitignored):
 artifacts\CheckmkDesktopNotifier-Setup-x64.exe
 ```
 
-Skrypt czyta wersję z `Directory.Build.props` (obecnie **1.1.0**) i przekazuje `/DMyAppVersion` do `iscc`. Równoważnie:
+Skrypt czyta wersję z `Directory.Build.props` (obecnie **1.2.0**) i przekazuje `/DMyAppVersion` do `iscc`. Równoważnie:
 
 ```text
-iscc /DMyAppVersion=1.1.0 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.2.0 installer\CheckmkDesktopNotifier.iss
 ```
 
 SHA-256 zbudowanego instalatora (nie wymyślaj sumy, zanim plik powstanie):
@@ -321,7 +336,7 @@ To **świadome granice V1**, nie przypadkowe braki:
 - Tylko Windows
 - Specyficzne dla Checkmk (kolekcje REST opisane w `docs/CHECKMK_API.md`)
 - Lokalne Seen **nie** jest współdzielone między administratorami
-- Opcjonalne Przejmij zapisuje trwałe ACK w Checkmk; w 1.1.0 **nie ma Zwolnij / Untake**
+- Opcjonalne Przejmij zapisuje trwałe ACK w Checkmk; **Zwolnij** usuwa tylko przejęcie CDN (nigdy ręcznego/ogólnego ACK)
 - Brak integracji zgłoszeń / Zoho
 - Brak własnej współdzielonej bazy / backendu
 - Własne dźwięki alertu: **tylko WAV**
@@ -332,12 +347,9 @@ To **świadome granice V1**, nie przypadkowe braki:
 
 ## Mapa drogowa
 
-**1.1.0 (FEATURE COMPLETE / READY FOR RELEASE):** Przejmij / współdzielone trwałe ACK w Checkmk, Przejęte przez, filtr PRZEJĘTE, wyszukiwanie, tłumienie powiadomień przy ACK, Otwórz w Checkmk, odwracalne lokalne Seen/Unseen. Komentarze CDN są jednoliniowe, bo Checkmk RAW 2.4 obcina wieloliniowe komentarze ACK.
+**1.1.0 (otagowane, bez GitHub Release):** Przejmij / współdzielone trwałe ACK w Checkmk, Przejęte przez, filtr PRZEJĘTE, wyszukiwanie, tłumienie powiadomień przy ACK, Otwórz w Checkmk, odwracalne lokalne Seen/Unseen. Komentarze CDN są jednoliniowe, bo Checkmk RAW 2.4 obcina wieloliniowe komentarze ACK.
 
-**Kandydat v1.2.0 (nie rozpoczęty):**
-
-- Bezpieczne Zwolnij / Untake po żywej walidacji `POST /domain-types/acknowledge/actions/delete/invoke`
-- Notifier nigdy nie może ślepo usuwać ręcznego/ogólnego ACK
+**1.2.0 (FEATURE COMPLETE / RELEASE CANDIDATE):** Skonsolidowany workflow zespołowy. Bezpieczne Zwolnij / Untake przejęć CDN (`POST /domain-types/acknowledge/actions/delete/invoke`), ciemne potwierdzenia Przejmij/Zwolnij, stany wiersza zamiast natywnych MessageBox, Checkmk jako źródło prawdy. Fazy 6A, 6B i 7A są COMPLETE / przetestowane na Windows. Zob. [docs/RELEASE_NOTES_1.2.0.md](docs/RELEASE_NOTES_1.2.0.md).
 
 **Przyszłość / opcjonalnie:**
 

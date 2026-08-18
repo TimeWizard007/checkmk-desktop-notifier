@@ -13,7 +13,7 @@
 checkmk-desktop-notifier/
   README.md / README.pl.md
   LICENSE
-  Directory.Build.props          ← Version 1.1.0
+  Directory.Build.props          ← Version 1.2.0
   CheckmkDesktopNotifier.sln
   docs/                          ← durable project memory (read this first)
   installer/CheckmkDesktopNotifier.iss
@@ -249,7 +249,7 @@ Gear menu and tray share `IShellCommands` (`ShowBar`, `HideToTray`, `ToggleBar`,
 
 Tray uses built-in `System.Windows.Forms.NotifyIcon` (no extra NuGet). Left-click toggles bar visibility. Tray **Open** always restores the existing compact bar.
 
-Version in About is `AssemblyInformationalVersion` / assembly version from `Directory.Build.props` (currently `1.1.0`), not a string literal in XAML. Icon: original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256, no Checkmk logo). A final visual replacement may still be supplied before the public GitHub Release; do not invent a new icon in this phase.
+Version in About is `AssemblyInformationalVersion` / assembly version from `Directory.Build.props` (currently `1.2.0`), not a string literal in XAML. Icon: original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256, no Checkmk logo). A final visual replacement may still be supplied before the public GitHub Release; do not invent a new icon in this phase.
 
 Windows 11 checklist A–T: **PASSED**. Gear/tray visual leftover (system-boxed menus) is addressed in Phase 4B.
 
@@ -412,7 +412,7 @@ powershell -File scripts/build-windows-package.ps1
 Equivalent:
 
 ```text
-iscc /DMyAppVersion=1.1.0 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.2.0 installer\CheckmkDesktopNotifier.iss
 ```
 
 Output: `artifacts/CheckmkDesktopNotifier-Setup-x64.exe` (gitignored). `publish/` and `artifacts/` must not be committed.
@@ -459,7 +459,7 @@ No Administrator privileges.
 
 ## Phase 5 — COMPLETE / V1 READY
 
-User documentation: `README.md` / `README.pl.md`. Release notes: `docs/RELEASE_NOTES_1.0.0.md`, `docs/RELEASE_NOTES_1.1.0.md`. MIT `LICENSE` at the repository root. Sanitized screenshots under `docs/images/`.
+User documentation: `README.md` / `README.pl.md`. Release notes: `docs/RELEASE_NOTES_1.0.0.md`, `docs/RELEASE_NOTES_1.1.0.md`, `docs/RELEASE_NOTES_1.2.0.md`. MIT `LICENSE` at the repository root. Sanitized screenshots under `docs/images/`.
 
 Installer SHA-256 for **1.0.0** is recorded in `SHA256SUMS.txt` (do not treat it as a 1.1.0 checksum). About on Windows 11 for this line is **1.1.0**.
 
@@ -542,7 +542,41 @@ No Administrator privileges. Existing Phase 6A Take behavior remains intact.
 | V | Dark Take confirmation | PASS |
 | W | Downtime badge | PASS |
 
-**Windows 11 Phase 6B validation: PASSED.** v1.1.0 is FEATURE COMPLETE / READY FOR RELEASE.
+**Windows 11 Phase 6B validation: PASSED.** v1.1.0 is tagged.
+
+## Phase 7A — safe Release / Untake (COMPLETE / Windows-tested)
+
+Version **1.2.0**. FEATURE COMPLETE / RELEASE CANDIDATE. Live Checkmk RAW 2.4.0p34: `POST /domain-types/acknowledge/actions/delete/invoke` returns HTTP 204 for a service payload `{ acknowledge_type, host_name, service_description }`. Host uses the same endpoint without `service_description`.
+
+Release only CDN Takes. Generic ACK is not clickable and is never deleted. Any admin may release any CDN Take. No optimistic Take-after-click: wait for `acknowledged == 0`. ACK metadata refreshes on every successful snapshot. Release does not change Seen/Unseen and does not replay balloon/sound.
+
+Waiting after a successful Take/Release write uses the row visual (`Taking...` / `Releasing...`) until Checkmk read-back confirms. Do **not** show a native Windows MessageBox for “waiting for Checkmk refresh”. Errors use the same dark in-app dialog chrome as Take/Release confirm (single Close). No further feature phase.
+
+### Windows 11 checklist (Phase 7A)
+
+No Administrator privileges. Existing Phase 6A/6B behavior remains intact. Supported Windows targets remain Windows 10/11 64-bit.
+
+| | Test | Result |
+|---|------|--------|
+| A | Take a service | PASS |
+| B | It becomes Taken by &lt;display name&gt; | PASS |
+| C | Click Taken by &lt;display name&gt; | PASS |
+| D | Dark Release confirmation appears | PASS |
+| E | Release succeeds | PASS |
+| F | Checkmk ACK disappears | PASS |
+| G | Next poll changes row to Take | PASS |
+| H | TAKEN counter decreases | PASS |
+| I | TAKEN filter removes it | PASS |
+| J | Severity remains unchanged | PASS |
+| K | Seen/Unseen remains unchanged | PASS |
+| L | No notifier balloon/sound | PASS |
+| M | Second admin can Release another admin's CDN Take | PASS |
+| N | Generic manual ACK cannot be released from notifier | PASS |
+| O | Host Release works analogously | PASS |
+| P | Network/write failure does not invent released state | PASS |
+| Q | Successful Take/Release: no native white MessageBox; row stays Taking.../Releasing... until Checkmk read-back | PASS |
+
+**Windows 11 Phase 7A validation: PASSED.** v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE.
 
 ## Windows — self-contained win-x64 publish
 
@@ -604,4 +638,4 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not call Checkmk ACK from the eye button.
 - Take is a separate command. It must not mark Seen.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. v1.1.0 is FEATURE COMPLETE / READY FOR RELEASE. Do not implement Untake. Do not revert CDN Take comments to a multiline format.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE. Do not start a further feature phase. Do not revert CDN Take comments to a multiline format.

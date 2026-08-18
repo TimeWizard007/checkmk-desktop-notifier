@@ -6,7 +6,8 @@ public enum TakeRowVisual
     Take = 1,
     Taking = 2,
     Taken = 3,
-    Acknowledged = 4
+    Acknowledged = 4,
+    Releasing = 5
 }
 
 public static class TakeRowPresentation
@@ -15,8 +16,14 @@ public static class TakeRowPresentation
         bool alreadyAcknowledged,
         bool isTakenByNotifier,
         bool canOfferTake,
-        bool isTakingThis)
+        bool isTakingThis,
+        bool isReleasingThis = false)
     {
+        if (isReleasingThis)
+        {
+            return TakeRowVisual.Releasing;
+        }
+
         if (alreadyAcknowledged)
         {
             return isTakenByNotifier ? TakeRowVisual.Taken : TakeRowVisual.Acknowledged;

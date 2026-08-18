@@ -58,6 +58,49 @@ public sealed class PersistenceTests
     }
 
     [Fact]
+    public void Cleared_ack_does_not_reload_as_taken()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "checkmk-desktop-notifier-tests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "alert-state.json");
+        var clock = new MutableTimeProvider(ProblemFactory.T0);
+
+        try
+        {
+            var sut = new AlertStateService(new JsonAlertStateStore(path), clock);
+            sut.ApplySnapshot(ProblemFactory.Ok(
+                clock.UtcNow,
+                ProblemFactory.Service(
+                    "web01",
+                    "CPU",
+                    Severity.Critical,
+                    acknowledged: true,
+                    acknowledgementType: AcknowledgementType.Sticky,
+                    takenBy: "Michał",
+                    takenByNotifier: true)));
+            sut.MarkSeen(ProblemFactory.ServiceId("web01", "CPU"));
+            clock.UtcNow = clock.UtcNow.AddMinutes(1);
+            sut.ApplySnapshot(ProblemFactory.Ok(
+                clock.UtcNow,
+                ProblemFactory.Service("web01", "CPU", Severity.Critical)));
+
+            var reloaded = new AlertStateService(new JsonAlertStateStore(path), clock);
+            var open = Assert.Single(reloaded.GetOpenIncidents());
+            Assert.True(open.IsSeen);
+            Assert.False(open.IsAcknowledgedInCheckmk);
+            Assert.Equal(AcknowledgementType.None, open.AcknowledgementType);
+            Assert.False(open.IsTakenByNotifier);
+            Assert.Null(open.TakenByDisplayName);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Host_recurrence_marker_survives_json_reload()
     {
         var directory = Path.Combine(Path.GetTempPath(), "checkmk-desktop-notifier-tests", Guid.NewGuid().ToString("N"));

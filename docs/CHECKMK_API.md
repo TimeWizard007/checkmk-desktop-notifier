@@ -248,9 +248,38 @@ POST /domain-types/acknowledge/collections/host
 }
 ```
 
-Do **not** send `expire_on` (HTTP 400 on this RAW instance). Do **not** implement `POST /domain-types/acknowledge/actions/delete/invoke` in v1.1 (Untake/Release) — reserved for **v1.2.0** after live ownership validation. Taken-by is informational only.
+Do **not** send `expire_on` (HTTP 400 on this RAW instance). Taken-by identity is the `cdn.v1 take name="..."` machine line. Never use the Checkmk comment author.
 
-Taken-by identity is the `cdn.v1 take name="..."` machine line. Never use the Checkmk comment author.
+### Acknowledge delete / Release (Phase 7A) — live-validated
+
+Live-tested against Checkmk RAW 2.4.0p34.
+
+```
+POST /domain-types/acknowledge/actions/delete/invoke
+```
+
+Validated service payload (HTTP **204** No Content). After delete, the Checkmk GUI no longer showed the acknowledgement.
+
+```json
+{
+  "acknowledge_type": "service",
+  "host_name": "HOST",
+  "service_description": "SERVICE"
+}
+```
+
+Host (same endpoint; no `service_description`):
+
+```json
+{
+  "acknowledge_type": "host",
+  "host_name": "HOST"
+}
+```
+
+No comment id. No credentials/secrets in the payload. The notifier Releases **CDN Takes only**; it must never send this delete for a generic/manual ACK.
+
+Read-back: a later successful poll with `acknowledged = 0` and `acknowledgement_type = 0` (comments empty or leftover) must clear `IsTakenByNotifier` / `TakenByDisplayName`. Checkmk remains source of truth.
 
 ### Open in Checkmk (Phase 6B) — GUI, not REST show
 
@@ -283,8 +312,9 @@ Host/service names are URL-encoded. BaseUrl is the configured origin only. No cr
 
 - Phase 3A (complete): POST service collection, as verified.
 - Phase 3B (complete): GET host collection with repeated `columns=` query parameters; map HARD DOWN/UNREACHABLE into Core; do not guess a host POST.
-- Phase 6A (COMPLETE / Windows-tested): optional Take writes via `ICheckmkAcknowledgementClient`, not `ICheckmkClient`. Sticky ACK, single-line CDN comment (RAW 2.4 truncates `\n`), no `expire_on`, no Untake.
+- Phase 6A (COMPLETE / Windows-tested): optional Take writes via `ICheckmkAcknowledgementClient`, not `ICheckmkClient`. Sticky ACK, single-line CDN comment (RAW 2.4 truncates `\n`), no `expire_on`.
 - Phase 6B (COMPLETE / Windows-tested): Open in Checkmk uses the GUI `index.py?start_url=view.py` builder, not REST `show` links.
+- Phase 7A (COMPLETE / Windows-tested): optional Release of CDN Takes via `POST /domain-types/acknowledge/actions/delete/invoke`. Never delete generic/manual ACK. ACK fields refresh on every successful snapshot.
 - Map into Core DTOs in Infrastructure, not in Core. Persist only normalized ACK fields, never raw comments/REST JSON.
 - Filter WARN/CRIT/UNKNOWN **server-side** for services.
 - V1 engine uses HARD states only (filter in the engine; host adapter also supplies HARD-only host problems).

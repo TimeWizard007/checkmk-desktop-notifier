@@ -155,4 +155,100 @@ public sealed class TakeEligibilityAndWorkflowTests
         Assert.Null(TakeDisplayName.Normalize(new string('x', TakeDisplayName.MaxLength + 1)));
         Assert.Equal("Michał", TakeDisplayName.Normalize("  Michał  "));
     }
+
+    [Fact]
+    public void Generic_ack_cannot_release()
+    {
+        Assert.False(TakeEligibility.CanOfferRelease(
+            isAcknowledged: true,
+            isTakenByNotifier: false,
+            isRealMonitoring: true,
+            acknowledgeForbidden: false,
+            isBusy: false,
+            isReady: true));
+    }
+
+    [Fact]
+    public void Cdn_take_can_release()
+    {
+        Assert.True(TakeEligibility.CanOfferRelease(
+            isAcknowledged: true,
+            isTakenByNotifier: true,
+            isRealMonitoring: true,
+            acknowledgeForbidden: false,
+            isBusy: false,
+            isReady: true));
+    }
+
+    [Fact]
+    public void Another_admins_cdn_take_can_release()
+    {
+        Assert.True(TakeEligibility.IsCdnTake(isAcknowledged: true, isTakenByNotifier: true));
+        Assert.True(TakeEligibility.CanOfferRelease(
+            isAcknowledged: true,
+            isTakenByNotifier: true,
+            isRealMonitoring: true,
+            acknowledgeForbidden: false,
+            isBusy: false,
+            isReady: true));
+    }
+
+    [Fact]
+    public void Releasing_visual_while_in_flight()
+    {
+        Assert.Equal(
+            TakeRowVisual.Releasing,
+            TakeRowPresentation.Classify(
+                alreadyAcknowledged: true,
+                isTakenByNotifier: true,
+                canOfferTake: false,
+                isTakingThis: false,
+                isReleasingThis: true));
+    }
+
+    [Fact]
+    public void Delete_success_with_refresh_confirms_when_no_longer_taken()
+    {
+        Assert.Equal(
+            TakeOperationStatus.Confirmed,
+            TakeWorkflow.AfterDelete(AcknowledgementWriteStatus.Success, refreshSucceeded: true, stillTaken: false));
+    }
+
+    [Fact]
+    public void Delete_success_without_refresh_awaits()
+    {
+        Assert.Equal(
+            TakeOperationStatus.SentAwaitingRefresh,
+            TakeWorkflow.AfterDelete(AcknowledgementWriteStatus.Success, refreshSucceeded: false, stillTaken: true));
+    }
+
+    [Fact]
+    public void Concurrent_invalid_request_confirms_when_already_released()
+    {
+        Assert.Equal(
+            TakeOperationStatus.Confirmed,
+            TakeWorkflow.AfterDelete(AcknowledgementWriteStatus.InvalidRequest, refreshSucceeded: true, stillTaken: false));
+    }
+
+    [Fact]
+    public void Successful_or_waiting_take_release_does_not_show_a_dialog()
+    {
+        Assert.False(TakeCompletionUi.ShowsErrorDialog(TakeOperationStatus.Confirmed));
+        Assert.False(TakeCompletionUi.ShowsErrorDialog(TakeOperationStatus.SentAwaitingRefresh));
+        Assert.False(TakeCompletionUi.ShowsErrorDialog(TakeOperationStatus.Cancelled));
+        Assert.False(TakeCompletionUi.ShowsErrorDialog(TakeOperationStatus.AlreadyAcknowledged));
+        Assert.False(TakeCompletionUi.ShowsErrorDialog(TakeOperationStatus.NotEligible));
+        Assert.False(TakeCompletionUi.KeepWaitingVisual(TakeOperationStatus.Confirmed));
+        Assert.True(TakeCompletionUi.KeepWaitingVisual(TakeOperationStatus.SentAwaitingRefresh));
+    }
+
+    [Fact]
+    public void Take_release_errors_still_show_a_dialog()
+    {
+        Assert.True(TakeCompletionUi.ShowsErrorDialog(TakeOperationStatus.Forbidden));
+        Assert.True(TakeCompletionUi.ShowsErrorDialog(TakeOperationStatus.Unauthorized));
+        Assert.True(TakeCompletionUi.ShowsErrorDialog(TakeOperationStatus.InvalidRequest));
+        Assert.True(TakeCompletionUi.ShowsErrorDialog(TakeOperationStatus.Unavailable));
+        Assert.False(TakeCompletionUi.KeepWaitingVisual(TakeOperationStatus.Unavailable));
+    }
 }

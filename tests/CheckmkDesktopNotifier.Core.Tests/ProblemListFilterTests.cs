@@ -434,6 +434,42 @@ public sealed class ProblemListFilterTests
         Assert.Equal(ProblemListFilter.Taken, state.ActiveFilter);
     }
 
+    [Fact]
+    public void Taken_filter_and_counter_drop_released_incident()
+    {
+        var alerts = new AlertStateService(new InMemoryAlertStateStore(), _clock);
+        var taken = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Michał",
+            takenByNotifier: true);
+        var other = ProblemFactory.Service(
+            "db01",
+            "SQL",
+            Severity.Warning,
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Paweł",
+            takenByNotifier: true);
+        alerts.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, taken, other));
+        alerts.MarkSeen(taken.Id);
+        Assert.Equal(2, ProblemListFilterLogic.CountTaken(alerts.GetOpenIncidents()));
+
+        alerts.ApplySnapshot(ProblemFactory.Ok(
+            _clock.UtcNow,
+            ProblemFactory.Service("web01", "CPU", Severity.Critical),
+            other));
+
+        var remaining = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.Taken);
+        var item = Assert.Single(remaining);
+        Assert.Equal("Paweł", item.TakenByDisplayName);
+        Assert.Equal(1, ProblemListFilterLogic.CountTaken(alerts.GetOpenIncidents()));
+        Assert.True(Assert.Single(alerts.GetOpenIncidents(), incident => incident.ObjectId.Equals(taken.Id)).IsSeen);
+    }
+
     private AlertStateService Seed()
     {
         var alerts = new AlertStateService(new InMemoryAlertStateStore(), _clock);

@@ -108,9 +108,11 @@ Per-user Inno Setup 6 installer to `%LocalAppData%\Programs\CheckmkDesktopNotifi
 
 User-facing 1.0.0 documentation, MIT license, sanitized screenshots, `SHA256SUMS.txt`, version **1.0.0**. Tag `v1.0.0` is part of close-out. GitHub Release is a separate follow-up.
 
-## After V1 / v1.1.0 FEATURE COMPLETE / READY FOR RELEASE
+## After V1 / v1.1.0 tagged / v1.2.0 FEATURE COMPLETE / RELEASE CANDIDATE
 
-**v1.1.0** is **FEATURE COMPLETE / READY FOR RELEASE**. Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. Feature freeze: no further v1.1.0 functionality. Git tag `v1.1.0` is part of this close-out. GitHub Release is a separate follow-up.
+**v1.1.0** is tagged and was **not** published as a GitHub Release. Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested.
+
+**v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE.** Phase 7A COMPLETE / Windows-tested (safe Release / Untake). No further feature phase. GitHub Release for 1.2.0 is a separate follow-up after the installer build and tag.
 
 Phase 6A delivered:
 
@@ -127,11 +129,13 @@ Phase 6B delivered:
 - Open the corresponding Checkmk host/service GUI in the default browser
 - Reversible local Seen / Unseen (returns to NEW; no notification replay)
 
-**v1.2.0 candidate (do not implement now):**
+**v1.2.0 / Phase 7A COMPLETE / Windows-tested:**
 
-- Safe Release / Untake
-- Live validation required first for `POST /domain-types/acknowledge/actions/delete/invoke`
-- The notifier must never remove generic/manual ACK blindly
+- Safe Release / Untake of **CDN Takes only** via live-validated `POST /domain-types/acknowledge/actions/delete/invoke`
+- The notifier never removes generic/manual ACK
+- Taken-by is clickable for CDN Takes; dark Release confirmation; Checkmk remains source of truth
+- ACK metadata refreshes on every successful snapshot (Taken must clear when `acknowledged = 0`)
+- Successful Take/Release uses row waiting states (`Taking...` / `Releasing...`); no native Windows MessageBox
 
 **Future / optional (do not implement now):**
 

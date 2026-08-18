@@ -76,17 +76,7 @@ public sealed class AlertStateService : IAlertStateService
 
                 if (existing is not null)
                 {
-                    var updated = existing with
-                    {
-                        Severity = problem.Severity,
-                        LastObservedAtUtc = now,
-                        LastSummary = TruncateSummary(problem.PluginOutput),
-                        IsAcknowledgedInCheckmk = problem.IsAcknowledgedInCheckmk,
-                        AcknowledgementType = problem.AcknowledgementType,
-                        TakenByDisplayName = problem.TakenByDisplayName,
-                        IsTakenByNotifier = problem.IsTakenByNotifier,
-                        ScheduledDowntimeDepth = problem.ScheduledDowntimeDepth
-                    };
+                    var updated = RefreshFromSnapshot(existing, problem, now);
 
                     _open[id] = updated;
                     if (updated.Severity != existing.Severity)
@@ -216,8 +206,34 @@ public sealed class AlertStateService : IAlertStateService
         && IsUsableRecurrenceMarker(currentMarker)
         && currentMarker > boundMarker;
 
-    private static OpenIncident CreateIncident(MonitoredProblem problem, DateTimeOffset now) =>
-        new()
+    /// <summary>
+    /// ACK / Taken metadata always comes from the current snapshot.
+    /// Same incident identity must not keep a previous Taken-by after Checkmk
+    /// reports <c>acknowledged = 0</c>.
+    /// </summary>
+    private static OpenIncident RefreshFromSnapshot(
+        OpenIncident existing,
+        MonitoredProblem problem,
+        DateTimeOffset now)
+    {
+        var ack = SnapshotAcknowledgement(problem);
+        return existing with
+        {
+            Severity = problem.Severity,
+            LastObservedAtUtc = now,
+            LastSummary = TruncateSummary(problem.PluginOutput),
+            IsAcknowledgedInCheckmk = ack.IsAcknowledged,
+            AcknowledgementType = ack.AcknowledgementType,
+            TakenByDisplayName = ack.TakenByDisplayName,
+            IsTakenByNotifier = ack.IsTakenByNotifier,
+            ScheduledDowntimeDepth = problem.ScheduledDowntimeDepth
+        };
+    }
+
+    private static OpenIncident CreateIncident(MonitoredProblem problem, DateTimeOffset now)
+    {
+        var ack = SnapshotAcknowledgement(problem);
+        return new()
         {
             ObjectId = problem.Id,
             Severity = problem.Severity,
@@ -228,12 +244,27 @@ public sealed class AlertStateService : IAlertStateService
                 ? problem.RecurrenceMarker
                 : null,
             LastSummary = TruncateSummary(problem.PluginOutput),
-            IsAcknowledgedInCheckmk = problem.IsAcknowledgedInCheckmk,
-            AcknowledgementType = problem.AcknowledgementType,
-            TakenByDisplayName = problem.TakenByDisplayName,
-            IsTakenByNotifier = problem.IsTakenByNotifier,
+            IsAcknowledgedInCheckmk = ack.IsAcknowledged,
+            AcknowledgementType = ack.AcknowledgementType,
+            TakenByDisplayName = ack.TakenByDisplayName,
+            IsTakenByNotifier = ack.IsTakenByNotifier,
             ScheduledDowntimeDepth = problem.ScheduledDowntimeDepth
         };
+    }
+
+    private static CheckmkAcknowledgementInfo SnapshotAcknowledgement(MonitoredProblem problem)
+    {
+        if (!problem.IsAcknowledgedInCheckmk)
+        {
+            return CheckmkAcknowledgementInfo.None;
+        }
+
+        return new CheckmkAcknowledgementInfo(
+            IsAcknowledged: true,
+            AcknowledgementType: problem.AcknowledgementType,
+            TakenByDisplayName: problem.TakenByDisplayName,
+            IsTakenByNotifier: problem.IsTakenByNotifier);
+    }
 
     private static RecoveredIncident ToRecovered(OpenIncident incident, DateTimeOffset recoveredAtUtc) =>
         new()

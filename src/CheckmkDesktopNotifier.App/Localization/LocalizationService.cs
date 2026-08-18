@@ -141,6 +141,12 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
     public string TakeCouldNot => Get();
     public string TakeForbidden => Get();
     public string TakeAwaitingRefresh => Get();
+    public string Release => Get();
+    public string Releasing => Get();
+    public string ReleaseConfirmTitle => Get();
+    public string ReleaseConfirmBody => Get();
+    public string ReleaseCouldNot => Get();
+    public string ReleaseAwaitingRefresh => Get();
 
     private string Get([CallerMemberName] string? key = null)
     {
