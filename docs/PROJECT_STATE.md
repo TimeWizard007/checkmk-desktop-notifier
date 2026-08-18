@@ -4,13 +4,13 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**Phase 5 COMPLETE / V1 READY.**
+**v1.1.0 FEATURE COMPLETE / READY FOR RELEASE** — Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. Feature freeze: no further v1.1.0 functionality.
 
-Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY.
+Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. Do not retag 1.0.0. Git tag `v1.1.0` is created as part of this close-out. GitHub Release is a separate follow-up and is **not** created here.
 
-Version **1.0.0**. About on Windows 11 shows 1.0.0. GitHub Release is **not** created in this pass.
+Product version **1.1.0** (from `Directory.Build.props`). Do not implement Untake/Release (reserved for v1.2.0). Do not start ticketing.
 
-Installer SHA-256 (`SHA256SUMS.txt`):
+Installer SHA-256 below is the **1.0.0** installer (`SHA256SUMS.txt`). Do not treat it as a 1.1.0 checksum.
 
 ```
 71C5A97C461B513DF2B977F4FEC39C2E739E5817779EF9BA205C44EDEF847B2E  CheckmkDesktopNotifier-Setup-x64.exe
@@ -27,6 +27,8 @@ Installer SHA-256 (`SHA256SUMS.txt`):
 - Phase 4C complete — `337c5a3` `Complete Phase 4C host grouping and autostart`
 - Phase 4D complete — `0bfd177` `Complete Phase 4D Windows installer and packaging`
 - Phase 5: COMPLETE / V1 READY
+- Phase 6A: COMPLETE / Windows-tested (Take / shared ACK).
+- Phase 6B: COMPLETE / Windows-tested (Open in Checkmk + Seen/Unseen). v1.1.0 feature freeze.
 
 ## Phase 1 — complete
 
@@ -287,27 +289,69 @@ User-facing 1.0.0 documentation, MIT license, sanitized screenshots, installer c
 - Screenshots under `docs/images/` (compact bar, problem list, connection, notifications, tray, About; General also stored)
 - Git tag `v1.0.0` is created as part of this close-out. GitHub Release is a separate follow-up and is **not** created here.
 
-Post-V1 (do not implement now): team workflow via Checkmk ACK (who took/acked an incident, optional comments) and ticket workflow (create/open ticket, Zoho Desk or similar). Evaluate those integrations **before** any custom shared database.
+Post-V1 (do not implement now): ticket workflow (create/open ticket, Zoho Desk or similar). Evaluate those integrations **before** any custom shared database.
+
+### Phase 6A — COMPLETE / Windows-tested (Take / shared ACK)
+
+v1.1.0 FEATURE COMPLETE / READY FOR RELEASE. Checkmk RAW 2.4.0p34 is the source of truth for Take/ACK. Do not implement Untake.
+
+Validated on Windows 11 (and cross-client sync also on Windows 7 and a second PC). Checkmk RAW 2.4.0p34 is the source of truth.
+
+- **Seen** stays local per Windows user (eye / Mark all). Never writes Checkmk.
+- **Take** is optional (Settings → General, disabled by default for existing 1.0 installs). Creates a Checkmk **sticky** acknowledgement (`sticky=true`, `persistent=false`, `notify=false`). No `expire_on` (RAW 2.4.0p34 returned HTTP 400).
+- Host Take ACKs that host only. Service Take ACKs that service only. No child auto-ACK. Rows stay visible; severity unchanged; local Seen unchanged. Downtime and Taken can coexist.
+- Taken-by identity is parsed from the CDN ACK comment (`cdn.v1 take name="..."` preferred; flattened `Taken by {name} via Checkmk Desktop Notifier` also accepted). Never from the Checkmk author (live automation user, e.g. `checkmk-desktop-notifier`). Generic ACK (GUI/other tool, or first-line-only `"Taken by {name}"`) shows **ACK**.
+- **Write format is single-line.** Checkmk RAW 2.4 stores/reads ACK comments as one line; `\n` is truncated (live GO-S11). Do not revert to a multiline comment. Example: `Taken by Michał via Checkmk Desktop Notifier cdn.v1 take name="Michał"`.
+- Problem list search (host / service / Taken-by) composes with ALL / NEW / CRIT / WARN / UNK / **TAKEN**. TAKEN is CDN Takes only. Compact-bar TAKEN count is global notifier-Taken incidents. No local Taken store.
+- Take confirmation is an application-owned dark modal (Take / Cancel). Enter confirms; Escape or close cancels. No optimistic Taken after confirm; the next successful poll is authoritative.
+- Display name is a non-secret per-user preference in `preferences.json` (not Credential Manager, not `settings.json`).
+- Read client stays read-only (`ICheckmkClient`). Writes go through `ICheckmkAcknowledgementClient` / `CheckmkTakeService`. Same automation credentials. Take needs `action.acknowledge`. Read-only / 403 accounts continue to monitor; Take is unavailable; no false Taken state.
+- Failed Take / network failure does not invent Taken state.
+- No Untake/Release in v1.1. ACK ends when Checkmk returns OK/UP. Manual removal remains in the Checkmk UI.
+- No custom backend/database. No ticketing / Zoho. Mock/demo does not perform real writes.
+- Notifications: an already-acknowledged Opened incident stays locally NEW but produces **no balloon and no sound**. Host grouping: an already ACK’d grouping host produces no grouped balloon/sound; child incidents stay listed.
+- Concurrent Takes: no lock server; display the newest valid CDN Take by `entry_time`.
+- Cross-machine: a second notifier instance sees the same Checkmk-backed Taken state after polling.
+
+Manual checklist L (WARN → Take → CRIT stays Taken) and M (CRIT → OK → later CRIT is a new non-Taken incident) were **not reproduced live** (unsafe in the current environment). They remain covered by automated tests (`Warn_then_crit_keeps_taken_state`, `Recurrence_does_not_keep_stale_taken_by`). They are **not** failures.
+
+### Phase 6B — COMPLETE / Windows-tested (Open in Checkmk + Seen/Unseen)
+
+Final v1.1.0 UX convenience. Version **1.1.0**. Feature freeze. No Untake/Release.
+
+Validated on Windows 11. Phase 6A Take behavior remains intact.
+
+- **Open in Checkmk:** compact row icon. Builds an interactive GUI URL from configured BaseUrl + site + host/service (`/{site}/check_mk/index.py?start_url=view.py?...`). REST `urn:com.checkmk:rels/show` hrefs are API invoke endpoints and are **not** used. Opens the default Windows browser. No credentials/secrets in the URL. Never mutates Seen, severity, ACK, Take, or downtime. Missing/malformed target or browser launch failure fails safely.
+- **Seen / Unseen:** the existing eye is a local toggle. NEW → Mark seen → Seen → Mark unseen → NEW. Same `IsSeen` field and alert-state JSON. No Checkmk write. Independent of ACK/Take/downtime. Mark unseen immediately returns the incident to the NEW counter/filter. It does **not** create `AlertDelta.Opened` and therefore does **not** replay balloon/sound.
+- **Mark all new as seen** is unchanged. No bulk Unseen.
+- Untake/Release remains **v1.2.0** and requires live validation of `POST /domain-types/acknowledge/actions/delete/invoke`. The notifier must never remove generic/manual ACK blindly.
+
+**Windows 11 Phase 6B validation: PASSED.**
 
 ## Tests
 
-Last automated run (Linux agent, Phase 5 close-out):
+Last automated run (Linux, v1.1.0 feature-freeze close-out; Windows live validation COMPLETE for 6A and 6B):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 297 passed, 0 failed
-  Core.Tests:            133 passed
-  Infrastructure.Tests:  164 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 415 passed, 0 failed
+  Core.Tests:            215 passed
+  Infrastructure.Tests:  200 passed
 ```
+
+Phase 6A close-out was 382 passed. Phase 6B implementation was 415 passed. v1.1.0 is FEATURE COMPLETE / READY FOR RELEASE.
 
 ## What is NOT implemented
 
 - Authenticode signing / trusted SmartScreen reputation
 - Persistent window position on disk
-- Shared/team Seen; Checkmk ACK writes; ticketing / Zoho (post-V1)
-- GitHub Release (follow-up after tag `v1.0.0`)
+- Shared/team Seen (local Seen remains per Windows user)
+- Untake / Release from the notifier (reserved for **v1.2.0** after live delete-ACK validation; remove ACK in Checkmk UI in v1.1)
+- Ticketing / Zoho; custom shared backend/database
+- `expire_on` ACK expiry (HTTP 400 on validated RAW 2.4.0p34)
+- GitHub Release (follow-up after tag `v1.1.0`; not created in this close-out)
 - Windows Service (out of V1 by decision)
 
 ## Immediate next steps
 
-Do not start post-V1 work. A GitHub Release may be created later from tag `v1.0.0`. Do not invent a host POST. Do not use `host_config`.
+v1.1.0 is feature-frozen. After tag `v1.1.0`: build the Windows installer from tagged source, record SHA-256, then GitHub Release as a separate follow-up. Do not start v1.2.0 / Untake / ticketing. Do not revert CDN Take comments to a multiline format.

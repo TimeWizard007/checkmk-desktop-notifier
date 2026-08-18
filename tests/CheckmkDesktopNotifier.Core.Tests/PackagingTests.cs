@@ -8,10 +8,10 @@ namespace CheckmkDesktopNotifier.Core.Tests;
 public sealed class PackagingTests
 {
     [Fact]
-    public void Central_version_is_1_0_0()
+    public void Central_version_is_1_1_0()
     {
         var version = ReadCentralVersion();
-        Assert.Equal("1.0.0", version);
+        Assert.Equal("1.1.0", version);
         Assert.Equal(version, ApplicationVersion.FromAssembly(typeof(ProductInfo).Assembly));
     }
 

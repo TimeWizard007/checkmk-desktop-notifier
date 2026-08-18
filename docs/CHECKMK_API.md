@@ -47,6 +47,8 @@ Verified request shape:
     "last_hard_state_change",
     "last_time_ok",
     "acknowledged",
+    "acknowledgement_type",
+    "comments_with_extra_info",
     "scheduled_downtime_depth"
   ],
   "query": {
@@ -76,7 +78,15 @@ Verified `state_type`:
 | 0 | SOFT |
 | 1 | HARD |
 
-This POST is a **read**. It must never be used to change Checkmk. Do not call acknowledge APIs.
+This POST is a **read**. It must never be used to change Checkmk. Acknowledge writes use a separate client and the endpoints below.
+
+Phase 6A extra read columns (live-validated on RAW 2.4.0p34):
+
+| Column | Notes |
+|--------|--------|
+| `acknowledged` | 0/1 |
+| `acknowledgement_type` | 1 = normal, 2 = sticky |
+| `comments_with_extra_info` | Array of positional tuples `[id, author, comment, entry_type, entry_time]` (not objects). `entry_type` 4 = acknowledgement. Author is the automation account (live: `checkmk-desktop-notifier`), never Taken-by. Live truncated write was `"Taken by Michał"` (generic ACK). Full CDN write is one line: `Taken by {name} via Checkmk Desktop Notifier cdn.v1 take name="..."`. |
 
 Auth (verified for this adapter):
 
@@ -179,6 +189,8 @@ Time columns are Unix timestamps.
 | `last_time_down` | Unix time |
 | `last_time_unreachable` | Unix time |
 | `acknowledged` | 0/1 |
+| `acknowledgement_type` | 1 = normal, 2 = sticky (Phase 6A) |
+| `comments_with_extra_info` | Same tuple format as services (Phase 6A) |
 | `scheduled_downtime_depth` | In downtime if `> 0` |
 | `num_services_hard_crit` | REST count; **not** mapped onto Core `MonitoredProblem`. V1 grouping uses merged-snapshot service problems |
 | `num_services_hard_warn` | same |
@@ -192,6 +204,66 @@ Also documents `last_time_warning` / `last_time_critical` / `last_time_unknown` 
 
 Domain object: `domainType`, `title`, `links`, `extensions`, …  
 Collection adds `value: [ ... ]`.
+
+---
+
+## VERIFIED — acknowledge writes (Phase 6A)
+
+Live-tested against Checkmk RAW 2.4.0p34. Service ACK:
+
+```
+POST /domain-types/acknowledge/collections/service
+```
+
+Validated payload (HTTP **204** No Content). The problem stayed CRITICAL and visible. ACK was visible in the Checkmk GUI. Account permission: `action.acknowledge`.
+
+Checkmk RAW 2.4.0p34 stores acknowledgement comments as **one line**. A `\n` comment is truncated to the first line (live GO-S11: REST returned only `"Taken by Michał"`). The write comment is therefore a single line that still contains the human text, the via-phrase, and `cdn.v1 take name="..."`.
+
+```json
+{
+  "sticky": true,
+  "persistent": false,
+  "notify": false,
+  "comment": "Taken by <DisplayName> via Checkmk Desktop Notifier cdn.v1 take name=\"<DisplayName>\"",
+  "acknowledge_type": "service",
+  "host_name": "HOST",
+  "service_description": "SERVICE"
+}
+```
+
+Host ACK (same options; host only, no child services):
+
+```
+POST /domain-types/acknowledge/collections/host
+```
+
+```json
+{
+  "sticky": true,
+  "persistent": false,
+  "notify": false,
+  "comment": "...cdn.v1 take name=\"...\"",
+  "acknowledge_type": "host",
+  "host_name": "HOST"
+}
+```
+
+Do **not** send `expire_on` (HTTP 400 on this RAW instance). Do **not** implement `POST /domain-types/acknowledge/actions/delete/invoke` in v1.1 (Untake/Release) — reserved for **v1.2.0** after live ownership validation. Taken-by is informational only.
+
+Taken-by identity is the `cdn.v1 take name="..."` machine line. Never use the Checkmk comment author.
+
+### Open in Checkmk (Phase 6B) — GUI, not REST show
+
+REST `urn:com.checkmk:rels/show` hrefs such as `/api/1.0/objects/host/{host}/actions/show_service/invoke?service_description=...` are API invoke endpoints. They are **not** browser GUI URLs and are not used.
+
+The notifier opens:
+
+```
+{BaseUrl}/{site}/check_mk/index.py?start_url=view.py%3Fview_name%3Dhost%26host%3D...
+{BaseUrl}/{site}/check_mk/index.py?start_url=view.py%3Fview_name%3Dservice%26host%3D...%26service%3D...
+```
+
+Host/service names are URL-encoded. BaseUrl is the configured origin only. No credentials, automation secret, or Authorization in the URL.
 
 ---
 
@@ -211,8 +283,9 @@ Collection adds `value: [ ... ]`.
 
 - Phase 3A (complete): POST service collection, as verified.
 - Phase 3B (complete): GET host collection with repeated `columns=` query parameters; map HARD DOWN/UNREACHABLE into Core; do not guess a host POST.
-- No acknowledge, downtime, comment, or config write endpoints on `ICheckmkClient`.
-- Map into Core DTOs in Infrastructure, not in Core.
+- Phase 6A (COMPLETE / Windows-tested): optional Take writes via `ICheckmkAcknowledgementClient`, not `ICheckmkClient`. Sticky ACK, single-line CDN comment (RAW 2.4 truncates `\n`), no `expire_on`, no Untake.
+- Phase 6B (COMPLETE / Windows-tested): Open in Checkmk uses the GUI `index.py?start_url=view.py` builder, not REST `show` links.
+- Map into Core DTOs in Infrastructure, not in Core. Persist only normalized ACK fields, never raw comments/REST JSON.
 - Filter WARN/CRIT/UNKNOWN **server-side** for services.
 - V1 engine uses HARD states only (filter in the engine; host adapter also supplies HARD-only host problems).
 - Local Seen remains completely separate from Checkmk ACK.

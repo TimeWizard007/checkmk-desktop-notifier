@@ -76,6 +76,14 @@
                 </TextBlock>
             </Button>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
+            <Button Style="{StaticResource BarCounterButton}" Command="{Binding ToggleTakenFilterCommand}">
+                <TextBlock Style="{StaticResource BarTextStyle}">
+                    <Run Text="{Binding Text.TakenLabel, Mode=OneWay}"/>
+                    <Run Text=": "/>
+                    <Run Text="{Binding TakenCount, Mode=OneWay}"/>
+                </TextBlock>
+            </Button>
+            <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text="{Binding ConnectionStatusText, Mode=OneWay}"/>
             <TextBlock Style="{StaticResource MutedTextStyle}" Text=" | "/>
             <TextBlock Style="{StaticResource MutedTextStyle}">

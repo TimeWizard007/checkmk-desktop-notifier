@@ -39,6 +39,8 @@ internal static class JsonValueParser
             JsonValueKind.Number when value.TryGetInt32(out var i) => i,
             JsonValueKind.Number when value.TryGetInt64(out var l) => (int)l,
             JsonValueKind.String when int.TryParse(value.GetString(), out var parsed) => parsed,
+            JsonValueKind.True => 1,
+            JsonValueKind.False => 0,
             _ => null
         };
 
@@ -53,7 +55,7 @@ internal static class JsonValueParser
 
     public static string? ReadString(System.Text.Json.JsonElement element, string name)
     {
-        if (!element.TryGetProperty(name, out var value))
+        if (!CheckmkJson.TryGetProperty(element, name, out var value))
         {
             return null;
         }
@@ -63,7 +65,7 @@ internal static class JsonValueParser
 
     public static int? ReadInt(System.Text.Json.JsonElement element, string name)
     {
-        if (!element.TryGetProperty(name, out var value))
+        if (!CheckmkJson.TryGetProperty(element, name, out var value))
         {
             return null;
         }
@@ -73,7 +75,7 @@ internal static class JsonValueParser
 
     public static long? ReadInt64(System.Text.Json.JsonElement element, string name)
     {
-        if (!element.TryGetProperty(name, out var value))
+        if (!CheckmkJson.TryGetProperty(element, name, out var value))
         {
             return null;
         }

@@ -27,6 +27,9 @@ App references Core and Infrastructure. Tests: Core.Tests → Core only. Infrast
 - Domain: `SiteId`, `ObjectKind`, `MonitoredObjectId`, `Severity`, `StateType`, `MonitoredProblem`, `ProblemSnapshot`
 - Incident engine: `IAlertStateService` / `AlertStateService`
 - Read-only Checkmk port: `ICheckmkClient` → `ProblemSnapshot`
+- Optional Checkmk write port: `ICheckmkAcknowledgementClient` (ACK only; not mixed into the read client)
+- Take workflow: `ITakeService` / `TakeEligibility` / `CdnTakeComment`
+- Checkmk GUI navigation: `CheckmkGuiUriBuilder` / `ICheckmkProblemNavigator` (no REST `show` hrefs)
 - Persistence port: `IAlertStateStore` (`InMemoryAlertStateStore`, `JsonAlertStateStore`)
 - Mock: `MockCheckmkClient`, `DemoSnapshotFactory`
 
@@ -45,7 +48,9 @@ Core must stay independently testable.
 - `CheckmkPoller` / `CheckmkPollingHostedService` — background polling while the desktop app is running (not a Windows Service)
 - `PollDiagnosticsWriter` — `%LocalAppData%/CheckmkDesktopNotifier/last-poll.txt` (counts and error kind only)
 - GUI settings store, `ISecretStore` / Windows Credential Manager, `CheckmkConfigurationResolver`, `MonitoringCoordinator`, `CheckmkConnectionTester`
-- Notification policy (`INotificationCoordinator` / `NotificationCoordinator`) maps `AlertDelta.Opened` to desktop alerts; `IUserPreferences` / `preferences.json` (mute, volume, Default vs Custom WAV)
+- Notification policy (`INotificationCoordinator` / `NotificationCoordinator`) maps `AlertDelta.Opened` to desktop alerts after ACK suppression and host-failure grouping; `IUserPreferences` / `preferences.json` (mute, volume, Default vs Custom WAV, Take enabled, display name)
+- `ICheckmkAcknowledgementClient` / `CheckmkAcknowledgementClient` — optional Take writes (`POST .../acknowledge/collections/service` and `.../host`)
+- `CheckmkTakeService` — ACK POST then `IProblemPoller.RefreshWhenIdleAsync` (no second poll loop)
 - `INotificationService` / `IAlertSoundService` abstractions (Windows balloon/sound live in App); PCM volume scaling and WAV validation live in Core
 
 ## App responsibilities
@@ -72,10 +77,12 @@ App must not implement NEW / SEEN / RECOVERED itself.
 ```
 Views  →  ShellViewModel  →  IAlertStateService  →  in-memory (Mock) / JSON (Real)
                 │
+                ├── ITakeService (optional Take → Checkmk ACK write, then one refresh)
+                ├── ICheckmkProblemNavigator (GUI URL + default browser; no state change)
                 ├── IProblemPoller (StateChanged → Reload)
-                │         └── INotificationCoordinator (AlertDelta.Opened only)
-                └── ICheckmkClient
-                      ├── MockCheckmkClient          (Mode=Mock, default; no REST polling)
+                │         └── INotificationCoordinator (AlertDelta.Opened only; ACK’d Opened = no balloon/sound)
+                └── ICheckmkClient (read-only)
+                      ├── MockCheckmkClient          (Mode=Mock, default; no REST polling; no real ACK writes)
                       └── CheckmkRestClient          (Mode=Real: services + HARD host DOWN/UNREACH)
 ```
 
@@ -98,7 +105,7 @@ No URL, site, username, or automation secret is hardcoded.
 End-user sources:
 
 - `%LocalAppData%/CheckmkDesktopNotifier/settings.json` (non-secret fields only)
-- `%LocalAppData%/CheckmkDesktopNotifier/preferences.json` (mute, volume, Default vs Custom; not secrets; not cleared by Reset; **not** autostart)
+- `%LocalAppData%/CheckmkDesktopNotifier/preferences.json` (mute, volume, Default vs Custom, Take enabled, display name; not secrets; not cleared by Reset; **not** autostart)
 - `%LocalAppData%/CheckmkDesktopNotifier/assets/custom-notification.wav` (imported custom sound copy)
 - `%LocalAppData%/CheckmkDesktopNotifier/` — user data (settings, preferences, custom WAV, alert-state). **Not** overwritten by the installer.
 - `%LocalAppData%/Programs/CheckmkDesktopNotifier/` — installed binaries (Phase 4D, COMPLETE / Windows-tested). Separate from user data.
@@ -125,9 +132,9 @@ API base URI: `{BaseUrl}/{Site}/check_mk/api/1.0/`.
 - Same object, same recurrence marker → same incident; severity may change (`WARN → CRIT`).
 - Same object, newer usable recurrence marker → Recovered + NEW (offline OK gap).
 
-`MarkSeen` / `MarkAllNewAsSeen` are local only. Checkmk `acknowledged` is metadata, never local Seen.
+`MarkSeen` / `MarkUnseen` / `MarkAllNewAsSeen` are local only. Checkmk `acknowledged` is shared metadata, never local Seen. Take writes ACK through `ICheckmkAcknowledgementClient`; it does not mark Seen. Mark unseen does not create `AlertDelta.Opened`.
 
-Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only. Version numbers come from `Directory.Build.props` (`1.0.0`). Phase 4D Inno Setup (COMPLETE / Windows-tested) installs binaries under `%LocalAppData%/Programs/CheckmkDesktopNotifier`; user data stays under `%LocalAppData%/CheckmkDesktopNotifier`. Phase 5 (COMPLETE / V1 READY) is documentation, versioning, and packaging for 1.0.0, not new product features.
+Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested; Phase 6A ACK suppression COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. If the Opened incident is already acknowledged in that snapshot, no balloon and no sound are emitted (the row may remain locally NEW). Grouping hosts that are already ACK’d produce no grouped balloon/sound; child incidents stay listed. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only. Version numbers come from `Directory.Build.props` (`1.1.0`). Phase 4D Inno Setup (COMPLETE / Windows-tested) installs binaries under `%LocalAppData%/Programs/CheckmkDesktopNotifier`; user data stays under `%LocalAppData%/CheckmkDesktopNotifier`. Phase 5 (COMPLETE / V1 READY) is documentation, versioning, and packaging for 1.0.0. Phase 6A (COMPLETE / Windows-tested) is optional Take / shared sticky Checkmk ACK. Phase 6B (COMPLETE / Windows-tested) is Open in Checkmk plus reversible local Seen/Unseen. v1.1.0 is FEATURE COMPLETE / READY FOR RELEASE.
 
 **Virgin baseline:** `openIncidentCount == 0 && LastSuccessfulPollUtc is null` before `ApplySnapshot`. If that first snapshot succeeds, Opened incidents are persisted for the UI and **must not** emit notifications/sound. Subsequent successful polls notify only newly Opened incidents.
 
@@ -158,9 +165,9 @@ A host named `web01` and a service `web01` / `CPU` are different incidents. Host
 - **Real:** `JsonAlertStateStore` at `%LocalAppData%/CheckmkDesktopNotifier/state/<connection-id>/alert-state.json`.
 - **Legacy Phase 3C file:** `%LocalAppData%/CheckmkDesktopNotifier/alert-state.json` is a **read fallback only**. It is not copied, moved, or deleted automatically. Saves always go to the isolated path. Fallback stops as soon as the isolated file exists. After that, the root file may be removed **manually** if desired; do not auto-delete user data.
 
-Persisted: open incidents, local Seen, recurrence markers, `LastSuccessfulPollUtc`.
+Persisted: open incidents, local Seen, recurrence markers, `LastSuccessfulPollUtc`, normalized ACK fields (`IsAcknowledgedInCheckmk`, `AcknowledgementType`, `TakenByDisplayName`, `IsTakenByNotifier`). Raw `comments_with_extra_info` is not persisted.
 
-Not persisted: automation secret, Authorization header, Checkmk URL/credentials (`config/checkmk.local.json` / environment remains separate).
+Not persisted: automation secret, Authorization header, Checkmk URL/credentials (`config/checkmk.local.json` / environment remains separate), raw REST JSON.
 
 ## Mock client
 
@@ -198,7 +205,7 @@ Incident identity includes Checkmk **site name**, not the server URL. Persisted 
 
 ## WPF ViewModels
 
-`ShellViewModel` reads `GetOpenIncidents()` and `LastSuccessfulPollUtc`. It calls `MarkSeen` / `MarkAllNewAsSeen` / expand toggle / presentation filter. After each poll, `IProblemPoller.StateChanged` reloads counters, the (possibly filtered) problem list, last-check time, and connection status on the WPF dispatcher. The UI does not implement NEW / SEEN / RECOVERED. The active filter is not stored in Core incident state.
+`ShellViewModel` reads `GetOpenIncidents()` and `LastSuccessfulPollUtc`. It calls `MarkSeen` / `MarkUnseen` / `MarkAllNewAsSeen` / Open in Checkmk / expand toggle / presentation filter. After each poll, `IProblemPoller.StateChanged` reloads counters, the (possibly filtered) problem list, last-check time, and connection status on the WPF dispatcher. The UI does not implement NEW / SEEN / RECOVERED. The active filter is not stored in Core incident state.
 
 Connection status (compact bar): `Initializing...` until startup finishes; then `Setup required` when no poll session is active; otherwise `Connected`, `Refreshing`, or `Connection error` from **this session's** poller. Persisted `LastSuccessfulPollUtc` may still fill last-check time; it must not imply Connected. A connection error does not replace the problem list. No exception stacks in the main UI.
 
@@ -207,11 +214,13 @@ Sections (ALL filter):
 - NEW: `!IsSeen`
 - CRITICAL / WARNING / UNKNOWN: all open incidents of that severity (including NEW)
 
-Single-selection filters NEW / CRIT / WARN / UNK show a flat list (Seen CRIT remains visible under CRIT; Seen leaves the NEW view). Empty filters show a localized empty-state line.
+Single-selection filters NEW / CRIT / WARN / UNK / TAKEN show a flat list (Seen CRIT remains visible under CRIT; Seen leaves the NEW view). TAKEN is open incidents with `IsTakenByNotifier` (valid CDN Take). Generic/manual Checkmk ACK is not Taken. Empty filters show a localized empty-state line.
 
-Compact-bar NEW/CRIT/WARN/UNKNOWN counts are global (not filtered). Clicking a count **toggles** that filter (same filter closes; a different filter switches in place). Clicking Checkmk / non-counter area toggles the list and opens ALL. Gear does not change the filter.
+A search field sits below the filter chips and above the list. Search is presentation-only (trim + `OrdinalIgnoreCase` on host name, service description, and Taken-by display name). It composes with the active filter and does not mutate incidents, Seen, or polling. A non-empty search always uses the flat list, including on ALL.
 
-Eye button is visible only when `IsNew`. Checkmk ACK and downtime are badges only.
+Compact-bar NEW/CRIT/WARN/UNKNOWN/TAKEN counts are global (not search-scoped). Clicking a count **toggles** that filter (same filter closes; a different filter switches in place). Clicking Checkmk / non-counter area toggles the list and opens ALL. Gear does not change the filter.
+
+Eye button is on every active row: open eye = Mark seen (NEW), slashed eye = Mark unseen (Seen). Mark unseen returns the incident to local NEW immediately and never replays balloon/sound (`AlertDelta.Opened` is unchanged). Compact Open-in-Checkmk icon is first in the action cluster, then eye, then Take when available. Open uses `ICheckmkProblemNavigator` and does not mutate incident state. Take is a compact row action when the feature is enabled and the problem is not already ACK’d. CDN Takes show **Taken by {name}**; other ACKs show **ACK**. Checkmk ACK and downtime are badges only and may coexist with Taken. Take never removes the row. Take confirmation is an application-owned dark modal (Take / Cancel), not a Windows MessageBox. CDN Take write comments are **single-line**; Checkmk RAW 2.4 truncates `\n` in ACK comments. Taken-by is not a Release action in v1.1.
 
 ## Rule: no Checkmk REST DTOs in Core
 

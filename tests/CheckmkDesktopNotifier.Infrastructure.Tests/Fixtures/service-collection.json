@@ -16,6 +16,8 @@
         "last_hard_state_change": 1704070800,
         "last_time_ok": 1703980800,
         "acknowledged": 0,
+        "acknowledgement_type": 0,
+        "comments_with_extra_info": [],
         "scheduled_downtime_depth": 0
       }
     },
@@ -33,6 +35,10 @@
         "last_hard_state_change": 1704157200,
         "last_time_ok": 1704067200,
         "acknowledged": 1,
+        "acknowledgement_type": 2,
+        "comments_with_extra_info": [
+          [11, "ITS", "Acknowledged in GUI", 4, 1704157200]
+        ],
         "scheduled_downtime_depth": 0
       }
     },

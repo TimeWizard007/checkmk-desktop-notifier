@@ -1,3 +1,5 @@
+using System.Text.Json;
+using CheckmkDesktopNotifier.Core.Acknowledgements;
 using CheckmkDesktopNotifier.Core.Domain;
 using CheckmkDesktopNotifier.Infrastructure.Rest;
 using CheckmkDesktopNotifier.Infrastructure.Tests.TestSupport;
@@ -47,6 +49,9 @@ public sealed class ServiceProblemMapperTests
         Assert.Equal(Severity.Critical, crit.Severity);
         Assert.Equal(StateType.Hard, crit.StateType);
         Assert.True(crit.IsAcknowledgedInCheckmk);
+        Assert.Equal(AcknowledgementType.Sticky, crit.AcknowledgementType);
+        Assert.False(crit.IsTakenByNotifier);
+        Assert.Null(crit.TakenByDisplayName);
         Assert.Equal(0, crit.ScheduledDowntimeDepth);
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1704153600), crit.LastStateChange);
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1704157200), crit.LastHardStateChange);
@@ -114,6 +119,127 @@ public sealed class ServiceProblemMapperTests
         Assert.Null(problem.GetType().GetProperty("Extensions"));
         Assert.Null(problem.GetType().GetProperty("DomainType"));
         Assert.DoesNotContain("extensions", problem.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Maps_cdn_take_comment_and_ignores_author()
+    {
+        var json = """
+            {"value":[{"extensions":{
+              "host_name":"HOST_R610",
+              "description":"Log Veeam Backup",
+              "state":2,
+              "state_type":1,
+              "plugin_output":"CRIT",
+              "acknowledged":1,
+              "acknowledgement_type":2,
+              "comments_with_extra_info":[
+                [36783,"ITS","Taken by mwi via Checkmk Desktop Notifier\ncdn.v1 take name=\"mwi\"",4,1787078432]
+              ],
+              "scheduled_downtime_depth":0
+            }}]}
+            """;
+        var problem = Assert.Single(ServiceProblemMapper.MapCollection(json, TestOptions.Site));
+        Assert.True(problem.IsAcknowledgedInCheckmk);
+        Assert.Equal(AcknowledgementType.Sticky, problem.AcknowledgementType);
+        Assert.True(problem.IsTakenByNotifier);
+        Assert.Equal("mwi", problem.TakenByDisplayName);
+    }
+
+    [Fact]
+    public void Maps_positional_cdn_format_comment_with_newlines()
+    {
+        var commentJson = JsonSerializer.Serialize(CdnTakeComment.Format("Michał"));
+        var json = """
+            {"value":[{"extensions":{
+              "host_name":"HOST_R610",
+              "description":"Log Veeam Backup",
+              "state":2,
+              "state_type":1,
+              "plugin_output":"CRIT",
+              "acknowledged":1,
+              "acknowledgement_type":2,
+              "comments_with_extra_info":[PLACEHOLDER],
+              "scheduled_downtime_depth":0
+            }}]}
+            """.Replace("PLACEHOLDER", $"[36783,\"ITS\",{commentJson},4,1787078432]", StringComparison.Ordinal);
+        var problem = Assert.Single(ServiceProblemMapper.MapCollection(json, TestOptions.Site));
+        Assert.True(problem.IsAcknowledgedInCheckmk);
+        Assert.True(problem.IsTakenByNotifier);
+        Assert.Equal("Michał", problem.TakenByDisplayName);
+    }
+
+    [Fact]
+    public void Maps_positional_flattened_taken_by_via_comment()
+    {
+        var json = """
+            {"value":[{"extensions":{
+              "host_name":"HOST_R610",
+              "description":"Log Veeam Backup",
+              "state":2,
+              "state_type":1,
+              "plugin_output":"CRIT",
+              "acknowledged":1,
+              "acknowledgement_type":2,
+              "comments_with_extra_info":[
+                [36783,"ITS","Taken by Michał via Checkmk Desktop Notifier",4,1787078432]
+              ],
+              "scheduled_downtime_depth":0
+            }}]}
+            """;
+        var problem = Assert.Single(ServiceProblemMapper.MapCollection(json, TestOptions.Site));
+        Assert.True(problem.IsAcknowledgedInCheckmk);
+        Assert.Equal(AcknowledgementType.Sticky, problem.AcknowledgementType);
+        Assert.True(problem.IsTakenByNotifier);
+        Assert.Equal("Michał", problem.TakenByDisplayName);
+    }
+
+    [Fact]
+    public void Generic_ack_without_cdn_comment_remains_ack_not_taken()
+    {
+        var json = """
+            {"value":[{"extensions":{
+              "host_name":"web01",
+              "description":"CPU",
+              "state":2,
+              "state_type":1,
+              "plugin_output":"CRIT",
+              "acknowledged":1,
+              "acknowledgement_type":2,
+              "comments_with_extra_info":[
+                [1,"ITS","Acknowledged in GUI",4,100]
+              ]
+            }}]}
+            """;
+        var problem = Assert.Single(ServiceProblemMapper.MapCollection(json, TestOptions.Site));
+        Assert.True(problem.IsAcknowledgedInCheckmk);
+        Assert.False(problem.IsTakenByNotifier);
+        Assert.Null(problem.TakenByDisplayName);
+    }
+
+    [Fact]
+    public void Malformed_comments_do_not_crash_mapping()
+    {
+        var json = """
+            {"value":[{"extensions":{
+              "host_name":"web01",
+              "description":"CPU",
+              "state":2,
+              "state_type":1,
+              "acknowledged":1,
+              "acknowledgement_type":2,
+              "comments_with_extra_info":[
+                "not-an-array",
+                [1],
+                [1,"ITS"],
+                {"id":1}
+              ]
+            }}]}
+            """;
+        var problem = Assert.Single(ServiceProblemMapper.MapCollection(json, TestOptions.Site));
+        Assert.True(problem.IsAcknowledgedInCheckmk);
+        Assert.False(problem.IsTakenByNotifier);
+        Assert.Null(problem.TakenByDisplayName);
     }
 
     private static MonitoredProblem Find(string host, string description)

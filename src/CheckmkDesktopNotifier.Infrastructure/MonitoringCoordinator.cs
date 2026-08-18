@@ -1,4 +1,5 @@
 using CheckmkDesktopNotifier.Core.Abstractions;
+using CheckmkDesktopNotifier.Core.Acknowledgements;
 using CheckmkDesktopNotifier.Core.Persistence;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
 using CheckmkDesktopNotifier.Infrastructure.Polling;
@@ -24,6 +25,8 @@ public interface IMonitoringCoordinator
 public sealed class MonitoringCoordinator : IMonitoringCoordinator
 {
     private readonly DelegatingCheckmkClient _client;
+    private readonly DelegatingCheckmkAcknowledgementClient? _acknowledgements;
+    private readonly TakeSessionState? _takeSession;
     private readonly IAlertStateService _alerts;
     private readonly IProblemPoller _poller;
     private readonly AppStoragePaths _paths;
@@ -43,7 +46,9 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
         IProblemPoller poller,
         AppStoragePaths paths,
         TimeProvider clock,
-        HttpMessageHandler? httpHandler = null)
+        HttpMessageHandler? httpHandler = null,
+        DelegatingCheckmkAcknowledgementClient? acknowledgements = null,
+        TakeSessionState? takeSession = null)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
@@ -51,6 +56,8 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
         _paths = paths ?? throw new ArgumentNullException(nameof(paths));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _handler = httpHandler;
+        _acknowledgements = acknowledgements;
+        _takeSession = takeSession;
         _sessionCts.Cancel();
     }
 
@@ -112,6 +119,8 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
             _http?.Dispose();
             _http = http;
             _client.SetInner(rest);
+            _acknowledgements?.SetInner(new CheckmkAcknowledgementClient(http, options));
+            _takeSession?.Reset();
             _poller.SetInterval(options.PollInterval);
             if (_activeIdentity is null || !identity.EqualsIdentity(_activeIdentity))
             {
@@ -136,6 +145,8 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
             _http?.Dispose();
             _http = null;
             _client.SetInner(new UnconfiguredCheckmkClient());
+            _acknowledgements?.SetInner(new UnavailableCheckmkAcknowledgementClient());
+            _takeSession?.Reset();
             _currentOptions = null;
             _pollingEnabled = false;
             _sessionCts = new CancellationTokenSource();

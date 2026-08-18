@@ -108,15 +108,35 @@ Per-user Inno Setup 6 installer to `%LocalAppData%\Programs\CheckmkDesktopNotifi
 
 User-facing 1.0.0 documentation, MIT license, sanitized screenshots, `SHA256SUMS.txt`, version **1.0.0**. Tag `v1.0.0` is part of close-out. GitHub Release is a separate follow-up.
 
-## After V1 — not started
+## After V1 / v1.1.0 FEATURE COMPLETE / READY FOR RELEASE
 
-V1.1 / future team workflow (do **not** implement now):
+**v1.1.0** is **FEATURE COMPLETE / READY FOR RELEASE**. Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. Feature freeze: no further v1.1.0 functionality. Git tag `v1.1.0` is part of this close-out. GitHub Release is a separate follow-up.
 
-- Take / ACK in Checkmk
-- Show shared acknowledgement / ownership
-- Acknowledgement comments
-- Optional ticket workflow
-- Zoho Desk API integration
+Phase 6A delivered:
+
+- Take / ACK **in Checkmk** (sticky, optional, host or service only)
+- Shared CDN Taken-by vs generic ACK (Checkmk is source of truth)
+- Single-line acknowledgement comments (`Taken by {name} via Checkmk Desktop Notifier cdn.v1 take name="..."`). Checkmk RAW 2.4 truncates multiline ACK comments; do not revert.
+- Problem search + TAKEN filter/counter (presentation-only)
+- Dark in-app Take confirmation
+- ACK-aware notification suppression and host grouping
+- No Untake, no `expire_on`, no custom backend
+
+Phase 6B delivered:
+
+- Open the corresponding Checkmk host/service GUI in the default browser
+- Reversible local Seen / Unseen (returns to NEW; no notification replay)
+
+**v1.2.0 candidate (do not implement now):**
+
+- Safe Release / Untake
+- Live validation required first for `POST /domain-types/acknowledge/actions/delete/invoke`
+- The notifier must never remove generic/manual ACK blindly
+
+**Future / optional (do not implement now):**
+
+- Ticket workflow
+- Zoho Desk integration
 
 Evaluate Checkmk ACK + an existing ticket system **before** any custom shared database.
 

@@ -57,6 +57,8 @@ public sealed class CheckmkHostClientTests
         Assert.Contains("columns=state", uri, StringComparison.Ordinal);
         Assert.Contains("columns=state_type", uri, StringComparison.Ordinal);
         Assert.Contains("columns=last_time_up", uri, StringComparison.Ordinal);
+        Assert.Contains("columns=acknowledgement_type", uri, StringComparison.Ordinal);
+        Assert.Contains("columns=comments_with_extra_info", uri, StringComparison.Ordinal);
         Assert.DoesNotContain("query=", uri, StringComparison.Ordinal);
         Assert.DoesNotContain("host_config", uri, StringComparison.Ordinal);
         Assert.Equal(6, result.Inspection!.HostCount);

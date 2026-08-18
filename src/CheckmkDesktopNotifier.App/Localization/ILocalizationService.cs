@@ -18,6 +18,8 @@ public interface ILocalizationService
     string LastCheckUnknown { get; }
     string MarkAllNewAsSeen { get; }
     string MarkAsSeen { get; }
+    string MarkAsUnseen { get; }
+    string OpenInCheckmk { get; }
     string Seen { get; }
     string Acknowledged { get; }
     string AcknowledgedTooltip { get; }
@@ -87,11 +89,16 @@ public interface ILocalizationService
     string FilterCritical { get; }
     string FilterWarning { get; }
     string FilterUnknown { get; }
+    string FilterTaken { get; }
     string EmptyFilterAll { get; }
     string EmptyFilterNew { get; }
     string EmptyFilterCritical { get; }
     string EmptyFilterWarning { get; }
     string EmptyFilterUnknown { get; }
+    string EmptyFilterTaken { get; }
+    string EmptyFilterSearch { get; }
+    string SearchPlaceholder { get; }
+    string TakenLabel { get; }
     string MenuConnectionSettings { get; }
     string MenuHelpAbout { get; }
     string MenuExit { get; }
@@ -105,4 +112,17 @@ public interface ILocalizationService
     string AboutAuthor { get; }
     string AboutGitHub { get; }
     string AboutClose { get; }
+    string Take { get; }
+    string Taking { get; }
+    string Taken { get; }
+    string TakenByFormat { get; }
+    string EnableTake { get; }
+    string DisplayName { get; }
+    string TeamCoordination { get; }
+    string TeamCoordinationHint { get; }
+    string TakeConfirmTitle { get; }
+    string TakeConfirmBody { get; }
+    string TakeCouldNot { get; }
+    string TakeForbidden { get; }
+    string TakeAwaitingRefresh { get; }
 }

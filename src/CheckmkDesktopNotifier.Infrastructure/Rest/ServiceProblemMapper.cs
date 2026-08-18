@@ -7,46 +7,50 @@ public static class ServiceProblemMapper
 {
     public const int MaxPluginOutputLength = 512;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
     public static IReadOnlyList<MonitoredProblem> MapCollection(string json, SiteId siteId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
 
-        CheckmkCollectionResponse response;
+        JsonDocument document;
         try
         {
-            response = JsonSerializer.Deserialize<CheckmkCollectionResponse>(json, JsonOptions)
-                       ?? throw new CheckmkProtocolException("Service collection JSON was empty.");
+            document = JsonDocument.Parse(json, CheckmkJson.DocumentOptions);
         }
         catch (JsonException ex)
         {
             throw new CheckmkProtocolException("Service collection JSON could not be parsed.", ex);
         }
 
-        if (response.Value is null)
+        using (document)
         {
-            throw new CheckmkProtocolException("Service collection JSON did not contain a value array.");
-        }
-
-        var problems = new List<MonitoredProblem>(response.Value.Count);
-        foreach (var item in response.Value)
-        {
-            if (item.Extensions.ValueKind != JsonValueKind.Object)
+            if (!CheckmkJson.TryGetProperty(document.RootElement, "value", out var value)
+                || value.ValueKind != JsonValueKind.Array)
             {
-                continue;
+                throw new CheckmkProtocolException("Service collection JSON did not contain a value array.");
             }
 
-            if (TryMapService(item.Extensions, siteId, out var problem) && problem is not null)
+            var problems = new List<MonitoredProblem>();
+            foreach (var item in value.EnumerateArray())
             {
-                problems.Add(problem);
-            }
-        }
+                if (item.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
 
-        return problems;
+                if (!CheckmkJson.TryGetProperty(item, "extensions", out var extensions)
+                    || extensions.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                if (TryMapService(extensions, siteId, out var problem) && problem is not null)
+                {
+                    problems.Add(problem);
+                }
+            }
+
+            return problems;
+        }
     }
 
     internal static bool TryMapService(JsonElement extensions, SiteId siteId, out MonitoredProblem? problem)
@@ -72,6 +76,7 @@ public static class ServiceProblemMapper
             return false;
         }
 
+        var ack = CheckmkCommentMapper.ReadAcknowledgement(extensions);
         problem = new MonitoredProblem
         {
             Id = MonitoredObjectId.Service(siteId, hostName, description),
@@ -81,7 +86,10 @@ public static class ServiceProblemMapper
             LastStateChange = UnixTimeMapper.FromUnixSeconds(JsonValueParser.ReadInt64(extensions, "last_state_change")),
             LastHardStateChange = UnixTimeMapper.FromUnixSeconds(JsonValueParser.ReadInt64(extensions, "last_hard_state_change")),
             LastTimeOk = UnixTimeMapper.FromUnixSeconds(JsonValueParser.ReadInt64(extensions, "last_time_ok")),
-            IsAcknowledgedInCheckmk = (JsonValueParser.ReadInt(extensions, "acknowledged") ?? 0) != 0,
+            IsAcknowledgedInCheckmk = ack.IsAcknowledged,
+            AcknowledgementType = ack.AcknowledgementType,
+            TakenByDisplayName = ack.TakenByDisplayName,
+            IsTakenByNotifier = ack.IsTakenByNotifier,
             ScheduledDowntimeDepth = JsonValueParser.ReadInt(extensions, "scheduled_downtime_depth") ?? 0
         };
 

@@ -82,6 +82,9 @@ public sealed class AlertStateService : IAlertStateService
                         LastObservedAtUtc = now,
                         LastSummary = TruncateSummary(problem.PluginOutput),
                         IsAcknowledgedInCheckmk = problem.IsAcknowledgedInCheckmk,
+                        AcknowledgementType = problem.AcknowledgementType,
+                        TakenByDisplayName = problem.TakenByDisplayName,
+                        IsTakenByNotifier = problem.IsTakenByNotifier,
                         ScheduledDowntimeDepth = problem.ScheduledDowntimeDepth
                     };
 
@@ -117,6 +120,22 @@ public sealed class AlertStateService : IAlertStateService
             }
 
             _open[id] = incident with { IsSeen = true };
+            PersistUnlocked();
+        }
+    }
+
+    public void MarkUnseen(MonitoredObjectId id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+
+        lock (_gate)
+        {
+            if (!_open.TryGetValue(id, out var incident) || !incident.IsSeen)
+            {
+                return;
+            }
+
+            _open[id] = incident with { IsSeen = false };
             PersistUnlocked();
         }
     }
@@ -210,6 +229,9 @@ public sealed class AlertStateService : IAlertStateService
                 : null,
             LastSummary = TruncateSummary(problem.PluginOutput),
             IsAcknowledgedInCheckmk = problem.IsAcknowledgedInCheckmk,
+            AcknowledgementType = problem.AcknowledgementType,
+            TakenByDisplayName = problem.TakenByDisplayName,
+            IsTakenByNotifier = problem.IsTakenByNotifier,
             ScheduledDowntimeDepth = problem.ScheduledDowntimeDepth
         };
 

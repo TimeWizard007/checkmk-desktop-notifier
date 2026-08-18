@@ -278,4 +278,118 @@ public sealed class AlertStateEngineTests
         Assert.True(open.IsAcknowledgedInCheckmk);
         Assert.False(open.IsSeen);
     }
+
+    [Fact]
+    public void Seen_does_not_modify_acknowledgement()
+    {
+        var sut = CreateSut();
+        var problem = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Michał",
+            takenByNotifier: true);
+
+        sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, problem));
+        sut.MarkSeen(ProblemFactory.ServiceId("web01", "CPU"));
+
+        var open = Assert.Single(sut.GetOpenIncidents());
+        Assert.True(open.IsSeen);
+        Assert.True(open.IsAcknowledgedInCheckmk);
+        Assert.True(open.IsTakenByNotifier);
+        Assert.Equal("Michał", open.TakenByDisplayName);
+        Assert.Equal(AcknowledgementType.Sticky, open.AcknowledgementType);
+    }
+
+    [Fact]
+    public void Acknowledgement_refresh_updates_open_incident_without_marking_seen()
+    {
+        var sut = CreateSut();
+        var openProblem = ProblemFactory.Service("web01", "CPU", Severity.Critical);
+        sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, openProblem));
+        _clock.UtcNow = _clock.UtcNow.AddMinutes(1);
+
+        var acked = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Michał",
+            takenByNotifier: true);
+        var delta = sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, acked));
+
+        Assert.Empty(delta.Opened);
+        var open = Assert.Single(sut.GetOpenIncidents());
+        Assert.False(open.IsSeen);
+        Assert.True(open.IsAcknowledgedInCheckmk);
+        Assert.Equal("Michał", open.TakenByDisplayName);
+        Assert.True(open.IsTakenByNotifier);
+    }
+
+    [Fact]
+    public void Recurrence_does_not_keep_stale_taken_by()
+    {
+        var sut = CreateSut();
+        var first = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            lastTimeOk: ProblemFactory.T0.AddHours(-2),
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Michał",
+            takenByNotifier: true);
+        sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, first));
+        _clock.UtcNow = _clock.UtcNow.AddMinutes(1);
+        sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow));
+        _clock.UtcNow = _clock.UtcNow.AddMinutes(1);
+
+        var later = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            lastTimeOk: ProblemFactory.T0.AddMinutes(-1));
+        var delta = sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, later));
+
+        var opened = Assert.Single(delta.Opened);
+        Assert.False(opened.IsAcknowledgedInCheckmk);
+        Assert.False(opened.IsTakenByNotifier);
+        Assert.Null(opened.TakenByDisplayName);
+        Assert.Equal(AcknowledgementType.None, opened.AcknowledgementType);
+    }
+
+    [Fact]
+    public void Warn_then_crit_keeps_taken_state()
+    {
+        var sut = CreateSut();
+        var warn = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Warning,
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Michał",
+            takenByNotifier: true);
+        sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, warn));
+        _clock.UtcNow = _clock.UtcNow.AddMinutes(1);
+        var crit = ProblemFactory.Service(
+            "web01",
+            "CPU",
+            Severity.Critical,
+            acknowledged: true,
+            acknowledgementType: AcknowledgementType.Sticky,
+            takenBy: "Michał",
+            takenByNotifier: true);
+        var delta = sut.ApplySnapshot(ProblemFactory.Ok(_clock.UtcNow, crit));
+
+        Assert.Empty(delta.Opened);
+        var open = Assert.Single(sut.GetOpenIncidents());
+        Assert.Equal(Severity.Critical, open.Severity);
+        Assert.True(open.IsTakenByNotifier);
+        Assert.Equal("Michał", open.TakenByDisplayName);
+        Assert.False(open.IsSeen);
+    }
 }

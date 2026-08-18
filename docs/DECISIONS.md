@@ -6,7 +6,9 @@ Record why, not only what. Change a decision here when the product changes.
 
 Clicking the eye means: this Windows user has seen this **local** uninterrupted incident; do not notify again for it.
 
-It must never call Checkmk acknowledge APIs. `acknowledged` from Checkmk is read-only metadata (badge / future filter). ACK must not look like or set Seen.
+Phase 6B makes the eye reversible: Mark unseen returns the same incident to local NEW. That is presentation/workflow state only. It must never write Checkmk, and it must never replay balloon/sound because Unseen is not a newly opened monitoring incident (`AlertDelta.Opened` stays empty).
+
+It must never call Checkmk acknowledge APIs. `acknowledged` from Checkmk is read-only metadata (badge / TAKEN vs ACK). ACK must not look like or set Seen.
 
 ## HARD-only incidents in V1
 
@@ -136,7 +138,7 @@ Installed + Start Menu + autostart + desktop would otherwise start multiple poll
 
 ## Central version (Phase 4D, COMPLETE / Windows-tested)
 
-`Directory.Build.props` defines `Version` / `AssemblyVersion` / `FileVersion` / `InformationalVersion` (`1.0.0`). About reads informational version. Inno uses `/DMyAppVersion` with the same value (fallback `#define` in the `.iss` must match; PackagingTests checks). Do not hardcode `1.0.0` in the About UI.
+`Directory.Build.props` defines `Version` / `AssemblyVersion` / `FileVersion` / `InformationalVersion`. About reads informational version. Inno uses `/DMyAppVersion` with the same value (fallback `#define` in the `.iss` must match; PackagingTests checks). Do not hardcode the version in the About UI. Product version is **1.1.0**.
 
 ## Dark compact menus (Phase 4B)
 
@@ -185,6 +187,29 @@ C# / .NET 8 / WPF / MVVM / Windows 10/11 / DI / async + `CancellationToken` / lo
 ## REST vs Livestatus
 
 V1 HTTP path is the verified REST status collections. Livestatus remains a possible later `ICheckmkClient` adapter, not required for V1.
+
+## Take vs Seen vs ACK (Phase 6A, COMPLETE / Windows-tested)
+
+Keep these concepts separate:
+
+- **Seen** is local per Windows user. Eye toggles Seen/Unseen. Mark all new as seen. Never writes Checkmk. Unseen does not replay notifications.
+- **Take** is a shared team action. It creates a Checkmk sticky ACK (`notify=false`). It does not hide the row, change severity, mark Seen, ACK children, create a ticket, or use Checkmk `notify`.
+- **ACK** is shared Checkmk state (notifier, GUI, or another tool).
+- **Taken by** is shown only when an acknowledgement comment is a CDN Take. Prefer `cdn.v1 take name="..."`. Checkmk RAW 2.4 stores ACK comments as a single line (`\n` is truncated; live GO-S11). Writes therefore put human text, via-phrase, and machine tag on one line. Flattened `Taken by {name} via Checkmk Desktop Notifier` still counts as Taken on read. Never invent identity from the Checkmk author (live: `checkmk-desktop-notifier`). A generic “Taken by …” ACK without the CDN via-phrase stays **ACK**.
+
+TAKEN filter/counter (added during live Windows 6A testing): presentation-only view of open incidents with `IsTakenByNotifier`. Not a local ownership database. Generic Checkmk ACK is excluded. Search composes with TAKEN and severity filters.
+
+Display name lives in `preferences.json` with mute/volume (non-secret per-user prefs). Not Credential Manager. Not `settings.json` (connection). Take is disabled by default so existing 1.0 installs stay read-only until opted in.
+
+`ICheckmkClient` stays read-only. Writes use `ICheckmkAcknowledgementClient`. Same automation secret. Take requires `action.acknowledge` and remains optional; a read-only account continues to monitor.
+
+No Untake in v1.1: ACK ends on OK/UP; manual removal is Checkmk UI. Safe Release/Untake is planned for **v1.2.0** and requires separate live validation of `POST /domain-types/acknowledge/actions/delete/invoke`. Do not make Taken-by clickable in v1.1. No `expire_on` (HTTP 400 on validated RAW 2.4.0p34). No custom backend. Concurrent Takes may leave multiple ACK comments; UI shows the newest valid CDN Take.
+
+Sticky is intentional so WARN → Take → CRIT stays Taken (same local incident).
+
+## Open in Checkmk uses GUI URLs, not REST show links
+
+REST collection items may include `rel: urn:com.checkmk:rels/show` hrefs under `/api/1.0/objects/.../actions/show_service/invoke`. Those are API invoke endpoints, not the interactive GUI. Phase 6B builds `{BaseUrl}/{site}/check_mk/index.py?start_url=view.py?...` from the configured origin, site, and host/service identity. No credentials or automation secret in the URL. Default browser only.
 
 ## Host HTTP method
 

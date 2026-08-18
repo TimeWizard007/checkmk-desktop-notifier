@@ -4,6 +4,7 @@ using System.Windows;
 using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.Core;
 using CheckmkDesktopNotifier.Core.Abstractions;
+using CheckmkDesktopNotifier.Core.Acknowledgements;
 using CheckmkDesktopNotifier.Core.Domain;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
@@ -22,9 +23,14 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly IMonitoringCoordinator? _coordinator;
     private readonly Lazy<IShellCommands>? _shell;
     private readonly IUserPreferences _preferences;
+    private readonly ITakeService? _take;
+    private readonly ICheckmkProblemNavigator? _navigator;
+    private readonly TakeSessionState? _takeSession;
+    private readonly LoadedConfiguration? _loaded;
     private readonly ProblemListViewState _listView = new();
     private readonly bool _settingsAvailable;
     private ShellPhase _phase = ShellPhase.Initializing;
+    private MonitoredObjectId? _takingId;
 
     public ShellViewModel(
         IAlertStateService alerts,
@@ -34,7 +40,10 @@ public sealed partial class ShellViewModel : ObservableObject
         IMonitoringCoordinator? coordinator = null,
         LoadedConfiguration? loaded = null,
         Lazy<IShellCommands>? shell = null,
-        IUserPreferences? preferences = null)
+        IUserPreferences? preferences = null,
+        ITakeService? take = null,
+        TakeSessionState? takeSession = null,
+        ICheckmkProblemNavigator? navigator = null)
     {
         _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
         Text = text ?? throw new ArgumentNullException(nameof(text));
@@ -43,15 +52,34 @@ public sealed partial class ShellViewModel : ObservableObject
         _coordinator = coordinator;
         _shell = shell;
         _preferences = preferences ?? new InMemoryUserPreferences();
+        _take = take;
+        _navigator = navigator;
+        _takeSession = takeSession;
+        _loaded = loaded;
         _settingsAvailable = loaded?.IsMock != true;
         _poller.StateChanged += OnPollerStateChanged;
-        _preferences.Changed += (_, _) => OnPropertyChanged(nameof(MuteMenuHeader));
+        _preferences.Changed += (_, _) =>
+        {
+            OnPropertyChanged(nameof(MuteMenuHeader));
+            TakeCommand.NotifyCanExecuteChanged();
+            Reload();
+        };
+        if (_takeSession is not null)
+        {
+            _takeSession.Changed += (_, _) =>
+            {
+                TakeCommand.NotifyCanExecuteChanged();
+                Reload();
+            };
+        }
         if (Text is INotifyPropertyChanged textChanged)
         {
             textChanged.PropertyChanged += (_, _) =>
             {
                 OnPropertyChanged(nameof(MuteMenuHeader));
                 OnPropertyChanged(nameof(EmptyFilterText));
+                OnPropertyChanged(nameof(HasSearchQuery));
+                OnPropertyChanged(nameof(ShowSearchPlaceholder));
             };
         }
 
@@ -59,6 +87,10 @@ public sealed partial class ShellViewModel : ObservableObject
     }
 
     public ILocalizationService Text { get; }
+
+    public Func<string, string, bool>? ConfirmTake { get; set; }
+
+    public Action<string>? ShowTakeMessage { get; set; }
 
     public ObservableCollection<ProblemItemViewModel> NewItems { get; } = [];
 
@@ -100,6 +132,19 @@ public sealed partial class ShellViewModel : ObservableObject
     private int _unknownCount;
 
     [ObservableProperty]
+    private int _takenCount;
+
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    partial void OnSearchTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasSearchQuery));
+        OnPropertyChanged(nameof(ShowSearchPlaceholder));
+        Reload();
+    }
+
+    [ObservableProperty]
     private string _lastCheckText = string.Empty;
 
     [ObservableProperty]
@@ -119,20 +164,39 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public bool IsFilterUnknown => ActiveFilter == ProblemListFilter.Unknown;
 
-    public bool ShowSectionedList => IsFilterAll && (NewCount + CriticalCount + WarningCount + UnknownCount) > 0;
+    public bool IsFilterTaken => ActiveFilter == ProblemListFilter.Taken;
 
-    public bool ShowFilteredList => !IsFilterAll && FilteredItems.Count > 0;
+    public bool HasSearchQuery => !string.IsNullOrWhiteSpace(SearchText);
+
+    public bool ShowSearchPlaceholder => string.IsNullOrEmpty(SearchText);
+
+    public bool ShowSectionedList =>
+        IsFilterAll && !HasSearchQuery && (NewCount + CriticalCount + WarningCount + UnknownCount) > 0;
+
+    public bool ShowFilteredList => (!IsFilterAll || HasSearchQuery) && FilteredItems.Count > 0;
 
     public bool ShowEmptyFilter => !ShowSectionedList && !ShowFilteredList;
 
-    public string EmptyFilterText => ActiveFilter switch
+    public string EmptyFilterText
     {
-        ProblemListFilter.New => Text.EmptyFilterNew,
-        ProblemListFilter.Critical => Text.EmptyFilterCritical,
-        ProblemListFilter.Warning => Text.EmptyFilterWarning,
-        ProblemListFilter.Unknown => Text.EmptyFilterUnknown,
-        _ => Text.EmptyFilterAll
-    };
+        get
+        {
+            if (HasSearchQuery)
+            {
+                return Text.EmptyFilterSearch;
+            }
+
+            return ActiveFilter switch
+            {
+                ProblemListFilter.New => Text.EmptyFilterNew,
+                ProblemListFilter.Critical => Text.EmptyFilterCritical,
+                ProblemListFilter.Warning => Text.EmptyFilterWarning,
+                ProblemListFilter.Unknown => Text.EmptyFilterUnknown,
+                ProblemListFilter.Taken => Text.EmptyFilterTaken,
+                _ => Text.EmptyFilterAll
+            };
+        }
+    }
 
     public string MuteMenuHeader =>
         MuteCommands.MenuHeader(_preferences, Text.MenuMuteSound, Text.MenuUnmuteSound);
@@ -151,11 +215,14 @@ public sealed partial class ShellViewModel : ObservableObject
         ToggleCriticalFilterCommand.NotifyCanExecuteChanged();
         ToggleWarningFilterCommand.NotifyCanExecuteChanged();
         ToggleUnknownFilterCommand.NotifyCanExecuteChanged();
+        ToggleTakenFilterCommand.NotifyCanExecuteChanged();
         SelectAllFilterCommand.NotifyCanExecuteChanged();
         SelectNewFilterCommand.NotifyCanExecuteChanged();
         SelectCriticalFilterCommand.NotifyCanExecuteChanged();
         SelectWarningFilterCommand.NotifyCanExecuteChanged();
         SelectUnknownFilterCommand.NotifyCanExecuteChanged();
+        SelectTakenFilterCommand.NotifyCanExecuteChanged();
+        TakeCommand.NotifyCanExecuteChanged();
         Reload();
     }
 
@@ -168,11 +235,14 @@ public sealed partial class ShellViewModel : ObservableObject
         ToggleCriticalFilterCommand.NotifyCanExecuteChanged();
         ToggleWarningFilterCommand.NotifyCanExecuteChanged();
         ToggleUnknownFilterCommand.NotifyCanExecuteChanged();
+        ToggleTakenFilterCommand.NotifyCanExecuteChanged();
         SelectAllFilterCommand.NotifyCanExecuteChanged();
         SelectNewFilterCommand.NotifyCanExecuteChanged();
         SelectCriticalFilterCommand.NotifyCanExecuteChanged();
         SelectWarningFilterCommand.NotifyCanExecuteChanged();
         SelectUnknownFilterCommand.NotifyCanExecuteChanged();
+        SelectTakenFilterCommand.NotifyCanExecuteChanged();
+        TakeCommand.NotifyCanExecuteChanged();
         Reload();
     }
 
@@ -190,12 +260,13 @@ public sealed partial class ShellViewModel : ObservableObject
         Replace(UnknownItems, newestFirst.Where(incident => incident.Severity == Severity.Unknown).Select(ToItem));
         Replace(
             FilteredItems,
-            ProblemListFilterLogic.Apply(newestFirst, ActiveFilter).Select(ToItem));
+            ProblemListFilterLogic.Apply(newestFirst, ActiveFilter, SearchText).Select(ToItem));
 
         NewCount = NewItems.Count;
         CriticalCount = CriticalItems.Count;
         WarningCount = WarningItems.Count;
         UnknownCount = UnknownItems.Count;
+        TakenCount = ProblemListFilterLogic.CountTaken(newestFirst);
         LastCheckText = FormatLastCheck(_alerts.LastSuccessfulPollUtc);
         ConnectionStatusText = FormatConnectionStatus(_poller.Status);
         OnPropertyChanged(nameof(HasNewProblems));
@@ -206,6 +277,9 @@ public sealed partial class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(IsFilterCritical));
         OnPropertyChanged(nameof(IsFilterWarning));
         OnPropertyChanged(nameof(IsFilterUnknown));
+        OnPropertyChanged(nameof(IsFilterTaken));
+        OnPropertyChanged(nameof(HasSearchQuery));
+        OnPropertyChanged(nameof(ShowSearchPlaceholder));
         OnPropertyChanged(nameof(ShowSectionedList));
         OnPropertyChanged(nameof(ShowFilteredList));
         OnPropertyChanged(nameof(ShowEmptyFilter));
@@ -235,6 +309,9 @@ public sealed partial class ShellViewModel : ObservableObject
     private void ToggleUnknownFilter() => ToggleCounter(ProblemListFilter.Unknown);
 
     [RelayCommand(CanExecute = nameof(CanToggleExpanded))]
+    private void ToggleTakenFilter() => ToggleCounter(ProblemListFilter.Taken);
+
+    [RelayCommand(CanExecute = nameof(CanToggleExpanded))]
     private void SelectAllFilter() => SelectFilter(ProblemListFilter.All);
 
     [RelayCommand(CanExecute = nameof(CanToggleExpanded))]
@@ -248,6 +325,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
     [RelayCommand(CanExecute = nameof(CanToggleExpanded))]
     private void SelectUnknownFilter() => SelectFilter(ProblemListFilter.Unknown);
+
+    [RelayCommand(CanExecute = nameof(CanToggleExpanded))]
+    private void SelectTakenFilter() => SelectFilter(ProblemListFilter.Taken);
 
     private void ToggleCounter(ProblemListFilter filter)
     {
@@ -295,16 +375,115 @@ public sealed partial class ShellViewModel : ObservableObject
     private bool CanMarkAllNewAsSeen() => NewCount > 0 && _phase == ShellPhase.Ready;
 
     [RelayCommand]
-    private void MarkSeen(ProblemItemViewModel? item)
+    private void ToggleSeen(ProblemItemViewModel? item)
     {
-        if (item is null || !item.IsNew || _phase != ShellPhase.Ready)
+        if (item is null || _phase != ShellPhase.Ready)
         {
             return;
         }
 
-        _alerts.MarkSeen(item.ObjectId);
+        if (item.IsNew)
+        {
+            _alerts.MarkSeen(item.ObjectId);
+        }
+        else
+        {
+            _alerts.MarkUnseen(item.ObjectId);
+        }
+
         Reload();
     }
+
+    [RelayCommand]
+    private void OpenInCheckmk(ProblemItemViewModel? item)
+    {
+        if (item is null || _phase != ShellPhase.Ready || _navigator is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _navigator.Open(item.ObjectId);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanTake))]
+    private async Task TakeAsync(ProblemItemViewModel? item)
+    {
+        if (item is null || _take is null || _takingId is not null || _phase != ShellPhase.Ready)
+        {
+            return;
+        }
+
+        if (!item.CanTake)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!TakeConfirmation.ShouldProceed(
+                    ConfirmTake?.Invoke(Text.TakeConfirmTitle, Text.TakeConfirmBody)))
+            {
+                return;
+            }
+        }
+        catch (Exception)
+        {
+            return;
+        }
+
+        _takingId = item.ObjectId;
+        TakeCommand.NotifyCanExecuteChanged();
+        Reload();
+        TakeOperationResult result;
+        try
+        {
+            result = await _take.TakeAsync(item.ObjectId).ConfigureAwait(true);
+        }
+        catch (Exception)
+        {
+            result = TakeOperationResult.Unavailable;
+        }
+        finally
+        {
+            _takingId = null;
+            TakeCommand.NotifyCanExecuteChanged();
+            Reload();
+        }
+
+        var message = result.Status switch
+        {
+            TakeOperationStatus.Confirmed => null,
+            TakeOperationStatus.Cancelled => null,
+            TakeOperationStatus.AlreadyAcknowledged => null,
+            TakeOperationStatus.Forbidden => Text.TakeForbidden,
+            TakeOperationStatus.SentAwaitingRefresh => Text.TakeAwaitingRefresh,
+            _ => Text.TakeCouldNot
+        };
+
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            try
+            {
+                ShowTakeMessage?.Invoke(message);
+            }
+            catch (Exception)
+            {
+            }
+        }
+    }
+
+    private bool CanTake(ProblemItemViewModel? item) =>
+        item is not null
+        && item.CanTake
+        && _takingId is null
+        && _phase == ShellPhase.Ready
+        && _take is not null;
 
     private void OnPollerStateChanged(object? sender, EventArgs e)
     {
@@ -318,8 +497,32 @@ public sealed partial class ShellViewModel : ObservableObject
         dispatcher.BeginInvoke(Reload);
     }
 
-    private ProblemItemViewModel ToItem(OpenIncident incident) =>
-        new()
+    private ProblemItemViewModel ToItem(OpenIncident incident)
+    {
+        var isTakingThis = _takingId is not null && _takingId.Equals(incident.ObjectId);
+        var canOffer = TakeEligibility.CanOfferTake(
+            _preferences.TakeEnabled,
+            _preferences.TakeDisplayName,
+            isRealMonitoring: _loaded?.IsMock != true && _take is not null,
+            acknowledgeForbidden: _takeSession?.AcknowledgeForbidden == true,
+            alreadyAcknowledged: incident.IsAcknowledgedInCheckmk,
+            isTaking: _takingId is not null,
+            isReady: _phase == ShellPhase.Ready);
+        var visual = TakeRowPresentation.Classify(
+            incident.IsAcknowledgedInCheckmk,
+            incident.IsTakenByNotifier,
+            canOffer,
+            isTakingThis);
+        var acknowledgementLabel = visual switch
+        {
+            TakeRowVisual.Taken => string.Format(
+                Text.TakenByFormat,
+                incident.TakenByDisplayName ?? string.Empty),
+            TakeRowVisual.Acknowledged => Text.Acknowledged,
+            _ => string.Empty
+        };
+
+        return new ProblemItemViewModel
         {
             ObjectId = incident.ObjectId,
             HostName = incident.ObjectId.HostName,
@@ -338,8 +541,13 @@ public sealed partial class ShellViewModel : ObservableObject
             IsNew = !incident.IsSeen,
             IsSeen = incident.IsSeen,
             IsAcknowledged = incident.IsAcknowledgedInCheckmk,
-            IsInDowntime = incident.ScheduledDowntimeDepth > 0
+            IsInDowntime = incident.ScheduledDowntimeDepth > 0,
+            TakeVisual = visual,
+            AcknowledgementLabel = acknowledgementLabel,
+            TakeButtonText = visual == TakeRowVisual.Taking ? Text.Taking : Text.Take,
+            EyeTooltip = incident.IsSeen ? Text.MarkAsUnseen : Text.MarkAsSeen
         };
+    }
 
     private string FormatLastCheck(DateTimeOffset? retrievedAt)
     {

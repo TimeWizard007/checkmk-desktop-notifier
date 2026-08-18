@@ -34,6 +34,10 @@ public interface IUserPreferences
 
     string? CustomSoundFileName { get; }
 
+    bool TakeEnabled { get; }
+
+    string? TakeDisplayName { get; }
+
     void SetMuteSound(bool mute);
 
     void SetVolumePercent(int volumePercent);
@@ -41,6 +45,10 @@ public interface IUserPreferences
     void SetSoundSource(NotificationSoundSource source);
 
     void SetCustomSoundFileName(string? fileName);
+
+    void SetTakeEnabled(bool enabled);
+
+    void SetTakeDisplayName(string? displayName);
 
     event EventHandler? Changed;
 }

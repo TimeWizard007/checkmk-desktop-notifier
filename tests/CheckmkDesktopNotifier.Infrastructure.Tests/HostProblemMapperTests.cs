@@ -1,3 +1,5 @@
+using System.Text.Json;
+using CheckmkDesktopNotifier.Core.Acknowledgements;
 using CheckmkDesktopNotifier.Core.Domain;
 using CheckmkDesktopNotifier.Infrastructure.Rest;
 using CheckmkDesktopNotifier.Infrastructure.Tests.TestSupport;
@@ -72,8 +74,35 @@ public sealed class HostProblemMapperTests
         var problem = Find("host-down-ack");
 
         Assert.True(problem.IsAcknowledgedInCheckmk);
+        Assert.Equal(AcknowledgementType.Normal, problem.AcknowledgementType);
+        Assert.False(problem.IsTakenByNotifier);
+        Assert.Null(problem.TakenByDisplayName);
         Assert.Equal(0, problem.ScheduledDowntimeDepth);
         Assert.Equal(Severity.Critical, problem.Severity);
+    }
+
+    [Fact]
+    public void Maps_positional_cdn_take_comment()
+    {
+        var commentJson = JsonSerializer.Serialize(CdnTakeComment.Format("Michał"));
+        var json = """
+            {"value":[{"extensions":{
+              "name":"KIDL",
+              "state":1,
+              "state_type":1,
+              "plugin_output":"DOWN",
+              "acknowledged":1,
+              "acknowledgement_type":2,
+              "comments_with_extra_info":[PLACEHOLDER],
+              "scheduled_downtime_depth":0,
+              "last_time_up":1704067200
+            }}]}
+            """.Replace("PLACEHOLDER", $"[10,\"ITS\",{commentJson},4,1787078432]", StringComparison.Ordinal);
+        var problem = Assert.Single(HostProblemMapper.MapCollection(json, TestOptions.Site));
+        Assert.True(problem.IsAcknowledgedInCheckmk);
+        Assert.True(problem.IsTakenByNotifier);
+        Assert.Equal("Michał", problem.TakenByDisplayName);
+        Assert.Null(problem.Id.ServiceDescription);
     }
 
     [Fact]

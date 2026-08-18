@@ -265,17 +265,31 @@ public sealed class HostGroupingNotificationCoordinatorTests
     }
 
     [Fact]
-    public void Host_ack_or_downtime_does_not_suppress_grouped_notification()
+    public void Acknowledged_host_suppresses_grouped_balloon_and_sound()
     {
         var harness = CreateHarness();
         harness.BaselineEmpty();
-        var host = HostDown();
-        host = host with { IsAcknowledgedInCheckmk = true, ScheduledDowntimeDepth = 1 };
+        var host = HostDown() with { IsAcknowledgedInCheckmk = true };
+        harness.Apply(Ok(host, ChildServices(2)));
+        Assert.Empty(harness.Notifications.Shown);
+        Assert.Equal(0, harness.Sound.PlayCount);
+        Assert.Equal(3, harness.Alerts.GetOpenIncidents().Count);
+        Assert.All(harness.Alerts.GetOpenIncidents(), incident => Assert.False(incident.IsSeen));
+        Assert.Contains(
+            harness.Alerts.GetOpenIncidents(),
+            incident => incident.ObjectId.Kind == ObjectKind.Service && !incident.IsSeen);
+    }
+
+    [Fact]
+    public void Host_downtime_does_not_suppress_grouped_notification()
+    {
+        var harness = CreateHarness();
+        harness.BaselineEmpty();
+        var host = HostDown() with { ScheduledDowntimeDepth = 1 };
         harness.Apply(Ok(host, ChildServices(2)));
         Assert.Single(harness.Notifications.Shown);
         Assert.True(harness.Notifications.Shown[0].IsGroupedHostFailure);
         var openHost = harness.Alerts.GetOpenIncidents().Single(i => i.ObjectId.Kind == ObjectKind.Host);
-        Assert.True(openHost.IsAcknowledgedInCheckmk);
         Assert.Equal(1, openHost.ScheduledDowntimeDepth);
         Assert.False(openHost.IsSeen);
     }

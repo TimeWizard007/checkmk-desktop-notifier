@@ -6,7 +6,9 @@ using CheckmkDesktopNotifier.App.Mock;
 using CheckmkDesktopNotifier.App.ViewModels;
 using CheckmkDesktopNotifier.App.Views;
 using CheckmkDesktopNotifier.Core.Abstractions;
+using CheckmkDesktopNotifier.Core.Acknowledgements;
 using CheckmkDesktopNotifier.Core.Autostart;
+using CheckmkDesktopNotifier.Core.Navigation;
 using CheckmkDesktopNotifier.Core.Persistence;
 using CheckmkDesktopNotifier.Core.State;
 using CheckmkDesktopNotifier.Infrastructure;
@@ -72,6 +74,7 @@ public partial class App : Application
                 services.AddSingleton<IUriLauncher, ShellUriLauncher>();
                 services.AddSingleton<WindowSessionState>();
                 services.AddSingleton<IUserPreferences>(new JsonUserPreferencesStore(paths.PreferencesPath));
+                services.AddSingleton(new TakeSessionState());
                 services.AddSingleton<NotificationSoundStore>();
                 services.AddSingleton<DeferredNotificationService>();
                 services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<DeferredNotificationService>());
@@ -88,6 +91,8 @@ public partial class App : Application
                     services.AddSingleton<IAlertStateStore, InMemoryAlertStateStore>();
                     services.AddSingleton<IAlertStateService, AlertStateService>();
                     services.AddCheckmkClient(loaded.Options);
+                    services.AddSingleton<ICheckmkAcknowledgementClient, UnavailableCheckmkAcknowledgementClient>();
+                    services.AddSingleton<ITakeService, CheckmkTakeService>();
                 }
                 else
                 {
@@ -107,10 +112,27 @@ public partial class App : Application
                     services.AddSingleton(pollerOptions);
                     services.AddSingleton(new DelegatingCheckmkClient(new UnconfiguredCheckmkClient()));
                     services.AddSingleton<ICheckmkClient>(sp => sp.GetRequiredService<DelegatingCheckmkClient>());
+                    services.AddSingleton(new DelegatingCheckmkAcknowledgementClient(new UnavailableCheckmkAcknowledgementClient()));
+                    services.AddSingleton<ICheckmkAcknowledgementClient>(sp =>
+                        sp.GetRequiredService<DelegatingCheckmkAcknowledgementClient>());
+                    services.AddSingleton<ITakeService, CheckmkTakeService>();
                     services.AddSingleton<IMonitoringCoordinator, MonitoringCoordinator>();
                 }
 
                 services.AddCheckmkPolling(paths.LastPollPath);
+                services.AddSingleton<ICheckmkProblemNavigator>(sp =>
+                {
+                    var current = sp.GetRequiredService<LoadedConfiguration>();
+                    var coordinator = sp.GetService<IMonitoringCoordinator>();
+                    var launcher = sp.GetRequiredService<IUriLauncher>();
+                    return new CheckmkProblemNavigator(
+                        () =>
+                        {
+                            var options = coordinator?.CurrentOptions ?? current.Options;
+                            return (options.BaseUrl, options.Site);
+                        },
+                        launcher.Open);
+                });
                 services.AddSingleton<ShellViewModel>();
                 services.AddSingleton<CompactBarWindow>();
                 services.AddSingleton<ProblemListWindow>();

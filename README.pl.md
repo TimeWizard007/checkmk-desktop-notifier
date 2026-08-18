@@ -6,13 +6,13 @@ Lekki monitor i powiadamiacz pulpitu Windows dla Checkmk.
 
 To **niezależny projekt open source**. **Nie jest powiązany z Checkmk GmbH**, nie jest przez nią sponsorowany ani nie jest jej produktem. Nazwa „Checkmk” opisuje wyłącznie system monitoringu, z którym współpracuje ta aplikacja.
 
-Aktualna linia wydania: **1.0.0**.
+Aktualna wersja: **1.1.0** (FEATURE COMPLETE / READY FOR RELEASE — faza 6A Przejmij / współdzielone ACK i faza 6B Otwórz w Checkmk + Seen/Unseen, obie COMPLETE / przetestowane na Windows). GitHub Release to osobny follow-up po tagu `v1.1.0`.
 
 ## Przegląd
 
 Checkmk Desktop Notifier to towarzysz per-user dla Windows 10/11. Odpytuje Checkmk przez REST API, pokazuje bieżące problemy HARD hostów i usług na kompaktowym pasku Always-on-Top i wyświetla powiadomienia pulpitu, gdy otwierają się nowe **lokalne** incydenty.
 
-**Nie zastępuje** interfejsu WWW Checkmk. Nie zapisuje w Checkmk potwierdzeń (ACK), przestojów ani konfiguracji. Stan **Seen** jest lokalny dla tego użytkownika Windows.
+**Nie zastępuje** interfejsu WWW Checkmk. Stan **Seen** jest lokalny dla tego użytkownika Windows. Opcjonalne **Przejmij** zapisuje w Checkmk trwałe ACK, żeby inni administratorzy widzieli, że problem jest obsługiwany. Nie zastępuje Checkmk przy usuwaniu ACK.
 
 ## Zrzuty ekranu
 
@@ -32,11 +32,15 @@ Nazwy hostów i wewnętrzne adresy URL są pominięte albo zastąpione przykład
 
 ## Funkcje
 
-- Kompaktowy pasek Always-on-Top z licznikami NEW / CRIT / WARN / UNKNOWN
+- Kompaktowy pasek Always-on-Top z licznikami NEW / CRIT / WARN / UNKNOWN / TAKEN
 - Rozwijana lista problemów (hosty i usługi, wyjście pluginu, interfejs EN/PL)
-- Klikalne liczniki i chipy filtrów (tylko prezentacja; incydenty nie są scalane)
-- Lokalne NEW / Seen (per użytkownik Windows, zapisywane na dysku)
-- Tylko do odczytu: znaczniki ACK i zaplanowanego przestoju z Checkmk
+- Klikalne liczniki i chipy filtrów WSZYSTKIE / NOWE / CRIT / WARN / NIEZNANE / PRZEJĘTE (tylko prezentacja; incydenty nie są scalane)
+- Wyszukiwanie na żywo nad listą problemów (host, usługa, nazwa Przejęte przez; łączy się z aktywnym filtrem)
+- Lokalne NEW / Seen (per użytkownik Windows, zapisywane na dysku; odwracalne Unseen)
+- Otwórz odpowiadający host lub usługę w GUI Checkmk (domyślna przeglądarka; nie zmienia stanu incydentu)
+- Opcjonalne Przejmij / współdzielone trwałe ACK w Checkmk (domyślnie wyłączone)
+- Znacznik ACK Checkmk (zwykłe ACK albo Przejęte przez nazwę wyświetlaną)
+- Znaczniki zaplanowanego przestoju
 - Odpytywanie w tle kolekcji REST usług i hostów
 - Dymki powiadomień Windows i dźwięk alertu
 - Dołączony WAV, opcjonalny własny WAV, głośność aplikacji, wyciszenie
@@ -61,6 +65,7 @@ Nazwy hostów i wewnętrzne adresy URL są pominięte albo zastąpione przykład
 - Zweryfikowano wobec **Checkmk CRE / RAW 2.4.0p34**, REST API 1.0
 - Inne edycje/wersje z tymi samymi kolekcjami POST usług i GET hostów mogą działać; nie są zgłaszane jako przetestowane
 - Użytkownik automatyzacji, który **odczytuje** hosty i usługi, które Was interesują (zob. [Użytkownik automatyzacji Checkmk](#użytkownik-automatyzacji-checkmk))
+- Opcjonalne Przejmij wymaga też uprawnienia Checkmk **`action.acknowledge`** (nie Administrator)
 
 ## Instalacja
 
@@ -110,18 +115,42 @@ Przy **pierwszym udanym** odpytaniu z pustym lokalnym stanem incydentów bieżą
 
 ## Użytkownik automatyzacji Checkmk
 
-V1 jest wobec Checkmk **tylko do odczytu**. Utwórz **użytkownika automatyzacji** z **sekretem automatyzacji** (nie logowaniem hasłem interaktywnym).
+Utwórz **użytkownika automatyzacji** z **sekretem automatyzacji** (nie logowaniem hasłem interaktywnym).
 
-Sprawdzony model V1:
+Sprawdzony model:
 
-- Rola: **Normal monitoring user** wystarcza dla monitorowanego zakresu (zweryfikowano)
+- Rola: **Normal monitoring user** wystarcza dla monitorowanego zakresu (zweryfikowano dla odczytu)
 - Członkostwo w grupach kontaktów musi obejmować hosty i usługi, które mają być widoczne
 - Uprawnienia Administratora Checkmk **nie** są wymagane
+- Opcjonalne Przejmij wymaga **`action.acknowledge`**. Zostaw Przejmij wyłączone, jeśli konto jest tylko do odczytu; monitoring działa dalej
 - Węższa rola „tylko te dwie kolekcje” **nie** była testowana
 
 Nie umieszczaj w tym repozytorium prawdziwej nazwy użytkownika, sekretu, URL-a ani wewnętrznej nazwy grupy.
 
-Powiadamiacz pokazuje **ACK** Checkmk jako metadane. To **nie** jest lokalne **Seen**.
+## Seen vs Przejmij vs ACK
+
+**NEW / Seen** jest **lokalne, per użytkownik Windows**:
+
+- Przycisk oka oznacza **ten** incydent jako Seen
+- Na wierszu Seen to samo oko oznacza **Unseen** i od razu wraca do NEW
+- Oznaczenie Unseen **nie** odtwarza dymka ani dźwięku
+- **Oznacz wszystkie nowe jako zobaczone** dotyczy wszystkich obecnie NEW (nie ma masowego Unseen)
+- Seen jest zapisywane na dysku i **przetrwa restart**
+- Seen **nie** jest wysyłane do Checkmk
+- Seen **nie** jest współdzielone między administratorami ani innymi użytkownikami Windows
+
+Kompaktowa ikona **Otwórz w Checkmk** otwiera odpowiadający host albo usługę w GUI Checkmk (domyślna przeglądarka). Nie zmienia Seen, Przejmij, ACK ani przestoju.
+
+**Przejmij** to **współdzielona** akcja zespołowa (Ustawienia → Ogólne, domyślnie wyłączone):
+
+- Tworzy trwałe ACK Checkmk tylko dla tego hosta albo tej usługi
+- Nie ukrywa problemu, nie zmienia wagi, nie oznacza Seen, nie ACK-uje usług potomnych i nie tworzy zgłoszenia
+- Checkmk przestaje wysyłać kolejne powiadomienia dla bieżącego problemu do powrotu do OK/UP
+- W 1.1.0 nie ma Zwolnij / Untake; ACK usuwa się w UI Checkmk. ACK kończy się też przy powrocie do OK/UP
+
+**Przejęte przez** pokazuje osobę tylko gdy komentarz ACK pochodzi z Checkmk Desktop Notifier (`cdn.v1 take name="..."`). Ręczne ACK w Checkmk pokazuje **ACK**, nie zgadywaną osobę. Autorem komentarza w Checkmk jest wspólne konto automatyzacji i nigdy nie jest źródłem tożsamości. Komentarz Take jest **jednoliniowy** (`Taken by {nazwa} via Checkmk Desktop Notifier cdn.v1 take name="..."`), bo Checkmk RAW 2.4 obcina wieloliniowe komentarze ACK.
+
+Nazwa wyświetlana jest w `preferences.json` (nie w Menedżerze poświadczeń).
 
 ## Powiadomienia
 
@@ -131,27 +160,16 @@ Dymek Windows (przez ikonę w zasobniku) oraz — o ile nie wyciszono — jeden 
 - Restart nie odtwarza już otwartych incydentów
 - Nieudane odpytanie nigdy nie wygląda jak „wszystko wróciło do normy” i nie emituje dźwięku odzyskania
 - Wyciszenie wyłącza **dźwięk**; dymki nadal się pojawiają
-- ACK / przestój Checkmk **nie** wyciszają powiadomień w V1
-
-## NEW i Seen
-
-**NEW** oznacza: powiadamiacz tego użytkownika Windows **nie** oznaczył jeszcze tego lokalnego incydentu jako Seen.
-
-**Seen** jest **lokalne, per użytkownik Windows**:
-
-- Przycisk oka oznacza **ten** incydent jako Seen
-- **Oznacz wszystkie nowe jako zobaczone** dotyczy wszystkich obecnie NEW
-- Seen jest zapisywane na dysku i **przetrwa restart**
-- Seen **nie** jest wysyłane do Checkmk
-- Seen **nie** jest współdzielone między administratorami ani innymi użytkownikami Windows
-
-Jeśli dwie osoby uruchamiają powiadamiacz, każda ma własny stan NEW/Seen. Współdzielony workflow zespołowy to pozycja **po V1** (najpierw ACK Checkmk i system zgłoszeń; ten projekt nie zaczyna od własnej współdzielonej bazy).
+- Jeśli nowy incydent jest **już potwierdzony** w Checkmk w chwili otwarcia, pozostaje lokalnie NEW, ale **nie** ma dymka ani dźwięku
+- ACK pojawiające się później na już otwartym incydencie nie tworzy nowego powiadomienia
+- Zaplanowany przestój **nie** wycisza dymków (bez zmian)
 
 ## ACK i przestój Checkmk
 
-- **ACK** z Checkmk to metadane **tylko do odczytu** (znacznik). V1 nie tworzy ani nie zapisuje potwierdzeń.
-- **Zaplanowany przestój** to metadane **tylko do odczytu**. V1 nie ustawia ani nie usuwa przestoju.
-- ACK **to nie** Seen. Oznaczenie Seen **nie** wykonuje ACK w Checkmk.
+- Opcjonalne **Przejmij** zapisuje trwałe ACK Checkmk tylko dla tego obiektu (zob. [Seen vs Przejmij vs ACK](#seen-vs-przejmij-vs-ack))
+- ACK z GUI Checkmk lub innego narzędzia pokazuje **ACK**, nie Przejęte przez
+- **Zaplanowany przestój** to metadane **tylko do odczytu**. Ten powiadamiacz nie ustawia ani nie usuwa przestoju
+- ACK **to nie** Seen. Oznaczenie Seen **nie** wykonuje ACK w Checkmk
 
 ## Grupowanie HOST DOWN / UNREACHABLE
 
@@ -165,7 +183,7 @@ Jeśli host w stanie HARD **DOWN** (Critical) lub **UNREACHABLE** (Unknown) ma w
 - Kolejne odpytania, gdy host nadal jest niedostępny, nie powtarzają zgrupowanego dymka
 - To zapobiega burzy powiadomień usług przy awarii hosta
 
-ACK lub przestój na hoście albo na usługach potomnych **nie** wycisza zgrupowanego dymka.
+ACK na hoście grupującym wycisza zgrupowany dymek/dźwięk. Incydenty potomne zostają widoczne i zachowują lokalne NEW/Seen; nie są automatycznie ACK-owane. Przestój **nie** wycisza zgrupowanego dymka.
 
 ## Zachowanie zasobnika
 
@@ -199,7 +217,7 @@ Ustawienia → **Ogólne** → **Uruchamiaj z systemem Windows** albo pole wybor
 | Ustawienia GUI bez sekretu (URL, witryna, użytkownik, interwał) | `%LocalAppData%\CheckmkDesktopNotifier\settings.json` |
 | Sekret automatyzacji | Menedżer poświadczeń Windows, poświadczenie ogólne **`CheckmkDesktopNotifier`** (ten użytkownik Windows) |
 | Incydenty / Seen | `%LocalAppData%\CheckmkDesktopNotifier\state\<connection-hash>\alert-state.json` |
-| Wyciszenie / głośność / Domyślny vs Własny | `%LocalAppData%\CheckmkDesktopNotifier\preferences.json` |
+| Wyciszenie / głośność / Domyślny vs Własny / Przejmij / nazwa wyświetlana | `%LocalAppData%\CheckmkDesktopNotifier\preferences.json` |
 | Zaimportowany WAV | `%LocalAppData%\CheckmkDesktopNotifier\assets\custom-notification.wav` |
 
 - Sekret **nie** jest przechowywany w `settings.json` ani `alert-state.json`
@@ -276,10 +294,10 @@ Wynik (gitignored):
 artifacts\CheckmkDesktopNotifier-Setup-x64.exe
 ```
 
-Skrypt czyta wersję **1.0.0** z `Directory.Build.props` i przekazuje `/DMyAppVersion=1.0.0` do `iscc`. Równoważnie:
+Skrypt czyta wersję z `Directory.Build.props` (obecnie **1.1.0**) i przekazuje `/DMyAppVersion` do `iscc`. Równoważnie:
 
 ```text
-iscc /DMyAppVersion=1.0.0 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.1.0 installer\CheckmkDesktopNotifier.iss
 ```
 
 SHA-256 zbudowanego instalatora (nie wymyślaj sumy, zanim plik powstanie):
@@ -303,8 +321,9 @@ To **świadome granice V1**, nie przypadkowe braki:
 - Tylko Windows
 - Specyficzne dla Checkmk (kolekcje REST opisane w `docs/CHECKMK_API.md`)
 - Lokalne Seen **nie** jest współdzielone między administratorami
-- ACK i przestój Checkmk są **tylko do odczytu**
+- Opcjonalne Przejmij zapisuje trwałe ACK w Checkmk; w 1.1.0 **nie ma Zwolnij / Untake**
 - Brak integracji zgłoszeń / Zoho
+- Brak własnej współdzielonej bazy / backendu
 - Własne dźwięki alertu: **tylko WAV**
 - Powiadomienia to **dymki** zasobnika, nie spakowane toasty Windows App SDK
 - Binaria są **niepodpisane**; SmartScreen może ostrzegać
@@ -313,22 +332,18 @@ To **świadome granice V1**, nie przypadkowe braki:
 
 ## Mapa drogowa
 
-Poza V1. Nie oczekuj tego w 1.0.0:
+**1.1.0 (FEATURE COMPLETE / READY FOR RELEASE):** Przejmij / współdzielone trwałe ACK w Checkmk, Przejęte przez, filtr PRZEJĘTE, wyszukiwanie, tłumienie powiadomień przy ACK, Otwórz w Checkmk, odwracalne lokalne Seen/Unseen. Komentarze CDN są jednoliniowe, bo Checkmk RAW 2.4 obcina wieloliniowe komentarze ACK.
 
-**Workflow zespołowy / wspólna koordynacja**
+**Kandydat v1.2.0 (nie rozpoczęty):**
 
-- Take / ACK **w Checkmk**
-- Pokazanie, kto potwierdził lub przejął incydent
-- Wspólna odpowiedzialność operacyjna
-- Opcjonalne komentarze potwierdzenia Checkmk
+- Bezpieczne Zwolnij / Untake po żywej walidacji `POST /domain-types/acknowledge/actions/delete/invoke`
+- Notifier nigdy nie może ślepo usuwać ręcznego/ogólnego ACK
 
-**Workflow zgłoszeń**
+**Przyszłość / opcjonalnie:**
 
-- Akcja utwórz / otwórz zgłoszenie
-- Integracja API Zoho Desk (lub podobna)
-- Wspólny numer / status zgłoszenia
+- Workflow zgłoszeń / integracja Zoho Desk
 
-Pierwsza ocena współdzielonej pracy powinna iść przez **ACK Checkmk + istniejący system zgłoszeń**, a nie przez własną bazę wbudowaną w ten powiadamiacz.
+Ten projekt **nie** doda własnej współdzielonej bazy na potrzeby workflow zespołowego. Zgłoszenia pozostają pracą na później.
 
 **Możliwe późniejsze usprawnienia**
 

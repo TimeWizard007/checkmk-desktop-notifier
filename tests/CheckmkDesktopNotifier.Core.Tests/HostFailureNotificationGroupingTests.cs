@@ -132,6 +132,41 @@ public sealed class HostFailureNotificationGroupingTests
     }
 
     [Fact]
+    public void Acknowledged_host_does_not_emit_grouped_alert()
+    {
+        var snapshot = Snapshot(
+            ProblemFactory.Host(
+                "SRV-SQL01",
+                Severity.Critical,
+                pluginOutput: "DOWN",
+                lastTimeUp: _now.AddHours(-2),
+                acknowledged: true),
+            Service("SRV-SQL01", "CPU", Severity.Critical));
+        Assert.Empty(Select(snapshot));
+    }
+
+    [Fact]
+    public void Child_incidents_stay_visible_when_host_is_acknowledged()
+    {
+        var store = new InMemoryAlertStateStore();
+        var alerts = new AlertStateService(store);
+        var snapshot = Snapshot(
+            ProblemFactory.Host(
+                "web01",
+                Severity.Critical,
+                pluginOutput: "DOWN",
+                lastTimeUp: _now.AddHours(-2),
+                acknowledged: true),
+            Service("web01", "CPU", Severity.Critical),
+            Service("web01", "Disk", Severity.Warning));
+        alerts.ApplySnapshot(ProblemSnapshot.Success(_now.AddMinutes(-1), ProblemFactory.DefaultSite, []));
+        alerts.ApplySnapshot(snapshot);
+        Assert.Equal(3, alerts.GetOpenIncidents().Count);
+        Assert.All(alerts.GetOpenIncidents(), incident => Assert.False(incident.IsSeen));
+        Assert.Empty(Select(snapshot));
+    }
+
+    [Fact]
     public void Already_down_host_suppresses_new_children_without_a_new_host_alert()
     {
         var store = new InMemoryAlertStateStore();

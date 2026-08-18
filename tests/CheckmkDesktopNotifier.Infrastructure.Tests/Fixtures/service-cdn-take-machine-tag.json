@@ -1,0 +1,30 @@
+{
+  "id": "all",
+  "domainType": "service",
+  "value": [
+    {
+      "id": "GO-S11:Update",
+      "domainType": "service",
+      "title": "Update",
+      "extensions": {
+        "host_name": "GO-S11",
+        "description": "Update",
+        "state": 2,
+        "state_type": 1,
+        "plugin_output": "CRIT - Windows Update",
+        "acknowledged": 1,
+        "acknowledgement_type": 2,
+        "comments_with_extra_info": [
+          [
+            36784,
+            "ITS",
+            "Taken by Michał\nvia Checkmk Desktop Notifier\ncdn.v1 take name=\"Michał\"",
+            4,
+            1787078432
+          ]
+        ],
+        "scheduled_downtime_depth": 0
+      }
+    }
+  ]
+}

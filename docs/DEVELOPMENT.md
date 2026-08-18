@@ -13,7 +13,7 @@
 checkmk-desktop-notifier/
   README.md / README.pl.md
   LICENSE
-  Directory.Build.props          ← Version 1.0.0
+  Directory.Build.props          ← Version 1.1.0
   CheckmkDesktopNotifier.sln
   docs/                          ← durable project memory (read this first)
   installer/CheckmkDesktopNotifier.iss
@@ -249,7 +249,7 @@ Gear menu and tray share `IShellCommands` (`ShowBar`, `HideToTray`, `ToggleBar`,
 
 Tray uses built-in `System.Windows.Forms.NotifyIcon` (no extra NuGet). Left-click toggles bar visibility. Tray **Open** always restores the existing compact bar.
 
-Version in About is `AssemblyInformationalVersion` / assembly version from `Directory.Build.props` (currently `1.0.0`), not a string literal in XAML. Icon: original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256, no Checkmk logo). A final visual replacement may still be supplied before the public GitHub Release; do not invent a new icon in this phase.
+Version in About is `AssemblyInformationalVersion` / assembly version from `Directory.Build.props` (currently `1.1.0`), not a string literal in XAML. Icon: original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256, no Checkmk logo). A final visual replacement may still be supplied before the public GitHub Release; do not invent a new icon in this phase.
 
 Windows 11 checklist A–T: **PASSED**. Gear/tray visual leftover (system-boxed menus) is addressed in Phase 4B.
 
@@ -412,7 +412,7 @@ powershell -File scripts/build-windows-package.ps1
 Equivalent:
 
 ```text
-iscc /DMyAppVersion=1.0.0 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.1.0 installer\CheckmkDesktopNotifier.iss
 ```
 
 Output: `artifacts/CheckmkDesktopNotifier-Setup-x64.exe` (gitignored). `publish/` and `artifacts/` must not be committed.
@@ -459,11 +459,90 @@ No Administrator privileges.
 
 ## Phase 5 — COMPLETE / V1 READY
 
-User documentation: `README.md` / `README.pl.md`. Release notes: `docs/RELEASE_NOTES_1.0.0.md`. MIT `LICENSE` at the repository root. Sanitized screenshots under `docs/images/`.
+User documentation: `README.md` / `README.pl.md`. Release notes: `docs/RELEASE_NOTES_1.0.0.md`, `docs/RELEASE_NOTES_1.1.0.md`. MIT `LICENSE` at the repository root. Sanitized screenshots under `docs/images/`.
 
-Installer SHA-256 is recorded in `SHA256SUMS.txt` (do not commit the EXE). About on Windows 11 shows **1.0.0**.
+Installer SHA-256 for **1.0.0** is recorded in `SHA256SUMS.txt` (do not treat it as a 1.1.0 checksum). About on Windows 11 for this line is **1.1.0**.
 
-Do not implement post-V1 features (shared Seen, Checkmk ACK writes, ticketing). GitHub Release is a separate follow-up after tag `v1.0.0`.
+Do not implement ticketing or Untake in v1.1.0. GitHub Release for 1.1.0 is a separate follow-up after tag `v1.1.0`. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. v1.1.0 is FEATURE COMPLETE / READY FOR RELEASE.
+
+## Phase 6A — Take / shared ACK (COMPLETE / Windows-tested)
+
+Ticketing / Zoho / Untake / `expire_on` remain out of v1.1.0. Git tag `v1.1.0` is created as part of the v1.1.0 close-out. GitHub Release is a separate follow-up.
+
+**Semantics:** Seen is local. Take creates a sticky Checkmk ACK (`notify=false`). The write comment is a **single line** (`Taken by {name} via Checkmk Desktop Notifier cdn.v1 take name="..."`) because Checkmk RAW truncates `\n` ACK comments to the first line (live GO-S11). Do not revert to multiline. Taken-by is parsed from that comment (machine tag preferred; `Taken by {name} via Checkmk Desktop Notifier` accepted; plain `Taken by {name}` is generic ACK). Display name is in `preferences.json`. Mock does not write Checkmk. Search and TAKEN are presentation-only.
+
+**Permissions:** read-only monitoring still works. Take needs `action.acknowledge`. Not Checkmk Administrator.
+
+### Windows 11 checklist (Phase 6A)
+
+No Administrator privileges. Self-contained win-x64 publish (`1.1.0`). Existing v1.0 settings migrated. Cross-client sync also validated on a second PC and on Windows 7 (additional check, not a new support claim).
+
+| | Test | Result |
+|---|------|--------|
+| A | Existing v1.0 settings migrate; monitoring starts | PASS |
+| B | Settings → General: Enable Take and set display name | PASS |
+| C | Unacknowledged service row shows Take | PASS |
+| D | Dark in-app confirmation (Take / Cancel). Enter confirms, Escape/close cancels. No “don’t show again”. Not a white Windows MessageBox | PASS |
+| E | Confirm → Taking... | PASS |
+| F | Checkmk receives sticky ACK (`persistent=false`, `notify=false`, no `expire_on`) | PASS |
+| G | Problem remains CRIT/WARN/UNKNOWN and visible | PASS |
+| H | After the next successful poll (no restart): Taken by &lt;display name&gt;. Checkmk source of truth; no optimistic Taken. Single-line CDN marker survives RAW 2.4 storage | PASS |
+| I | Another notifier user / second PC sees the same Taken state after polling | PASS (also Windows 7) |
+| J | Local Seen independent of Take/ACK | PASS |
+| K | Manual Checkmk ACK shows ACK, not a fake TakenBy; generic ACK not in TAKEN | PASS |
+| L | WARN → Take → CRIT stays Taken | **Automated tests PASS.** Manual **N/A** (not practical to reproduce safely). Not a failure. |
+| M | CRIT → OK, later CRIT is a new non-Taken incident | **Automated tests PASS.** Manual **N/A** (not practical to reproduce safely). Not a failure. |
+| N | Already ACKed NEW incident: no balloon/sound; still locally NEW | PASS |
+| O | ACKed host DOWN: no grouped balloon/sound | PASS |
+| P | Child services remain visible/NEW; not auto-ACK’d | PASS |
+| Q | 403 / read-only: still monitors; Take unavailable; no false Taken | PASS |
+| R | Write/network failure does not invent Taken state | PASS |
+| S | Filters, Seen, custom sound, mute, tray, autostart, restart/read-back remain intact | PASS |
+| T | Search: host / service / Taken-by; composes with ALL/NEW/CRIT/WARN/UNK/TAKEN | PASS |
+| U | TAKEN chip and global counter: CDN Takes only | PASS |
+| V | TAKEN + search composition | PASS |
+
+**Windows 11 Phase 6A validation: PASSED** (L and M by automated tests; all other items live-tested).
+
+## Phase 6B — Open in Checkmk + Seen/Unseen (COMPLETE / Windows-tested)
+
+Final v1.1.0 feature work. Untake/Release remains out of scope (v1.2.0). Git tag `v1.1.0` is part of the v1.1.0 close-out. GitHub Release is a separate follow-up.
+
+**Open in Checkmk:** `CheckmkGuiUriBuilder` + `ICheckmkProblemNavigator`. GUI URL is `{BaseUrl}/{site}/check_mk/index.py?start_url=view.py?view_name=host|service&host=...&service=...`. REST `show` links are API invoke URLs and are not used. Default browser via `IUriLauncher`. Open never mutates incident state.
+
+**Seen / Unseen:** `IAlertStateService.MarkUnseen` flips local `IsSeen` only. Same JSON store. No `AlertDelta.Opened`, so no balloon/sound replay. Eye stays on every row (open eye = Mark seen, slashed eye = Mark unseen).
+
+### Windows 11 checklist (Phase 6B)
+
+No Administrator privileges. Existing Phase 6A Take behavior remains intact.
+
+| | Test | Result |
+|---|------|--------|
+| A | Open icon on a service row | PASS |
+| B | Service Open | PASS |
+| C | Host Open | PASS |
+| D | Default Windows browser | PASS |
+| E | Open vs NEW/Seen | PASS |
+| F | Open vs Take/ACK/Taken | PASS |
+| G | NEW → Seen | PASS |
+| H | Seen → Unseen | PASS |
+| I | Unseen immediately in NEW | PASS |
+| J | NEW counter updates immediately | PASS |
+| K | NEW filter shows Unseen | PASS |
+| L | Seen → Unseen: no balloon | PASS |
+| M | Seen → Unseen: no sound | PASS |
+| N | Repeated Seen/Unseen: no notification spam | PASS |
+| O | Taken by &lt;name&gt; remains Taken | PASS |
+| P | Generic ACK remains ACK | PASS |
+| Q | Restart preserves Seen/Unseen | PASS |
+| R | Mark all new as seen | PASS |
+| S | Search + filters | PASS |
+| T | TAKEN | PASS |
+| U | Take flow | PASS |
+| V | Dark Take confirmation | PASS |
+| W | Downtime badge | PASS |
+
+**Windows 11 Phase 6B validation: PASSED.** v1.1.0 is FEATURE COMPLETE / READY FOR RELEASE.
 
 ## Windows — self-contained win-x64 publish
 
@@ -523,5 +602,6 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not put incident logic in WPF code-behind.
 - Do not put Checkmk REST DTOs in Core.
 - Do not call Checkmk ACK from the eye button.
+- Take is a separate command. It must not mark Seen.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. v1.1.0 is FEATURE COMPLETE / READY FOR RELEASE. Do not implement Untake. Do not revert CDN Take comments to a multiline format.

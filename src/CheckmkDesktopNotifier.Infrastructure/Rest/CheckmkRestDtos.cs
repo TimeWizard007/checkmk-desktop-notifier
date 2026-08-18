@@ -27,6 +27,8 @@ internal sealed class CheckmkServiceStatusRequest
                 "last_hard_state_change",
                 "last_time_ok",
                 "acknowledged",
+                "acknowledgement_type",
+                "comments_with_extra_info",
                 "scheduled_downtime_depth"
             ],
             Query = new CheckmkQueryNode
@@ -97,6 +99,8 @@ internal static class CheckmkHostCollectionContract
         "last_time_down",
         "last_time_unreachable",
         "acknowledged",
+        "acknowledgement_type",
+        "comments_with_extra_info",
         "scheduled_downtime_depth",
         "num_services_hard_crit",
         "num_services_hard_warn",

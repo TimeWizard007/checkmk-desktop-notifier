@@ -17,6 +17,8 @@
         "last_time_down": 0,
         "last_time_unreachable": 0,
         "acknowledged": 0,
+        "acknowledgement_type": 0,
+        "comments_with_extra_info": [],
         "scheduled_downtime_depth": 0,
         "num_services_hard_crit": 0,
         "num_services_hard_warn": 0,
@@ -103,6 +105,10 @@
         "last_hard_state_change": 1704412800,
         "last_time_up": 1704326400,
         "acknowledged": 1,
+        "acknowledgement_type": 1,
+        "comments_with_extra_info": [
+          [22, "ITS", "manual host ack", 4, 1704412800]
+        ],
         "scheduled_downtime_depth": 0
       }
     }

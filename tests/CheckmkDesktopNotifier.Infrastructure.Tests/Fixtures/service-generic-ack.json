@@ -1,0 +1,30 @@
+{
+  "id": "all",
+  "domainType": "service",
+  "value": [
+    {
+      "id": "web01:CPU",
+      "domainType": "service",
+      "title": "CPU",
+      "extensions": {
+        "host_name": "web01",
+        "description": "CPU",
+        "state": 2,
+        "state_type": 1,
+        "plugin_output": "CRIT",
+        "acknowledged": 1,
+        "acknowledgement_type": 2,
+        "comments_with_extra_info": [
+          [
+            1,
+            "admin",
+            "Known issue",
+            4,
+            1234567890
+          ]
+        ],
+        "scheduled_downtime_depth": 0
+      }
+    }
+  ]
+}

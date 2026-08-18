@@ -309,6 +309,131 @@ public sealed class ProblemListFilterTests
         Assert.Equal(ProblemListFilter.All, state.ActiveFilter);
     }
 
+    [Fact]
+    public void Taken_returns_only_notifier_taken_incidents()
+    {
+        var alerts = SeedSearch();
+        var result = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.Taken);
+        var item = Assert.Single(result);
+        Assert.True(item.IsTakenByNotifier);
+        Assert.Equal("Michał", item.TakenByDisplayName);
+    }
+
+    [Fact]
+    public void Taken_excludes_generic_manual_ack()
+    {
+        var alerts = SeedSearch();
+        var result = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.Taken);
+        Assert.DoesNotContain(result, incident => incident.ObjectId.Equals(ProblemFactory.ServiceId("mail01", "Queue")));
+        Assert.Contains(
+            alerts.GetOpenIncidents(),
+            incident => incident.ObjectId.Equals(ProblemFactory.ServiceId("mail01", "Queue"))
+                        && incident.IsAcknowledgedInCheckmk
+                        && !incident.IsTakenByNotifier);
+    }
+
+    [Fact]
+    public void Taken_count_is_notifier_taken_only()
+    {
+        var alerts = SeedSearch();
+        Assert.Equal(1, ProblemListFilterLogic.CountTaken(alerts.GetOpenIncidents()));
+    }
+
+    [Fact]
+    public void Search_matches_host_name()
+    {
+        var alerts = SeedSearch();
+        var result = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.All, "KIDL");
+        var item = Assert.Single(result);
+        Assert.Equal("KIDL", item.ObjectId.HostName);
+    }
+
+    [Fact]
+    public void Search_matches_service_description()
+    {
+        var alerts = SeedSearch();
+        var result = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.All, "Update");
+        var item = Assert.Single(result);
+        Assert.Equal("Windows Update", item.ObjectId.ServiceDescription);
+    }
+
+    [Fact]
+    public void Search_is_case_insensitive()
+    {
+        var alerts = SeedSearch();
+        var lower = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.All, "kidl");
+        var upper = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.All, "KIDL");
+        Assert.Equal(lower.Select(i => i.ObjectId), upper.Select(i => i.ObjectId));
+        Assert.Single(lower);
+    }
+
+    [Fact]
+    public void Search_matches_taken_by_display_name()
+    {
+        var alerts = SeedSearch();
+        var result = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.All, "Michał");
+        var item = Assert.Single(result);
+        Assert.Equal("Michał", item.TakenByDisplayName);
+    }
+
+    [Fact]
+    public void Search_combines_with_severity_filter()
+    {
+        var alerts = SeedSearch();
+        var result = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.Critical, "Update");
+        var item = Assert.Single(result);
+        Assert.Equal(Severity.Critical, item.Severity);
+        Assert.Equal("Windows Update", item.ObjectId.ServiceDescription);
+    }
+
+    [Fact]
+    public void Search_combines_with_taken_filter()
+    {
+        var alerts = SeedSearch();
+        var byName = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.Taken, "Michał");
+        Assert.Equal("Michał", Assert.Single(byName).TakenByDisplayName);
+
+        var byHost = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.Taken, "KIDL");
+        Assert.Empty(byHost);
+    }
+
+    [Fact]
+    public void Empty_or_whitespace_search_restores_filtered_list()
+    {
+        var alerts = SeedSearch();
+        var all = ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.All);
+        Assert.Equal(all.Count, ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.All, "  ").Count);
+        Assert.Equal(all.Count, ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.All, string.Empty).Count);
+        Assert.Equal(all.Count, ProblemListFilterLogic.Apply(alerts.GetOpenIncidents(), ProblemListFilter.All, null).Count);
+    }
+
+    [Fact]
+    public void Search_does_not_mutate_incident_or_seen_state()
+    {
+        var alerts = SeedSearch();
+        var before = alerts.GetOpenIncidents();
+        var seenBefore = before.ToDictionary(i => i.ObjectId, i => i.IsSeen);
+        _ = ProblemListFilterLogic.Apply(before, ProblemListFilter.Critical, "cpu");
+        var after = alerts.GetOpenIncidents();
+        Assert.Equal(before.Count, after.Count);
+        foreach (var incident in after)
+        {
+            Assert.Equal(seenBefore[incident.ObjectId], incident.IsSeen);
+        }
+    }
+
+    [Fact]
+    public void Compact_bar_taken_counter_toggles_taken_filter()
+    {
+        var state = new ProblemListViewState();
+        state.ToggleCounter(ProblemListFilter.Taken);
+        Assert.Equal(ProblemListFilter.Taken, state.ActiveFilter);
+        Assert.True(state.IsExpanded);
+        state.ToggleCounter(ProblemListFilter.Taken);
+        Assert.False(state.IsExpanded);
+        Assert.Equal(ProblemListFilter.Taken, state.ActiveFilter);
+    }
+
     private AlertStateService Seed()
     {
         var alerts = new AlertStateService(new InMemoryAlertStateStore(), _clock);
@@ -318,6 +443,30 @@ public sealed class ProblemListFilterTests
             ProblemFactory.Service("web01", "Disk", Severity.Warning),
             ProblemFactory.Service("db01", "SQL", Severity.Critical),
             ProblemFactory.Service("edge", "Agent", Severity.Unknown)));
+        return alerts;
+    }
+
+    private AlertStateService SeedSearch()
+    {
+        var alerts = new AlertStateService(new InMemoryAlertStateStore(), _clock);
+        alerts.ApplySnapshot(ProblemFactory.Ok(
+            _clock.UtcNow,
+            ProblemFactory.Host("KIDL", Severity.Critical),
+            ProblemFactory.Service("web01", "Windows Update", Severity.Critical),
+            ProblemFactory.Service(
+                "db01",
+                "SQL",
+                Severity.Warning,
+                acknowledged: true,
+                acknowledgementType: AcknowledgementType.Sticky,
+                takenBy: "Michał",
+                takenByNotifier: true),
+            ProblemFactory.Service(
+                "mail01",
+                "Queue",
+                Severity.Critical,
+                acknowledged: true,
+                acknowledgementType: AcknowledgementType.Sticky)));
         return alerts;
     }
 }

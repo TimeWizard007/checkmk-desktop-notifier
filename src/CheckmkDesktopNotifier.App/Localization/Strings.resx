@@ -37,7 +37,13 @@
     <value>Mark all new as seen</value>
   </data>
   <data name="MarkAsSeen" xml:space="preserve">
-    <value>Mark as seen</value>
+    <value>Mark seen</value>
+  </data>
+  <data name="MarkAsUnseen" xml:space="preserve">
+    <value>Mark unseen</value>
+  </data>
+  <data name="OpenInCheckmk" xml:space="preserve">
+    <value>Open in Checkmk</value>
   </data>
   <data name="Seen" xml:space="preserve">
     <value>Seen</value>
@@ -46,7 +52,7 @@
     <value>ACK</value>
   </data>
   <data name="AcknowledgedTooltip" xml:space="preserve">
-    <value>Acknowledged in Checkmk (read-only)</value>
+    <value>Acknowledged in Checkmk</value>
   </data>
   <data name="Downtime" xml:space="preserve">
     <value>Downtime</value>
@@ -258,6 +264,15 @@
   <data name="FilterUnknown" xml:space="preserve">
     <value>UNK</value>
   </data>
+  <data name="FilterTaken" xml:space="preserve">
+    <value>TAKEN</value>
+  </data>
+  <data name="TakenLabel" xml:space="preserve">
+    <value>TAKEN</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Search host or service...</value>
+  </data>
   <data name="EmptyFilterAll" xml:space="preserve">
     <value>No problems.</value>
   </data>
@@ -272,6 +287,12 @@
   </data>
   <data name="EmptyFilterUnknown" xml:space="preserve">
     <value>No unknown problems.</value>
+  </data>
+  <data name="EmptyFilterTaken" xml:space="preserve">
+    <value>No taken problems.</value>
+  </data>
+  <data name="EmptyFilterSearch" xml:space="preserve">
+    <value>No matching problems.</value>
   </data>
   <data name="SoundSection" xml:space="preserve">
     <value>Sound</value>
@@ -299,5 +320,46 @@
   </data>
   <data name="SoundWavFilter" xml:space="preserve">
     <value>WAV files (*.wav)</value>
+  </data>
+  <data name="Take" xml:space="preserve">
+    <value>Take</value>
+  </data>
+  <data name="Taking" xml:space="preserve">
+    <value>Taking...</value>
+  </data>
+  <data name="Taken" xml:space="preserve">
+    <value>Taken</value>
+  </data>
+  <data name="TakenByFormat" xml:space="preserve">
+    <value>Taken by {0}</value>
+  </data>
+  <data name="EnableTake" xml:space="preserve">
+    <value>Enable Take / Acknowledge in Checkmk</value>
+  </data>
+  <data name="DisplayName" xml:space="preserve">
+    <value>Display name</value>
+  </data>
+  <data name="TeamCoordination" xml:space="preserve">
+    <value>Team coordination</value>
+  </data>
+  <data name="TeamCoordinationHint" xml:space="preserve">
+    <value>Take is shared through Checkmk acknowledgement. Seen remains local to this Windows user.</value>
+  </data>
+  <data name="TakeConfirmTitle" xml:space="preserve">
+    <value>Take this problem?</value>
+  </data>
+  <data name="TakeConfirmBody" xml:space="preserve">
+    <value>This will acknowledge the problem in Checkmk as a sticky acknowledgement.
+Other administrators will see that it is being handled.
+Checkmk will stop sending further notifications for this current problem until it returns to OK/UP.</value>
+  </data>
+  <data name="TakeCouldNot" xml:space="preserve">
+    <value>Could not acknowledge the problem.</value>
+  </data>
+  <data name="TakeForbidden" xml:space="preserve">
+    <value>This Checkmk account cannot acknowledge problems.</value>
+  </data>
+  <data name="TakeAwaitingRefresh" xml:space="preserve">
+    <value>Acknowledgement sent; waiting for Checkmk refresh.</value>
   </data>
 </root>

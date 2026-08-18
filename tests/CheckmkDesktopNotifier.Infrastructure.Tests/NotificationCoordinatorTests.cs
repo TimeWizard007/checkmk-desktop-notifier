@@ -78,6 +78,50 @@ public sealed class NotificationCoordinatorTests
     }
 
     [Fact]
+    public void Mark_unseen_does_not_emit_balloon_or_sound()
+    {
+        var harness = CreateHarness();
+        harness.BaselineEmpty();
+        var problem = Crit("web01", "CPU", "99%");
+        harness.Apply(Ok(problem));
+        harness.Alerts.MarkSeen(problem.Id);
+        harness.Notifications.Shown.Clear();
+        harness.Sound.Reset();
+
+        harness.Alerts.MarkUnseen(problem.Id);
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        harness.Apply(Ok(problem));
+
+        Assert.Empty(harness.Notifications.Shown);
+        Assert.Equal(0, harness.Sound.PlayCount);
+        Assert.False(Assert.Single(harness.Alerts.GetOpenIncidents()).IsSeen);
+    }
+
+    [Fact]
+    public void Repeated_seen_unseen_does_not_replay_notification()
+    {
+        var harness = CreateHarness();
+        harness.BaselineEmpty();
+        var problem = Crit("web01", "CPU", "99%");
+        harness.Apply(Ok(problem));
+        Assert.Single(harness.Notifications.Shown);
+        Assert.Equal(1, harness.Sound.PlayCount);
+
+        for (var i = 0; i < 4; i++)
+        {
+            harness.Alerts.MarkSeen(problem.Id);
+            harness.Alerts.MarkUnseen(problem.Id);
+            harness.Alerts.MarkSeen(problem.Id);
+            harness.Notifications.Shown.Clear();
+            harness.Sound.Reset();
+            _clock.Advance(TimeSpan.FromMinutes(1));
+            harness.Apply(Ok(problem));
+            Assert.Empty(harness.Notifications.Shown);
+            Assert.Equal(0, harness.Sound.PlayCount);
+        }
+    }
+
+    [Fact]
     public void Recovery_then_recurrence_emits_new_notification()
     {
         var harness = CreateHarness();
@@ -139,15 +183,46 @@ public sealed class NotificationCoordinatorTests
     }
 
     [Fact]
-    public void Ack_alone_does_not_suppress_notification()
+    public void Opened_acknowledged_incident_does_not_notify_or_play_sound()
     {
         var harness = CreateHarness();
         harness.BaselineEmpty();
         harness.Apply(Ok(Warn("web01", "CPU", "80%", acknowledged: true)));
 
-        var shown = Assert.Single(harness.Notifications.Shown);
-        Assert.Equal(Severity.Warning, shown.Severity);
+        Assert.Empty(harness.Notifications.Shown);
+        Assert.Equal(0, harness.Sound.PlayCount);
+        var open = Assert.Single(harness.Alerts.GetOpenIncidents());
+        Assert.False(open.IsSeen);
+        Assert.True(open.IsAcknowledgedInCheckmk);
+    }
+
+    [Fact]
+    public void Opened_unacknowledged_incident_notifies()
+    {
+        var harness = CreateHarness();
+        harness.BaselineEmpty();
+        harness.Apply(Ok(Warn("web01", "CPU", "80%")));
+
+        Assert.Single(harness.Notifications.Shown);
+        Assert.Equal(1, harness.Sound.PlayCount);
         Assert.False(Assert.Single(harness.Alerts.GetOpenIncidents()).IsSeen);
+    }
+
+    [Fact]
+    public void Ack_appearing_after_already_open_incident_does_not_notify_again()
+    {
+        var harness = CreateHarness();
+        harness.BaselineEmpty();
+        harness.Apply(Ok(Warn("web01", "CPU", "80%")));
+        harness.Notifications.Shown.Clear();
+        harness.Sound.Reset();
+
+        harness.Apply(Ok(Warn("web01", "CPU", "80%", acknowledged: true)));
+        Assert.Empty(harness.Notifications.Shown);
+        Assert.Equal(0, harness.Sound.PlayCount);
+        var open = Assert.Single(harness.Alerts.GetOpenIncidents());
+        Assert.False(open.IsSeen);
+        Assert.True(open.IsAcknowledgedInCheckmk);
     }
 
     [Fact]

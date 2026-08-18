@@ -46,6 +46,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             _volumePercent = _preferences.VolumePercent;
             _muteSound = _preferences.MuteSound;
+            _enableTake = _preferences.TakeEnabled;
+            _takeDisplayName = _preferences.TakeDisplayName
+                ?? CheckmkDesktopNotifier.Core.Acknowledgements.TakeDisplayName.SuggestFromUserName();
             _preferences.Changed += (_, _) => RefreshSoundFromPreferences();
         }
 
@@ -127,6 +130,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _autostartStatusText = string.Empty;
 
     public bool HasAutostartStatus => !string.IsNullOrWhiteSpace(AutostartStatusText);
+
+    [ObservableProperty]
+    private bool _enableTake;
+
+    [ObservableProperty]
+    private string _takeDisplayName = string.Empty;
+
+    private bool _suppressTakeApply;
 
     public string MuteActionLabel =>
         _preferences is null
@@ -314,6 +325,63 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnVolumePercentChanged(int value) => _preferences?.SetVolumePercent(value);
 
     partial void OnMuteSoundChanged(bool value) => _preferences?.SetMuteSound(value);
+
+    partial void OnEnableTakeChanged(bool value)
+    {
+        if (_suppressTakeApply || _preferences is null)
+        {
+            return;
+        }
+
+        if (value)
+        {
+            var name = CheckmkDesktopNotifier.Core.Acknowledgements.TakeDisplayName.Normalize(TakeDisplayName);
+            if (name is null)
+            {
+                var suggested = CheckmkDesktopNotifier.Core.Acknowledgements.TakeDisplayName.SuggestFromUserName();
+                if (!string.IsNullOrEmpty(suggested))
+                {
+                    _suppressTakeApply = true;
+                    TakeDisplayName = suggested;
+                    _suppressTakeApply = false;
+                    name = CheckmkDesktopNotifier.Core.Acknowledgements.TakeDisplayName.Normalize(TakeDisplayName);
+                }
+            }
+
+            if (name is null)
+            {
+                _suppressTakeApply = true;
+                EnableTake = false;
+                _suppressTakeApply = false;
+                return;
+            }
+
+            _preferences.SetTakeDisplayName(name);
+        }
+
+        _preferences.SetTakeEnabled(value);
+    }
+
+    partial void OnTakeDisplayNameChanged(string value)
+    {
+        if (_suppressTakeApply || _preferences is null)
+        {
+            return;
+        }
+
+        var name = CheckmkDesktopNotifier.Core.Acknowledgements.TakeDisplayName.Normalize(value);
+        if (EnableTake && name is null)
+        {
+            _suppressTakeApply = true;
+            EnableTake = false;
+            _suppressTakeApply = false;
+            _preferences.SetTakeEnabled(false);
+            _preferences.SetTakeDisplayName(null);
+            return;
+        }
+
+        _preferences.SetTakeDisplayName(name);
+    }
 
     partial void OnStartWithWindowsChanged(bool value)
     {

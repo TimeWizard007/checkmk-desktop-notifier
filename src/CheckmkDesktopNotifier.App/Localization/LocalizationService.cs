@@ -34,6 +34,8 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
     public string LastCheckUnknown => Get();
     public string MarkAllNewAsSeen => Get();
     public string MarkAsSeen => Get();
+    public string MarkAsUnseen => Get();
+    public string OpenInCheckmk => Get();
     public string Seen => Get();
     public string Acknowledged => Get();
     public string AcknowledgedTooltip => Get();
@@ -103,11 +105,16 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
     public string FilterCritical => Get();
     public string FilterWarning => Get();
     public string FilterUnknown => Get();
+    public string FilterTaken => Get();
     public string EmptyFilterAll => Get();
     public string EmptyFilterNew => Get();
     public string EmptyFilterCritical => Get();
     public string EmptyFilterWarning => Get();
     public string EmptyFilterUnknown => Get();
+    public string EmptyFilterTaken => Get();
+    public string EmptyFilterSearch => Get();
+    public string SearchPlaceholder => Get();
+    public string TakenLabel => Get();
     public string MenuConnectionSettings => Get();
     public string MenuHelpAbout => Get();
     public string MenuExit => Get();
@@ -121,6 +128,19 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
     public string AboutAuthor => Get();
     public string AboutGitHub => Get();
     public string AboutClose => Get();
+    public string Take => Get();
+    public string Taking => Get();
+    public string Taken => Get();
+    public string TakenByFormat => Get();
+    public string EnableTake => Get();
+    public string DisplayName => Get();
+    public string TeamCoordination => Get();
+    public string TeamCoordinationHint => Get();
+    public string TakeConfirmTitle => Get();
+    public string TakeConfirmBody => Get();
+    public string TakeCouldNot => Get();
+    public string TakeForbidden => Get();
+    public string TakeAwaitingRefresh => Get();
 
     private string Get([CallerMemberName] string? key = null)
     {

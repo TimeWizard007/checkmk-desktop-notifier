@@ -19,6 +19,9 @@ public sealed record MonitoredProblem
     public DateTimeOffset? LastTimeUp { get; init; }
 
     public bool IsAcknowledgedInCheckmk { get; init; }
+    public AcknowledgementType AcknowledgementType { get; init; }
+    public string? TakenByDisplayName { get; init; }
+    public bool IsTakenByNotifier { get; init; }
     public int ScheduledDowntimeDepth { get; init; }
 
     public DateTimeOffset? RecurrenceMarker =>

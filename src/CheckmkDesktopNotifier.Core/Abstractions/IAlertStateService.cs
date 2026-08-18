@@ -8,6 +8,8 @@ public interface IAlertStateService
 
     void MarkSeen(MonitoredObjectId id);
 
+    void MarkUnseen(MonitoredObjectId id);
+
     void MarkAllNewAsSeen();
 
     IReadOnlyList<OpenIncident> GetOpenIncidents();

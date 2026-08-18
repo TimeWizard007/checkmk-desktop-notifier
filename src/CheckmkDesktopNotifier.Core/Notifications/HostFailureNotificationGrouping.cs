@@ -86,7 +86,7 @@ public static class HostFailureNotificationGrouping
         var alerts = new List<IncidentAlert>();
         foreach (var opened in delta.Opened)
         {
-            if (opened.IsSeen)
+            if (opened.IsSeen || opened.IsAcknowledgedInCheckmk)
             {
                 continue;
             }

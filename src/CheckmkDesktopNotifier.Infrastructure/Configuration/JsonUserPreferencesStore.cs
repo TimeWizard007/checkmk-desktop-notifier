@@ -14,6 +14,10 @@ public sealed class UserPreferencesDocument
     public string? SoundSource { get; set; }
 
     public string? CustomSoundFileName { get; set; }
+
+    public bool TakeEnabled { get; set; }
+
+    public string? TakeDisplayName { get; set; }
 }
 
 public sealed class JsonUserPreferencesStore : IUserPreferences
@@ -31,6 +35,8 @@ public sealed class JsonUserPreferencesStore : IUserPreferences
     private int _volumePercent = PcmWavLimits.DefaultVolumePercent;
     private NotificationSoundSource _soundSource = NotificationSoundSource.Default;
     private string? _customSoundFileName;
+    private bool _takeEnabled;
+    private string? _takeDisplayName;
 
     public JsonUserPreferencesStore(string filePath)
     {
@@ -87,6 +93,28 @@ public sealed class JsonUserPreferencesStore : IUserPreferences
         }
     }
 
+    public bool TakeEnabled
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _takeEnabled;
+            }
+        }
+    }
+
+    public string? TakeDisplayName
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _takeDisplayName;
+            }
+        }
+    }
+
     public event EventHandler? Changed;
 
     public void SetMuteSound(bool mute) => Set(() =>
@@ -135,6 +163,29 @@ public sealed class JsonUserPreferencesStore : IUserPreferences
         return true;
     });
 
+    public void SetTakeEnabled(bool enabled) => Set(() =>
+    {
+        if (_takeEnabled == enabled)
+        {
+            return false;
+        }
+
+        _takeEnabled = enabled;
+        return true;
+    });
+
+    public void SetTakeDisplayName(string? displayName) => Set(() =>
+    {
+        var normalized = CheckmkDesktopNotifier.Core.Acknowledgements.TakeDisplayName.Normalize(displayName);
+        if (string.Equals(_takeDisplayName, normalized, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        _takeDisplayName = normalized;
+        return true;
+    });
+
     private void Set(Func<bool> mutate)
     {
         lock (_gate)
@@ -162,6 +213,8 @@ public sealed class JsonUserPreferencesStore : IUserPreferences
         _volumePercent = PcmWavLimits.DefaultVolumePercent;
         _soundSource = NotificationSoundSource.Default;
         _customSoundFileName = null;
+        _takeEnabled = false;
+        _takeDisplayName = null;
         try
         {
             if (!File.Exists(_filePath))
@@ -184,6 +237,8 @@ public sealed class JsonUserPreferencesStore : IUserPreferences
                 ? NotificationSoundSource.Custom
                 : NotificationSoundSource.Default;
             _customSoundFileName = UserPreferenceFileNames.Display(document.CustomSoundFileName);
+            _takeEnabled = document.TakeEnabled;
+            _takeDisplayName = CheckmkDesktopNotifier.Core.Acknowledgements.TakeDisplayName.Normalize(document.TakeDisplayName);
         }
         catch (Exception)
         {
@@ -198,7 +253,9 @@ public sealed class JsonUserPreferencesStore : IUserPreferences
                 MuteSound = _muteSound,
                 VolumePercent = _volumePercent,
                 SoundSource = _soundSource.ToString(),
-                CustomSoundFileName = _customSoundFileName
+                CustomSoundFileName = _customSoundFileName,
+                TakeEnabled = _takeEnabled,
+                TakeDisplayName = _takeDisplayName
             },
             JsonOptions);
         var directory = Path.GetDirectoryName(_filePath);
@@ -222,6 +279,10 @@ public sealed class InMemoryUserPreferences : IUserPreferences
     public NotificationSoundSource SoundSource { get; private set; } = NotificationSoundSource.Default;
 
     public string? CustomSoundFileName { get; private set; }
+
+    public bool TakeEnabled { get; private set; }
+
+    public string? TakeDisplayName { get; private set; }
 
     public event EventHandler? Changed;
 
@@ -268,6 +329,29 @@ public sealed class InMemoryUserPreferences : IUserPreferences
         }
 
         CustomSoundFileName = normalized;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetTakeEnabled(bool enabled)
+    {
+        if (TakeEnabled == enabled)
+        {
+            return;
+        }
+
+        TakeEnabled = enabled;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetTakeDisplayName(string? displayName)
+    {
+        var normalized = CheckmkDesktopNotifier.Core.Acknowledgements.TakeDisplayName.Normalize(displayName);
+        if (string.Equals(TakeDisplayName, normalized, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        TakeDisplayName = normalized;
         Changed?.Invoke(this, EventArgs.Empty);
     }
 }

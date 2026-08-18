@@ -37,7 +37,13 @@
     <value>Oznacz wszystkie nowe jako zobaczone</value>
   </data>
   <data name="MarkAsSeen" xml:space="preserve">
-    <value>Oznacz jako zobaczone</value>
+    <value>Oznacz jako przeczytane</value>
+  </data>
+  <data name="MarkAsUnseen" xml:space="preserve">
+    <value>Oznacz jako nieprzeczytane</value>
+  </data>
+  <data name="OpenInCheckmk" xml:space="preserve">
+    <value>Otwórz w Checkmk</value>
   </data>
   <data name="Seen" xml:space="preserve">
     <value>Zobaczone</value>
@@ -258,6 +264,15 @@
   <data name="FilterUnknown" xml:space="preserve">
     <value>NIEZNANE</value>
   </data>
+  <data name="FilterTaken" xml:space="preserve">
+    <value>PRZEJĘTE</value>
+  </data>
+  <data name="TakenLabel" xml:space="preserve">
+    <value>PRZEJ.</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Szukaj hosta lub usługi...</value>
+  </data>
   <data name="EmptyFilterAll" xml:space="preserve">
     <value>Brak problemów.</value>
   </data>
@@ -272,6 +287,12 @@
   </data>
   <data name="EmptyFilterUnknown" xml:space="preserve">
     <value>Brak problemów nieznanych.</value>
+  </data>
+  <data name="EmptyFilterTaken" xml:space="preserve">
+    <value>Brak przejętych problemów.</value>
+  </data>
+  <data name="EmptyFilterSearch" xml:space="preserve">
+    <value>Brak pasujących problemów.</value>
   </data>
   <data name="SoundSection" xml:space="preserve">
     <value>Dźwięk</value>
@@ -299,5 +320,46 @@
   </data>
   <data name="SoundWavFilter" xml:space="preserve">
     <value>Pliki WAV (*.wav)</value>
+  </data>
+  <data name="Take" xml:space="preserve">
+    <value>Przejmij</value>
+  </data>
+  <data name="Taking" xml:space="preserve">
+    <value>Przejmowanie...</value>
+  </data>
+  <data name="Taken" xml:space="preserve">
+    <value>Przejęte</value>
+  </data>
+  <data name="TakenByFormat" xml:space="preserve">
+    <value>Przejęte przez {0}</value>
+  </data>
+  <data name="EnableTake" xml:space="preserve">
+    <value>Włącz Przejmij / ACK w Checkmk</value>
+  </data>
+  <data name="DisplayName" xml:space="preserve">
+    <value>Nazwa wyświetlana</value>
+  </data>
+  <data name="TeamCoordination" xml:space="preserve">
+    <value>Koordynacja zespołu</value>
+  </data>
+  <data name="TeamCoordinationHint" xml:space="preserve">
+    <value>Przejęcie jest współdzielone przez ACK w Checkmk. Seen pozostaje lokalne dla tego użytkownika Windows.</value>
+  </data>
+  <data name="TakeConfirmTitle" xml:space="preserve">
+    <value>Przejąć ten problem?</value>
+  </data>
+  <data name="TakeConfirmBody" xml:space="preserve">
+    <value>Spowoduje to potwierdzenie problemu w Checkmk jako trwałe ACK dla bieżącego problemu.
+Pozostali administratorzy zobaczą, że problem jest obsługiwany.
+Checkmk przestanie wysyłać kolejne powiadomienia dotyczące tego bieżącego problemu do czasu powrotu do OK/UP.</value>
+  </data>
+  <data name="TakeCouldNot" xml:space="preserve">
+    <value>Nie udało się potwierdzić problemu w Checkmk.</value>
+  </data>
+  <data name="TakeForbidden" xml:space="preserve">
+    <value>To konto Checkmk nie ma uprawnień do potwierdzania problemów.</value>
+  </data>
+  <data name="TakeAwaitingRefresh" xml:space="preserve">
+    <value>Potwierdzenie wysłane; oczekiwanie na odświeżenie Checkmk.</value>
   </data>
 </root>

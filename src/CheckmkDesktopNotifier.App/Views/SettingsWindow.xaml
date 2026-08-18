@@ -204,6 +204,27 @@
                            FontSize="11"
                            Margin="0,8,0,0"
                            Visibility="{Binding HasAutostartStatus, Converter={StaticResource BooleanToVisibility}}"/>
+                <TextBlock FontWeight="SemiBold"
+                           Margin="0,16,0,8"
+                           Text="{Binding Text.TeamCoordination}"/>
+                <CheckBox Style="{StaticResource DarkCheckBox}"
+                          Content="{Binding Text.EnableTake}"
+                          IsChecked="{Binding EnableTake}"/>
+                <Grid Margin="0,8,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="132"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource FieldLabel}"
+                               Text="{Binding Text.DisplayName}"/>
+                    <TextBox Grid.Column="1"
+                             Text="{Binding TakeDisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                </Grid>
+                <TextBlock Text="{Binding Text.TeamCoordinationHint}"
+                           TextWrapping="Wrap"
+                           Foreground="{StaticResource MutedBrush}"
+                           FontSize="11"
+                           Margin="0,4,0,0"/>
             </StackPanel>
         </TabItem>
         <TabItem Header="{Binding Text.SettingsTabConnection}">

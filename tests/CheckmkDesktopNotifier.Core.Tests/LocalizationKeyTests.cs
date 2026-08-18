@@ -31,6 +31,11 @@ public sealed class LocalizationKeyTests
             "FilterCritical",
             "FilterWarning",
             "FilterUnknown",
+            "FilterTaken",
+            "TakenLabel",
+            "SearchPlaceholder",
+            "EmptyFilterTaken",
+            "EmptyFilterSearch",
             "EmptyFilterNew",
             "EmptyFilterCritical",
             "SoundSection",
@@ -44,7 +49,20 @@ public sealed class LocalizationKeyTests
             "AboutDescription",
             "AboutVersion",
             "AboutAuthor",
-            "AboutGitHub"
+            "AboutGitHub",
+            "Take",
+            "Taking",
+            "Taken",
+            "TakenByFormat",
+            "EnableTake",
+            "DisplayName",
+            "TeamCoordination",
+            "TakeConfirmTitle",
+            "TakeCouldNot",
+            "TakeForbidden",
+            "OpenInCheckmk",
+            "MarkAsSeen",
+            "MarkAsUnseen"
         ];
 
         foreach (var key in required)
@@ -91,6 +109,16 @@ public sealed class LocalizationKeyTests
         Assert.Equal("WARN", pl["FilterWarning"]);
         Assert.Equal("UNK", en["FilterUnknown"]);
         Assert.Equal("NIEZNANE", pl["FilterUnknown"]);
+        Assert.Equal("TAKEN", en["FilterTaken"]);
+        Assert.Equal("PRZEJĘTE", pl["FilterTaken"]);
+        Assert.Equal("TAKEN", en["TakenLabel"]);
+        Assert.Equal("PRZEJ.", pl["TakenLabel"]);
+        Assert.Equal("Search host or service...", en["SearchPlaceholder"]);
+        Assert.Equal("Szukaj hosta lub usługi...", pl["SearchPlaceholder"]);
+        Assert.Equal("No taken problems.", en["EmptyFilterTaken"]);
+        Assert.Equal("Brak przejętych problemów.", pl["EmptyFilterTaken"]);
+        Assert.Equal("No matching problems.", en["EmptyFilterSearch"]);
+        Assert.Equal("Brak pasujących problemów.", pl["EmptyFilterSearch"]);
         Assert.Equal("No new problems.", en["EmptyFilterNew"]);
         Assert.Equal("Brak nowych problemów.", pl["EmptyFilterNew"]);
         Assert.Equal("No critical problems.", en["EmptyFilterCritical"]);
@@ -109,6 +137,32 @@ public sealed class LocalizationKeyTests
         Assert.Equal("Przywróć domyślny dźwięk", pl["SoundRestoreDefault"]);
         Assert.Equal("Mute sound", en["SoundMute"]);
         Assert.Equal("Wycisz dźwięk", pl["SoundMute"]);
+        Assert.Equal("Take", en["Take"]);
+        Assert.Equal("Przejmij", pl["Take"]);
+        Assert.Equal("Taking...", en["Taking"]);
+        Assert.Equal("Przejmowanie...", pl["Taking"]);
+        Assert.Equal("Taken", en["Taken"]);
+        Assert.Equal("Przejęte", pl["Taken"]);
+        Assert.Equal("Taken by {0}", en["TakenByFormat"]);
+        Assert.Equal("Przejęte przez {0}", pl["TakenByFormat"]);
+        Assert.Equal("Enable Take / Acknowledge in Checkmk", en["EnableTake"]);
+        Assert.Equal("Włącz Przejmij / ACK w Checkmk", pl["EnableTake"]);
+        Assert.Equal("Display name", en["DisplayName"]);
+        Assert.Equal("Nazwa wyświetlana", pl["DisplayName"]);
+        Assert.Equal("Team coordination", en["TeamCoordination"]);
+        Assert.Equal("Koordynacja zespołu", pl["TeamCoordination"]);
+        Assert.Equal("Take this problem?", en["TakeConfirmTitle"]);
+        Assert.Equal("Przejąć ten problem?", pl["TakeConfirmTitle"]);
+        Assert.Equal("Could not acknowledge the problem.", en["TakeCouldNot"]);
+        Assert.Equal("Nie udało się potwierdzić problemu w Checkmk.", pl["TakeCouldNot"]);
+        Assert.Equal("This Checkmk account cannot acknowledge problems.", en["TakeForbidden"]);
+        Assert.Equal("To konto Checkmk nie ma uprawnień do potwierdzania problemów.", pl["TakeForbidden"]);
+        Assert.Equal("Open in Checkmk", en["OpenInCheckmk"]);
+        Assert.Equal("Otwórz w Checkmk", pl["OpenInCheckmk"]);
+        Assert.Equal("Mark seen", en["MarkAsSeen"]);
+        Assert.Equal("Oznacz jako przeczytane", pl["MarkAsSeen"]);
+        Assert.Equal("Mark unseen", en["MarkAsUnseen"]);
+        Assert.Equal("Oznacz jako nieprzeczytane", pl["MarkAsUnseen"]);
     }
 
     private static Dictionary<string, string> LoadKeys(string path)

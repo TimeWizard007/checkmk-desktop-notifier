@@ -6,13 +6,13 @@ A lightweight Windows desktop monitor and notifier for Checkmk.
 
 This is an **independent open-source project**. It is **not affiliated with Checkmk GmbH**, and is not endorsed by or a product of Checkmk GmbH. “Checkmk” is used only to name the monitoring system this companion talks to.
 
-Current release line: **1.0.0**.
+Current version: **1.1.0** (FEATURE COMPLETE / READY FOR RELEASE — Phase 6A Take / shared ACK and Phase 6B Open in Checkmk + Seen/Unseen, both COMPLETE / Windows-tested). GitHub Release is a separate follow-up after tag `v1.1.0`.
 
 ## Overview
 
 Checkmk Desktop Notifier is a per-user Windows 10/11 companion. It polls Checkmk over the REST API, shows current HARD host and service problems in a compact Always-on-Top bar, and raises desktop notifications when new local incidents open.
 
-It is **not** a replacement for the Checkmk web UI. It does not write acknowledgements, downtimes, or configuration back to Checkmk. Local **Seen** state lives on this Windows user only.
+It is **not** a replacement for the Checkmk web UI. Local **Seen** state lives on this Windows user only. Optional **Take** writes a sticky acknowledgement in Checkmk so other administrators can see that the problem is being handled. It does not replace the Checkmk UI for removing acknowledgements.
 
 ## Screenshots
 
@@ -32,11 +32,15 @@ Host names and internal URLs are omitted or replaced with examples.
 
 ## Features
 
-- Compact Always-on-Top bar with NEW / CRIT / WARN / UNKNOWN counts
+- Compact Always-on-Top bar with NEW / CRIT / WARN / UNKNOWN / TAKEN counts
 - Expandable problem list (hosts and services, plugin output, EN/PL UI)
-- Clickable counters and filter chips (presentation-only; incidents are not merged)
-- Local NEW / Seen (per Windows user, persisted)
-- Read-only Checkmk ACK and scheduled-downtime badges
+- Clickable counters and filter chips ALL / NEW / CRIT / WARN / UNK / TAKEN (presentation-only; incidents are not merged)
+- Live search above the problem list (host, service, Taken-by name; combines with the active filter)
+- Local NEW / Seen (per Windows user, persisted; reversible Unseen)
+- Open the corresponding host or service in the Checkmk GUI (default browser; does not change incident state)
+- Optional Take / shared sticky Checkmk ACK (disabled by default)
+- Checkmk ACK badge (generic ACK vs Taken by display name)
+- Scheduled-downtime badges
 - Background polling of Checkmk service and host REST collections
 - Windows balloon notifications and alert sound
 - Bundled WAV, optional custom WAV, per-app volume, mute
@@ -61,6 +65,7 @@ Host names and internal URLs are omitted or replaced with examples.
 - Verified against **Checkmk CRE / RAW 2.4.0p34** REST API 1.0
 - Other editions/versions that expose the same service POST and host GET collections may work; they are not claimed as tested
 - An automation user that can **read** the hosts and services you care about (see [Checkmk automation user](#checkmk-automation-user))
+- Optional Take also needs Checkmk permission **`action.acknowledge`** (not Administrator)
 
 ## Installation
 
@@ -110,18 +115,42 @@ On a **first successful poll** with empty local incident state, current problems
 
 ## Checkmk automation user
 
-V1 is **read-only** toward Checkmk. Create an **automation user** with an **automation secret** (not an interactive password login).
+Create an **automation user** with an **automation secret** (not an interactive password login).
 
-Working V1 model:
+Working model:
 
-- Role: **Normal monitoring user** is sufficient for the monitored scope (verified)
+- Role: **Normal monitoring user** is sufficient for the monitored scope (verified for reads)
 - Contact-group membership must include the hosts and services you want to see
 - Checkmk Administrator rights are **not** required
+- Optional Take requires **`action.acknowledge`**. Leave Take disabled if the account is read-only; monitoring continues
 - A narrower “read these two collections only” role was **not** tested
 
 Do not put a real username, secret, URL, or internal group name in this repository.
 
-The notifier displays Checkmk **ACK** as metadata. That is not the same as local **Seen**.
+## Seen vs Take vs ACK
+
+**NEW / Seen** is **local, per Windows user**:
+
+- The eye button marks **that** incident Seen
+- On a Seen row, the same eye marks it **Unseen** and returns it to NEW immediately
+- Mark unseen does **not** replay balloon or sound
+- **Mark all new as seen** marks every currently NEW incident (there is no bulk Unseen)
+- Seen is stored on disk and **survives restart**
+- Seen is **not** sent to Checkmk
+- Seen is **not** shared with other administrators or other Windows users
+
+A compact **Open in Checkmk** icon opens the corresponding host or service in the Checkmk GUI (default browser). It does not change Seen, Take, ACK, or downtime.
+
+**Take** is a **shared** team action (Settings → General, off by default):
+
+- Creates a sticky Checkmk acknowledgement for that host or that service only
+- Does not hide the problem, change severity, mark it Seen, ACK child services, or create a ticket
+- Checkmk stops further notifications for the current problem until it returns to OK/UP
+- There is no Untake in 1.1.0; remove the ACK in the Checkmk UI if needed. ACK also ends on recovery to OK/UP
+
+**Taken by** is shown only when the ACK comment was created by Checkmk Desktop Notifier (`cdn.v1 take name="..."`). A manual Checkmk ACK shows **ACK**, not a guessed person. The Checkmk comment author is the shared automation account and is never used as identity. Take comments are **single-line** (`Taken by {name} via Checkmk Desktop Notifier cdn.v1 take name="..."`) because Checkmk RAW 2.4 truncates multiline ACK comments.
+
+Display name is stored in `preferences.json` (not Credential Manager).
 
 ## Notifications
 
@@ -131,27 +160,16 @@ A Windows balloon (via the tray icon) and, unless muted, one alert sound are emi
 - Restart does not replay already-open incidents
 - A failed poll never looks like “everything recovered” and does not emit recovery noise
 - Mute turns **sound** off; balloons still appear
-- Checkmk ACK / downtime do **not** suppress notifications in V1
-
-## NEW and Seen
-
-**NEW** means: this Windows user’s notifier has not marked this local incident as Seen.
-
-**Seen** is **local, per Windows user**:
-
-- The eye button marks **that** incident Seen
-- **Mark all new as seen** marks every currently NEW incident
-- Seen is stored on disk and **survives restart**
-- Seen is **not** sent to Checkmk
-- Seen is **not** shared with other administrators or other Windows users
-
-If two people run the notifier, each has their own NEW/Seen state. Shared / team workflow is a **post-V1** roadmap item (evaluate Checkmk ACK and ticket-system integration first; this project will not start from a custom shared backend).
+- If a NEW incident is **already acknowledged** in Checkmk when it opens, it stays locally NEW but produces **no balloon and no sound**
+- ACK appearing later on an already-open incident does not create a new notification
+- Scheduled downtime does **not** suppress balloons (unchanged)
 
 ## Checkmk ACK and downtime
 
-- **ACK** from Checkmk is **read-only** metadata (badge). V1 does not create or write acknowledgements.
-- **Scheduled downtime** is **read-only** metadata. V1 does not schedule or remove downtime.
-- ACK is **not** Seen. Marking Seen does **not** ACK in Checkmk.
+- Optional **Take** writes a sticky Checkmk ACK for that object only (see [Seen vs Take vs ACK](#seen-vs-take-vs-ack))
+- A Checkmk ACK from the GUI or another tool shows as **ACK**, not Taken by
+- **Scheduled downtime** is **read-only** metadata. This notifier does not schedule or remove downtime
+- ACK is **not** Seen. Marking Seen does **not** ACK in Checkmk
 
 ## Host DOWN / UNREACHABLE grouping
 
@@ -165,7 +183,7 @@ If a HARD **DOWN** (Critical) or **UNREACHABLE** (Unknown) host has affected chi
 - Later polls while the host stays failed do not repeat the grouped balloon
 - This avoids a service-notification storm when a host fails
 
-ACK or downtime on the host or on children does **not** suppress the grouped balloon.
+ACK on the grouping host suppresses the grouped balloon/sound. Child incidents stay visible and keep local NEW/Seen; they are not auto-ACK’d. Downtime does **not** suppress the grouped balloon.
 
 ## Tray behavior
 
@@ -199,7 +217,7 @@ Settings → **General** → **Start with Windows**, or the installer checkbox, 
 | Non-secret GUI settings (URL, site, username, poll interval) | `%LocalAppData%\CheckmkDesktopNotifier\settings.json` |
 | Automation secret | Windows Credential Manager, Generic Credential **`CheckmkDesktopNotifier`** (this Windows user) |
 | Incidents / Seen | `%LocalAppData%\CheckmkDesktopNotifier\state\<connection-hash>\alert-state.json` |
-| Mute / volume / Default vs Custom | `%LocalAppData%\CheckmkDesktopNotifier\preferences.json` |
+| Mute / volume / Default vs Custom / Take / display name | `%LocalAppData%\CheckmkDesktopNotifier\preferences.json` |
 | Imported custom WAV | `%LocalAppData%\CheckmkDesktopNotifier\assets\custom-notification.wav` |
 
 - The secret is **not** stored in `settings.json` or `alert-state.json`
@@ -276,10 +294,10 @@ Output (gitignored):
 artifacts\CheckmkDesktopNotifier-Setup-x64.exe
 ```
 
-The script reads version **1.0.0** from `Directory.Build.props` and passes `/DMyAppVersion=1.0.0` to `iscc`. Equivalent:
+The script reads version from `Directory.Build.props` (currently **1.1.0**) and passes `/DMyAppVersion` to `iscc`. Equivalent:
 
 ```text
-iscc /DMyAppVersion=1.0.0 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.1.0 installer\CheckmkDesktopNotifier.iss
 ```
 
 SHA-256 of a built installer (do not invent a hash before the file exists):
@@ -303,8 +321,9 @@ These are **intentional V1 boundaries**, not accidental omissions:
 - Windows only
 - Checkmk-specific (REST collections as documented in `docs/CHECKMK_API.md`)
 - Local Seen is **not** shared between administrators
-- Checkmk ACK and downtime are **read-only**
+- Optional Take writes sticky Checkmk ACK; there is **no Untake** in 1.1.0
 - No ticketing / Zoho integration
+- No custom shared backend/database
 - Custom alert sounds are **WAV-only**
 - Notifications use tray **balloons**, not packaged Windows App SDK toasts
 - Builds are **unsigned**; SmartScreen may warn
@@ -313,22 +332,18 @@ These are **intentional V1 boundaries**, not accidental omissions:
 
 ## Roadmap
 
-Not in V1. Do not expect these in 1.0.0:
+**1.1.0 (FEATURE COMPLETE / READY FOR RELEASE):** Team Take / shared sticky Checkmk ACK, Taken by, TAKEN filter/counter, search, ACK-aware notification suppression, Open in Checkmk, reversible local Seen/Unseen. CDN comments are single-line because Checkmk RAW 2.4 truncates multiline ACK comments.
 
-**Team workflow / shared coordination**
+**v1.2.0 candidate (not started):**
 
-- Take / ACK **in Checkmk**
-- Show who acknowledged or took an incident
-- Shared operational ownership
-- Optional Checkmk acknowledgement comments
+- Safe Release / Untake after live validation of `POST /domain-types/acknowledge/actions/delete/invoke`
+- The notifier must never remove generic/manual ACK blindly
 
-**Ticket workflow**
+**Future / optional:**
 
-- Create / open ticket action
-- Zoho Desk (or similar) API integration
-- Shared ticket number / status
+- Ticket workflow / Zoho Desk integration
 
-The first evaluation for shared work should be **Checkmk ACK + an existing ticket system**, not a custom shared database built into this notifier.
+This project will **not** add a custom shared database for team workflow. Ticketing remains future work.
 
 **Possible later improvements**
 

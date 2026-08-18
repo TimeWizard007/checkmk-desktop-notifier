@@ -5,6 +5,7 @@ using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.App.ViewModels;
 using CheckmkDesktopNotifier.App.Views;
 using CheckmkDesktopNotifier.Core;
+using CheckmkDesktopNotifier.Core.Acknowledgements;
 using CheckmkDesktopNotifier.Core.Autostart;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
@@ -70,6 +71,23 @@ public sealed class UiShell : IShellCommands
 
         _bar.DataContext = _viewModel;
         _list.DataContext = _viewModel;
+        _viewModel.ConfirmTake = (_, _) =>
+        {
+            Window? owner = _list.IsVisible ? _list : _bar.IsVisible ? _bar : null;
+            var window = new TakeConfirmWindow(_text)
+            {
+                Owner = owner,
+                Icon = AppIcon.WindowSource,
+                Topmost = true
+            };
+            return TakeConfirmation.ShouldProceed(window.ShowDialog());
+        };
+        _viewModel.ShowTakeMessage = message =>
+            MessageBox.Show(
+                message,
+                ProductInfo.ProductName,
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         _bar.Icon = AppIcon.WindowSource;
         _list.Icon = AppIcon.WindowSource;
 

@@ -56,10 +56,10 @@
                                            Text="{Binding DataContext.Text.Seen, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </Border>
                             <Border Style="{StaticResource BadgeStyle}"
-                                    ToolTip="{Binding DataContext.Text.AcknowledgedTooltip, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    Visibility="{Binding IsAcknowledged, Converter={StaticResource BooleanToVisibility}}">
+                                    ToolTip="{Binding AcknowledgementLabel}"
+                                    Visibility="{Binding ShowAcknowledgementBadge, Converter={StaticResource BooleanToVisibility}}">
                                 <TextBlock Foreground="{StaticResource TextBrush}" FontSize="11"
-                                           Text="{Binding DataContext.Text.Acknowledged, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                           Text="{Binding AcknowledgementLabel}"/>
                             </Border>
                             <Border Style="{StaticResource BadgeStyle}"
                                     ToolTip="{Binding DataContext.Text.DowntimeTooltip, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -73,25 +73,69 @@
                                    TextWrapping="Wrap"
                                    Text="{Binding PluginOutput}"/>
                     </StackPanel>
-                    <Button Grid.Column="1"
-                            Width="32"
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Top">
+                    <Button Width="32"
                             Height="32"
                             Margin="8,0,0,0"
                             VerticalAlignment="Top"
                             Cursor="Hand"
-                            ToolTip="{Binding DataContext.Text.MarkAsSeen, RelativeSource={RelativeSource AncestorType=Window}}"
-                            Command="{Binding DataContext.MarkSeenCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            ToolTip="{Binding DataContext.Text.OpenInCheckmk, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Command="{Binding DataContext.OpenInCheckmkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             CommandParameter="{Binding}"
-                            Visibility="{Binding IsNew, Converter={StaticResource BooleanToVisibility}}"
                             Background="Transparent"
                             BorderBrush="{StaticResource BarBorderBrush}"
                             BorderThickness="1">
                         <Path Fill="{StaticResource TextBrush}"
                               Stretch="Uniform"
-                              Width="16"
-                              Height="16"
-                              Data="M12,5C7,5,2.7,8.1,1,12c1.7,3.9,6,7,11,7s9.3-3.1,11-7C21.3,8.1,17,5,12,5z M12,16.5A4.5,4.5 0 1 1 16.5,12A4.5,4.5 0 0 1 12,16.5z M12,9A3,3 0 1 0 15,12A3,3 0 0 0 12,9z"/>
+                              Width="14"
+                              Height="14"
+                              Data="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/>
                     </Button>
+                    <Button Width="32"
+                            Height="32"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Top"
+                            Cursor="Hand"
+                            ToolTip="{Binding EyeTooltip}"
+                            Command="{Binding DataContext.ToggleSeenCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CommandParameter="{Binding}"
+                            Background="Transparent"
+                            BorderBrush="{StaticResource BarBorderBrush}"
+                            BorderThickness="1">
+                        <Grid Width="16" Height="16">
+                            <Path Fill="{StaticResource TextBrush}"
+                                  Stretch="Uniform"
+                                  Width="16"
+                                  Height="16"
+                                  Visibility="{Binding IsNew, Converter={StaticResource BooleanToVisibility}}"
+                                  Data="M12,5C7,5,2.7,8.1,1,12c1.7,3.9,6,7,11,7s9.3-3.1,11-7C21.3,8.1,17,5,12,5z M12,16.5A4.5,4.5 0 1 1 16.5,12A4.5,4.5 0 0 1 12,16.5z M12,9A3,3 0 1 0 15,12A3,3 0 0 0 12,9z"/>
+                            <Path Fill="{StaticResource TextBrush}"
+                                  Stretch="Uniform"
+                                  Width="16"
+                                  Height="16"
+                                  Visibility="{Binding IsSeen, Converter={StaticResource BooleanToVisibility}}"
+                                  Data="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.15 16.38,18.54L16.81,18.97L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z"/>
+                        </Grid>
+                    </Button>
+                    <Button Width="Auto"
+                            MinWidth="52"
+                            Height="32"
+                            Margin="8,0,0,0"
+                            Padding="8,0"
+                            VerticalAlignment="Top"
+                            Cursor="Hand"
+                            Content="{Binding TakeButtonText}"
+                            Command="{Binding DataContext.TakeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CommandParameter="{Binding}"
+                            IsEnabled="{Binding CanTake}"
+                            Visibility="{Binding ShowTakeButton, Converter={StaticResource BooleanToVisibility}}"
+                            Background="Transparent"
+                            BorderBrush="{StaticResource BarBorderBrush}"
+                            BorderThickness="1"
+                            FontSize="11"/>
+                    </StackPanel>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -111,23 +155,21 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
                     <TextBlock Style="{StaticResource BarTextStyle}"
                                FontWeight="SemiBold"
                                FontSize="14"
                                VerticalAlignment="Center"
                                Text="{Binding Text.ProblemListTitle}"/>
-                    <Border Grid.Column="1"
+                    <Border Grid.Row="1"
+                            Margin="0,8,0,0"
                             Background="{StaticResource WindowBackgroundBrush}"
                             BorderBrush="{StaticResource BarBorderBrush}"
                             BorderThickness="1"
                             CornerRadius="4"
                             Padding="2">
-                        <StackPanel Orientation="Horizontal">
+                        <WrapPanel>
                             <RadioButton GroupName="ProblemFilter"
                                          Style="{StaticResource FilterChipStyle}"
                                          Content="{Binding Text.FilterAll}"
@@ -153,9 +195,14 @@
                                          Content="{Binding Text.FilterUnknown}"
                                          IsChecked="{Binding IsFilterUnknown, Mode=OneWay}"
                                          Command="{Binding SelectUnknownFilterCommand}"/>
-                        </StackPanel>
+                            <RadioButton GroupName="ProblemFilter"
+                                         Style="{StaticResource FilterChipStyle}"
+                                         Content="{Binding Text.FilterTaken}"
+                                         IsChecked="{Binding IsFilterTaken, Mode=OneWay}"
+                                         Command="{Binding SelectTakenFilterCommand}"/>
+                        </WrapPanel>
                     </Border>
-                    <Button Grid.Row="1"
+                    <Button Grid.Row="2"
                             Style="{StaticResource ResetButtonStyle}"
                             HorizontalAlignment="Left"
                             Margin="0,6,0,0"
@@ -163,6 +210,49 @@
                             Command="{Binding MarkAllNewAsSeenCommand}"
                             Content="{Binding Text.MarkAllNewAsSeen}"
                             Visibility="{Binding HasNewProblems, Converter={StaticResource BooleanToVisibility}}"/>
+                </Grid>
+            </Border>
+
+            <Border DockPanel.Dock="Top"
+                    Background="{StaticResource WindowBackgroundBrush}"
+                    Padding="12,8,12,4">
+                <Grid>
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Padding="8,6"
+                             Background="{StaticResource RowBackgroundBrush}"
+                             Foreground="{StaticResource TextBrush}"
+                             CaretBrush="{StaticResource TextBrush}"
+                             BorderBrush="{StaticResource BarBorderBrush}"
+                             BorderThickness="1"
+                             FontFamily="Segoe UI"
+                             FontSize="12">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="TextBox">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="3"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                    <TextBlock IsHitTestVisible="False"
+                               VerticalAlignment="Center"
+                               Margin="10,0,0,0"
+                               FontFamily="Segoe UI"
+                               FontSize="12"
+                               Foreground="{StaticResource MutedBrush}"
+                               Text="{Binding Text.SearchPlaceholder}"
+                               Visibility="{Binding ShowSearchPlaceholder, Converter={StaticResource BooleanToVisibility}}"/>
                 </Grid>
             </Border>
 

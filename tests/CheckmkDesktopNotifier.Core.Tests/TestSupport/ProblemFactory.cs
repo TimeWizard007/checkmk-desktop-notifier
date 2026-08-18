@@ -14,7 +14,7 @@ internal static class ProblemFactory
     public static MonitoredObjectId HostId(string hostName) =>
         MonitoredObjectId.Host(DefaultSite, hostName);
 
-    public static MonitoredProblem Service(
+        public static MonitoredProblem Service(
         string hostName,
         string serviceDescription,
         Severity severity,
@@ -22,7 +22,10 @@ internal static class ProblemFactory
         DateTimeOffset? lastTimeOk = null,
         string? pluginOutput = null,
         bool acknowledged = false,
-        int downtimeDepth = 0) =>
+        int downtimeDepth = 0,
+        AcknowledgementType acknowledgementType = AcknowledgementType.None,
+        string? takenBy = null,
+        bool takenByNotifier = false) =>
         new()
         {
             Id = ServiceId(hostName, serviceDescription),
@@ -31,6 +34,9 @@ internal static class ProblemFactory
             PluginOutput = pluginOutput,
             LastTimeOk = lastTimeOk,
             IsAcknowledgedInCheckmk = acknowledged,
+            AcknowledgementType = acknowledgementType,
+            TakenByDisplayName = takenBy,
+            IsTakenByNotifier = takenByNotifier,
             ScheduledDowntimeDepth = downtimeDepth
         };
 
@@ -39,14 +45,22 @@ internal static class ProblemFactory
         Severity severity,
         StateType stateType = StateType.Hard,
         DateTimeOffset? lastTimeUp = null,
-        string? pluginOutput = null) =>
+        string? pluginOutput = null,
+        bool acknowledged = false,
+        AcknowledgementType acknowledgementType = AcknowledgementType.None,
+        string? takenBy = null,
+        bool takenByNotifier = false) =>
         new()
         {
             Id = HostId(hostName),
             Severity = severity,
             StateType = stateType,
             PluginOutput = pluginOutput,
-            LastTimeUp = lastTimeUp
+            LastTimeUp = lastTimeUp,
+            IsAcknowledgedInCheckmk = acknowledged,
+            AcknowledgementType = acknowledgementType,
+            TakenByDisplayName = takenBy,
+            IsTakenByNotifier = takenByNotifier
         };
 
     public static ProblemSnapshot Ok(DateTimeOffset retrievedAt, params MonitoredProblem[] problems) =>

@@ -47,6 +47,8 @@ public sealed class CheckmkServiceClientTests
         Assert.Contains("last_hard_state_change", columns);
         Assert.Contains("last_time_ok", columns);
         Assert.Contains("acknowledged", columns);
+        Assert.Contains("acknowledgement_type", columns);
+        Assert.Contains("comments_with_extra_info", columns);
         Assert.Contains("scheduled_downtime_depth", columns);
         Assert.Equal("or", body.RootElement.GetProperty("query").GetProperty("op").GetString());
     }

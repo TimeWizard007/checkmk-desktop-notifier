@@ -105,6 +105,9 @@ public sealed class JsonAlertStateStore : IAlertStateStore
             BoundRecurrenceMarker = dto.BoundRecurrenceMarker,
             LastSummary = dto.LastSummary,
             IsAcknowledgedInCheckmk = dto.IsAcknowledgedInCheckmk,
+            AcknowledgementType = dto.AcknowledgementType,
+            TakenByDisplayName = dto.TakenByDisplayName,
+            IsTakenByNotifier = dto.IsTakenByNotifier,
             ScheduledDowntimeDepth = dto.ScheduledDowntimeDepth
         };
     }
@@ -123,6 +126,9 @@ public sealed class JsonAlertStateStore : IAlertStateStore
             BoundRecurrenceMarker = incident.BoundRecurrenceMarker,
             LastSummary = incident.LastSummary,
             IsAcknowledgedInCheckmk = incident.IsAcknowledgedInCheckmk,
+            AcknowledgementType = incident.AcknowledgementType,
+            TakenByDisplayName = incident.TakenByDisplayName,
+            IsTakenByNotifier = incident.IsTakenByNotifier,
             ScheduledDowntimeDepth = incident.ScheduledDowntimeDepth
         };
 
@@ -146,6 +152,9 @@ public sealed class JsonAlertStateStore : IAlertStateStore
         public DateTimeOffset? BoundRecurrenceMarker { get; set; }
         public string? LastSummary { get; set; }
         public bool IsAcknowledgedInCheckmk { get; set; }
+        public AcknowledgementType AcknowledgementType { get; set; }
+        public string? TakenByDisplayName { get; set; }
+        public bool IsTakenByNotifier { get; set; }
         public int ScheduledDowntimeDepth { get; set; }
     }
 }

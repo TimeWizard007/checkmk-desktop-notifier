@@ -25,7 +25,10 @@ public sealed class PersistenceTests
                 Severity.Critical,
                 lastTimeOk: lastTimeOk,
                 pluginOutput: "CPU is 99%",
-                acknowledged: true);
+                acknowledged: true,
+                acknowledgementType: AcknowledgementType.Sticky,
+                takenBy: "Michał",
+                takenByNotifier: true);
 
             sut.ApplySnapshot(ProblemFactory.Ok(clock.UtcNow, problem));
             sut.MarkSeen(ProblemFactory.ServiceId("web01", "CPU"));
@@ -40,6 +43,9 @@ public sealed class PersistenceTests
             Assert.Equal(clock.UtcNow, reloaded.LastSuccessfulPollUtc);
             Assert.Equal("CPU is 99%", open.LastSummary);
             Assert.True(open.IsAcknowledgedInCheckmk);
+            Assert.Equal(AcknowledgementType.Sticky, open.AcknowledgementType);
+            Assert.Equal("Michał", open.TakenByDisplayName);
+            Assert.True(open.IsTakenByNotifier);
             Assert.True(File.Exists(path));
         }
         finally

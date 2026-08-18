@@ -19,6 +19,9 @@ public sealed record OpenIncident
 
     public string? LastSummary { get; init; }
     public bool IsAcknowledgedInCheckmk { get; init; }
+    public AcknowledgementType AcknowledgementType { get; init; }
+    public string? TakenByDisplayName { get; init; }
+    public bool IsTakenByNotifier { get; init; }
     public int ScheduledDowntimeDepth { get; init; }
 
     public IncidentStatus Status => IsSeen ? IncidentStatus.Seen : IncidentStatus.New;

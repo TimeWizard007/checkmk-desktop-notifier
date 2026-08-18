@@ -1,0 +1,33 @@
+{
+  "id": "all",
+  "domainType": "service",
+  "value": [
+    {
+      "id": "GO-S11:Update",
+      "domainType": "service",
+      "title": "Update",
+      "extensions": {
+        "host_name": "GO-S11",
+        "description": "Update",
+        "state": 2,
+        "state_type": 1,
+        "plugin_output": "CRIT - Windows Update",
+        "last_state_change": 1787078400,
+        "last_hard_state_change": 1787078400,
+        "last_time_ok": 1786992000,
+        "acknowledged": 1,
+        "acknowledgement_type": 2,
+        "comments_with_extra_info": [
+          [
+            36783,
+            "ITS",
+            "Taken by Michał via Checkmk Desktop Notifier",
+            4,
+            1787078432
+          ]
+        ],
+        "scheduled_downtime_depth": 0
+      }
+    }
+  ]
+}

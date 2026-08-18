@@ -105,6 +105,25 @@ public sealed class NotificationSoundStoreTests
         Assert.Equal(NotificationSoundSource.Custom, second.SoundSource);
         Assert.Equal("alert.wav", second.CustomSoundFileName);
         Assert.DoesNotContain(@"C:\temp", File.ReadAllText(path), StringComparison.OrdinalIgnoreCase);
+        Assert.False(second.TakeEnabled);
+        Assert.Null(second.TakeDisplayName);
+    }
+
+    [Fact]
+    public void Take_preferences_persist_without_secrets()
+    {
+        using var folder = new TempFolder();
+        var path = Path.Combine(folder.Path, "preferences.json");
+        var first = new JsonUserPreferencesStore(path);
+        first.SetTakeEnabled(true);
+        first.SetTakeDisplayName("  Michał  ");
+
+        var second = new JsonUserPreferencesStore(path);
+        Assert.True(second.TakeEnabled);
+        Assert.Equal("Michał", second.TakeDisplayName);
+        var json = File.ReadAllText(path);
+        Assert.DoesNotContain("Authorization", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Secret", json, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
