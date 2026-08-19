@@ -2,19 +2,21 @@
 
 **[English](README.md)** | **[Polski](README.pl.md)**
 
-A lightweight desktop monitor and notifier for Checkmk (Windows release + macOS beta).
+A lightweight desktop monitor and notifier for Checkmk (Windows + macOS).
 
 This is an **independent open-source project**. It is **not affiliated with Checkmk GmbH**, and is not endorsed by or a product of Checkmk GmbH. “Checkmk” is used only to name the monitoring system this companion talks to.
 
-Current Windows version: **1.2.0** (released; behavior frozen). Tag `v1.2.0` is unchanged.
+Current version: **1.3.0** — first unified Windows + macOS release. Feature freeze for this development cycle. See [docs/RELEASE_NOTES_1.3.0.md](docs/RELEASE_NOTES_1.3.0.md).
 
-Current macOS version: **1.3.0-beta.1** (public tester pre-release; not a stable macOS product). See [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md).
+Historical tags `v1.2.0` and `v1.3.0-beta.1` are unchanged.
 
 ## Overview
 
-Checkmk Desktop Notifier is a per-user Windows 10/11 companion. It polls Checkmk over the REST API, shows current HARD host and service problems in a compact Always-on-Top bar, and raises desktop notifications when new local incidents open.
+Checkmk Desktop Notifier is a per-user companion for **Windows 10/11** and **macOS 12+**. It polls Checkmk over the REST API and shows current HARD host and service problems.
 
-It is **not** a replacement for the Checkmk web UI. Local **Seen** state lives on this Windows user only. Optional **Take** writes a sticky acknowledgement in Checkmk so other administrators can see that the problem is being handled. **Release** on a CDN Take removes that Checkmk acknowledgement. Generic/manual acknowledgements are not removed by the notifier.
+On Windows it uses a compact Always-on-Top bar and the system tray. On macOS it is a native **menu-bar** application. It is **not** a replacement for the Checkmk web UI.
+
+Local **Seen** state lives on this OS user only. Optional **Take** writes a sticky acknowledgement in Checkmk so other administrators can see that the problem is being handled. **Release** on a CDN Take removes that Checkmk acknowledgement. Generic/manual acknowledgements are not removed by the notifier.
 
 ## Screenshots
 
@@ -48,15 +50,24 @@ Host names and internal URLs are omitted or replaced with examples.
 - Checkmk ACK badge (generic ACK vs Taken by display name)
 - Scheduled-downtime badges
 - Background polling of Checkmk service and host REST collections
-- Windows balloon notifications and alert sound
+- Desktop notifications and alert sound (Windows tray balloons; native macOS notifications)
 - Bundled WAV, optional custom WAV, per-app volume, mute
 - HOST DOWN / UNREACHABLE notification grouping (notifications only)
-- System tray (show / hide / Settings / About / Mute / Exit)
-- Start with Windows (per-user HKCU Run)
-- GUI Settings; automation secret in Windows Credential Manager
-- Per-user installer (no Administrator rights)
+- GUI Settings; automation secret in **Windows Credential Manager** or **macOS Keychain**
+- Autostart: Windows HKCU Run, or macOS per-user LaunchAgent that opens the `.app`
 - Single-instance: a second launch activates the existing notifier
+
+**Windows**
+
+- Compact Always-on-Top bar and system tray (show / hide / Settings / About / Mute / Exit)
+- Per-user installer (no Administrator rights)
 - Self-contained portable win-x64 publish remains supported
+
+**macOS**
+
+- Native menu-bar status item with live NEW / CRIT / WARN / UNK / TAKEN counts
+- Problem panel; closing it does not quit (use Quit)
+- Distribution unit is `Checkmk Desktop Notifier.app` (not the raw executable)
 
 ## Requirements
 
@@ -66,10 +77,10 @@ Host names and internal URLs are omitted or replaced with examples.
 - No Administrator rights for install or normal use
 - Network path to the Checkmk server (for example a VPN, if that is how you reach the site)
 
-**macOS (beta)**
+**macOS**
 
 - macOS 12 or later
-- Intel x64 (real-device validated) or Apple Silicon arm64 (build available; not yet real-device validated)
+- Intel x64 (real-device validated) or Apple Silicon arm64 (build available; physical-device validation may continue after release)
 - Network path to the Checkmk server (for example a VPN, if that is how you reach the site)
 
 **Checkmk**
@@ -81,7 +92,7 @@ Host names and internal URLs are omitted or replaced with examples.
 
 ## Installation
 
-Recommended for normal use: the per-user installer `CheckmkDesktopNotifier-Setup-x64.exe` from a GitHub Release.
+Recommended for normal use: the per-user installer `CheckmkDesktopNotifier-Setup-x64-v1.3.0.exe` from a GitHub Release.
 
 - Runs as a **normal Windows user**. No Administrator / UAC elevation.
 - Installs to `%LocalAppData%\Programs\CheckmkDesktopNotifier`
@@ -98,20 +109,23 @@ command: quoted path to `CheckmkDesktopNotifier.exe`
 
 There is no Startup-folder shortcut, scheduled task, or HKLM entry for this option.
 
-Verify the installer hash against [SHA256SUMS.txt](SHA256SUMS.txt) before running it.
+Verify the installer hash against `SHA256SUMS-v1.3.0.txt` published with the GitHub Release (created when the v1.3.0 binaries exist). The historical v1.2.0 installer hash remains in [SHA256SUMS.txt](SHA256SUMS.txt).
 
-## macOS Beta
+## macOS
 
 macOS is a **menu-bar** companion that reuses the same Core / Infrastructure as Windows. It is **not** a clone of the Windows compact bar.
 
-**Status:** Phase M0–M4 complete on Intel macOS. Broader beta coverage is still required (notifications, sleep/wake, VPN reconnect, Apple Silicon devices, signing/notarization, long-running use). This is **not** a final macOS release.
+**Download** (verify hashes in `SHA256SUMS-v1.3.0.txt` on the GitHub Release):
 
-**Download** (verify hashes in [SHA256SUMS-macOS-v1.3.0-beta.1.txt](SHA256SUMS-macOS-v1.3.0-beta.1.txt)):
+- Intel: `CheckmkDesktopNotifier-macOS-x64-v1.3.0.dmg`
+- Apple Silicon: `CheckmkDesktopNotifier-macOS-arm64-v1.3.0.dmg`
 
-- Intel: `CheckmkDesktopNotifier-macOS-x64-v1.3.0-beta.1.zip`
-- Apple Silicon: `CheckmkDesktopNotifier-macOS-arm64-v1.3.0-beta.1.zip`
+1. Open the DMG.
+2. Drag `Checkmk Desktop Notifier.app` to Applications.
+3. Eject the DMG.
+4. Launch from Applications.
 
-Each ZIP contains `Checkmk Desktop Notifier.app` only. Tester steps: [docs/MACOS_BETA_TESTERS.md](docs/MACOS_BETA_TESTERS.md).
+If Gatekeeper blocks the first launch: **right-click → Open → Open**. Do **not** disable Gatekeeper, SIP, or other macOS security. The application is unsigned and not notarized.
 
 **Behavior**
 
@@ -123,14 +137,7 @@ Each ZIP contains `Checkmk Desktop Notifier.app` only. Tester steps: [docs/MACOS
 - Native notifications and sound (policy shared with Windows; delivery is macOS-native)
 - Single instance: a second launch activates the existing process
 
-**Beta limitations**
-
-- Unsigned / not notarized; Gatekeeper may require a one-time Open. Do not disable macOS security globally
-- Notification permission and delivery still under broader testing
-- Apple Silicon published but not yet validated on a real device
-- No DMG/PKG yet
-- Light-mode polish may vary
-- Sleep/wake, VPN reconnect, and long-running stability still under test
+Historical tester ZIPs (`v1.3.0-beta.1`) remain documented in [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md). Prefer the v1.3.0 DMGs.
 
 ### Unsigned installer / SmartScreen
 
@@ -284,7 +291,7 @@ Reset configuration removes GUI settings and the stored secret. It does **not** 
 
 ## Upgrade
 
-Run a newer `CheckmkDesktopNotifier-Setup-x64.exe` over the existing per-user install.
+Run a newer `CheckmkDesktopNotifier-Setup-x64-v1.3.0.exe` over the existing per-user install.
 
 - Replaces program files under `%LocalAppData%\Programs\CheckmkDesktopNotifier`
 - Keeps user data under `%LocalAppData%\CheckmkDesktopNotifier`
@@ -346,13 +353,13 @@ powershell -File scripts/build-windows-package.ps1
 Output (gitignored):
 
 ```text
-artifacts\CheckmkDesktopNotifier-Setup-x64.exe
+artifacts\CheckmkDesktopNotifier-Setup-x64-v1.3.0.exe
 ```
 
-The script reads version from `Directory.Build.props` (currently **1.2.0**) and passes `/DMyAppVersion` to `iscc`. Equivalent:
+The script reads version from `Directory.Build.props` (currently **1.3.0**) and passes `/DMyAppVersion` to `iscc`. Equivalent:
 
 ```text
-iscc /DMyAppVersion=1.2.0 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.3.0 installer\CheckmkDesktopNotifier.iss
 ```
 
 SHA-256 of a built installer (do not invent a hash before the file exists):
@@ -364,7 +371,7 @@ powershell -File scripts/hash-windows-installer.ps1
 or:
 
 ```powershell
-Get-FileHash .\artifacts\CheckmkDesktopNotifier-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\artifacts\CheckmkDesktopNotifier-Setup-x64-v1.3.0.exe -Algorithm SHA256
 ```
 
 Inno Setup itself is **not** committed. Only `installer/CheckmkDesktopNotifier.iss` is source.
@@ -373,7 +380,7 @@ Inno Setup itself is **not** committed. Only `installer/CheckmkDesktopNotifier.i
 
 These are **intentional V1 boundaries**, not accidental omissions:
 
-- Windows 10/11 64-bit (released v1.2.0) and macOS 12+ (beta v1.3.0-beta.1; Intel validated)
+- Windows 10/11 64-bit and macOS 12+ (Intel x64 and Apple Silicon arm64)
 - Checkmk-specific (REST collections as documented in `docs/CHECKMK_API.md`)
 - Local Seen is **not** shared between administrators
 - Optional Take writes sticky Checkmk ACK; **Release** removes a CDN Take only (never a generic/manual ACK)
@@ -391,7 +398,9 @@ These are **intentional V1 boundaries**, not accidental omissions:
 
 **1.2.0 (Windows released):** Consolidated team workflow. Safe Release / Untake of CDN Takes (`POST /domain-types/acknowledge/actions/delete/invoke`), dark Take/Release confirmation, row waiting states instead of native MessageBoxes, Checkmk remaining source of truth. Phase 6A, 6B, and 7A are COMPLETE / Windows-tested. See [docs/RELEASE_NOTES_1.2.0.md](docs/RELEASE_NOTES_1.2.0.md).
 
-**1.3.0-beta.1 (macOS pre-release):** First public macOS tester build (Intel x64 validated; Apple Silicon published). See [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md). Not a stable macOS product.
+**1.3.0-beta.1 (macOS pre-release):** First public macOS tester build. See [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md).
+
+**1.3.0 (FEATURE COMPLETE / FEATURE FREEZE):** First unified Windows + macOS release. Windows v1.2.0 behavior preserved; macOS menu-bar `.app` for Intel x64 and Apple Silicon arm64. See [docs/RELEASE_NOTES_1.3.0.md](docs/RELEASE_NOTES_1.3.0.md). No further feature phase in this cycle.
 
 **Future / optional:**
 

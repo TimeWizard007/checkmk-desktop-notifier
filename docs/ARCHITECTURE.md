@@ -1,6 +1,6 @@
 # Architecture
 
-Checkmk Desktop Notifier is a per-user desktop companion for Checkmk. The released Windows product is a WPF host (`CheckmkDesktopNotifier.App`, v1.2.0). The Avalonia macOS host (`CheckmkDesktopNotifier.App.MacOS`, v1.3.0-beta.1) shares Core and Infrastructure. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems. End-user documentation is `README.md` / `README.pl.md`. This file is the technical architecture. macOS is a **public beta**, not a stable product release.
+Checkmk Desktop Notifier is a per-user desktop companion for Checkmk. The Windows product is a WPF host (`CheckmkDesktopNotifier.App`, v1.3.0). The Avalonia macOS host (`CheckmkDesktopNotifier.App.MacOS`, v1.3.0) shares Core and Infrastructure. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems. End-user documentation is `README.md` / `README.pl.md`. This file is the technical architecture. v1.3.0 is the first unified Windows + macOS release.
 
 English is the language of source code, identifiers, comments, and commit messages. User-visible UI is localizable (`en`, `pl`).
 
@@ -13,7 +13,7 @@ CheckmkDesktopNotifier.sln
   src/CheckmkDesktopNotifier.Platform.Windows     net8.0-windows (Credential Manager, HKCU Run, shell URI, LocalAppData paths)
   src/CheckmkDesktopNotifier.Platform.MacOS       net8.0 (Application Support, Keychain, /usr/bin/open, NSStatusItem)
   src/CheckmkDesktopNotifier.App                  net8.0-windows WPF (WinExe) — released Windows host; do not rename
-  src/CheckmkDesktopNotifier.App.MacOS            net8.0 Avalonia (WinExe) — macOS host (M0–M4 COMPLETE / Intel macOS tested); v1.3.0-beta.1 public tester pre-release, not a stable product
+  src/CheckmkDesktopNotifier.App.MacOS            net8.0 Avalonia (WinExe) — macOS host (M0–M4 COMPLETE / Intel macOS tested); v1.3.0 unified release
   src/CheckmkDesktopNotifier.ConnectionTest       net8.0 console (one-shot service POST or `--hosts` GET)
   tests/CheckmkDesktopNotifier.Core.Tests         xUnit, net8.0
   tests/CheckmkDesktopNotifier.Infrastructure.Tests  xUnit, net8.0
@@ -87,14 +87,14 @@ Core must stay independently testable. Core does not read `%LocalAppData%` or `%
 
 App must not implement NEW / SEEN / RECOVERED itself.
 
-## Platform split (Phase M0 COMPLETE / Windows-tested; Phases M1–M4 COMPLETE / Intel macOS tested; macOS v1.3.0-beta.1 public tester pre-release)
+## Platform split (Phase M0 COMPLETE / Windows-tested; Phases M1–M4 COMPLETE / Intel macOS tested; v1.3.0 unified release)
 
 **Shared**
 
 - Core: domain, incident engine, Take/Release eligibility, GUI URI builder, `IUiThread`, `IUriLauncher`, `IUserDataDirectory`, `IAutostartStore` policy (`AutostartService`)
 - Infrastructure: Checkmk REST, polling, settings/preferences JSON, `ISecretStore` port, notification *policy*, WAV import/validation helpers, `GuiConfigurationService`, `CheckmkConnectionTester`, `MonitoringCoordinator`
 
-**Windows (released v1.2.0 host — do not convert to Avalonia)**
+**Windows (v1.3.0 host — v1.2.0 behavior preserved; do not convert to Avalonia)**
 
 - WPF shell (`CheckmkDesktopNotifier.App`)
 - WinForms tray / balloon (`NotifyIconTray`)
@@ -109,9 +109,9 @@ Windows user-data and install paths are unchanged:
 - data: `%LocalAppData%\CheckmkDesktopNotifier`
 - binaries: `%LocalAppData%\Programs\CheckmkDesktopNotifier`
 
-**macOS (Phases M1–M4 COMPLETE / Intel macOS tested — v1.3.0-beta.1 public tester pre-release, not a stable product)**
+**macOS (Phases M1–M4 COMPLETE / Intel macOS tested — v1.3.0 unified release)**
 
-- Avalonia host (`CheckmkDesktopNotifier.App.MacOS`) — composition root `MacDesktopHost`; host version override `1.3.0-beta.1`
+- Avalonia host (`CheckmkDesktopNotifier.App.MacOS`) — composition root `MacDesktopHost`; version from `Directory.Build.props` (no host override)
 - Phase M1: connection Settings window, Keychain, shared poller smoke — COMPLETE / Intel macOS tested
 - Phase M2 COMPLETE / Intel macOS tested: `NSStatusItem` menu-bar counts, problem panel, shared filters/search, local Seen/Unseen, Open in Checkmk. Native IMPs marshal panel show/hide through Avalonia `PostDeferred`. Intel does not query `NSRect` via `objc_msgSend`.
 - Phase M3 COMPLETE / Intel macOS tested: shared Take/Release (`CheckmkTakeService`), complete Settings, `NotificationCoordinator` + native `NSUserNotificationCenter` delivery **only from a `.app` bundle**, `NSSound` via `MacAlertSoundService`, LaunchAgent Start at Login via `/usr/bin/open` of the `.app`, file-lock single instance. `UNUserNotificationCenter.currentNotificationCenter` is gated on `NSBundle.mainBundle.bundleIdentifier`; a raw executable must not call it.
@@ -121,9 +121,9 @@ Windows user-data and install paths are unchanged:
 - User data: `~/Library/Application Support/CheckmkDesktopNotifier` (`settings.json`, `preferences.json`, `state/`, `last-poll.txt`)
 - Automation secret: macOS Keychain generic password, service `CheckmkDesktopNotifier`, account = `SecretStoreKeys.AutomationSecret`. No plaintext fallback. No `InMemorySecretStore` in the macOS host.
 - Start at Login: per-user LaunchAgent plist (not HKCU, not SMAppService). SMAppService needs a signed `.app` and is deferred.
-- Distribution: unsigned `Checkmk Desktop Notifier.app` ZIPs for `osx-x64` and `osx-arm64` (see `scripts/build-macos-beta.sh`). Not notarized. No DMG/PKG.
-- Broader beta still required: native notification delivery, permission prompts, sleep/wake, VPN reconnect, Apple Silicon devices, light-mode polish, long-running stability
-- Not yet: signing/notarization, stable macOS product release
+- Distribution: `Checkmk Desktop Notifier.app` in `CheckmkDesktopNotifier-macOS-x64-v1.3.0.dmg` and `CheckmkDesktopNotifier-macOS-arm64-v1.3.0.dmg` (`scripts/build-macos-release.sh` + `scripts/create-macos-dmg.sh`). Unsigned / not notarized.
+- Broader real-world follow-up (bug fixes only): notification permission prompts, sleep/wake, VPN reconnect, Apple Silicon devices, light-mode polish, long-running stability
+- Not a new feature phase: signing/notarization remains optional post-release work
 
 `CheckmkGuiUriBuilder` stays shared and unchanged. App.MacOS must not reference WPF, WinForms, Registry, Credential Manager, or the Inno installer.
 
@@ -191,7 +191,7 @@ API base URI: `{BaseUrl}/{Site}/check_mk/api/1.0/`.
 
 `MarkSeen` / `MarkUnseen` / `MarkAllNewAsSeen` are local only. Checkmk `acknowledged` is shared metadata, never local Seen. Take writes ACK through `ICheckmkAcknowledgementClient`; Release deletes a CDN Take the same way. Neither marks Seen. Same incident identity always refreshes ACK/Taken fields from the current snapshot. Mark unseen does not create `AlertDelta.Opened`.
 
-Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested; Phase 6A ACK suppression COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. If the Opened incident is already acknowledged in that snapshot, no balloon and no sound are emitted (the row may remain locally NEW). Releasing an ACK is not a new Opened incident. Grouping hosts that are already ACK’d produce no grouped balloon/sound; child incidents stay listed. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only. Version numbers come from `Directory.Build.props` (`1.2.0`). Phase 4D Inno Setup (COMPLETE / Windows-tested) installs binaries under `%LocalAppData%/Programs/CheckmkDesktopNotifier`; user data stays under `%LocalAppData%/CheckmkDesktopNotifier`. Phase 5 (COMPLETE / V1 READY) is documentation, versioning, and packaging for 1.0.0. Phase 6A (COMPLETE / Windows-tested) is optional Take / shared sticky Checkmk ACK. Phase 6B (COMPLETE / Windows-tested) is Open in Checkmk plus reversible local Seen/Unseen. Phase 7A (COMPLETE / Windows-tested) is safe Release of CDN Takes. v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE.
+Notifications (Phase 4B COMPLETE / Windows-tested; Phase 4C grouping COMPLETE / Windows-tested; Phase 6A ACK suppression COMPLETE / Windows-tested) consume `AlertDelta.Opened` after `HostFailureNotificationGrouping`. If the Opened incident is already acknowledged in that snapshot, no balloon and no sound are emitted (the row may remain locally NEW). Releasing an ACK is not a new Opened incident. Grouping hosts that are already ACK’d produce no grouped balloon/sound; child incidents stay listed. Core does not depend on WPF, WinForms, toast APIs, or the Windows registry. Grouping never hides Core incidents. Autostart uses an `IAutostartStore` abstraction; the Windows implementation writes HKCU Run only. Version numbers come from `Directory.Build.props` (`1.3.0`). Phase 4D Inno Setup (COMPLETE / Windows-tested) installs binaries under `%LocalAppData%/Programs/CheckmkDesktopNotifier`; user data stays under `%LocalAppData%/CheckmkDesktopNotifier`. Phase 5 (COMPLETE / V1 READY) is documentation, versioning, and packaging for 1.0.0. Phase 6A (COMPLETE / Windows-tested) is optional Take / shared sticky Checkmk ACK. Phase 6B (COMPLETE / Windows-tested) is Open in Checkmk plus reversible local Seen/Unseen. Phase 7A (COMPLETE / Windows-tested) is safe Release of CDN Takes. v1.2.0 was the last Windows-only release. v1.3.0 is the first unified Windows + macOS release.
 
 **Virgin baseline:** `openIncidentCount == 0 && LastSuccessfulPollUtc is null` before `ApplySnapshot`. If that first snapshot succeeds, Opened incidents are persisted for the UI and **must not** emit notifications/sound. Subsequent successful polls notify only newly Opened incidents.
 

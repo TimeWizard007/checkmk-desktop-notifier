@@ -123,20 +123,22 @@ public sealed class MacHostIsolationTests
             .Elements("Version")
             .Select(e => e.Value.Trim())
             .FirstOrDefault();
-        Assert.Equal("1.2.0", version);
+        Assert.Equal("1.3.0", version);
     }
 
     [Fact]
-    public void Macos_host_uses_beta_version_without_changing_windows_central_version()
+    public void Both_hosts_use_the_central_1_3_0_product_version()
     {
         var app = ReadProject("src/CheckmkDesktopNotifier.App.MacOS/CheckmkDesktopNotifier.App.MacOS.csproj");
-        Assert.Contains("<Version>1.3.0-beta.1</Version>", app, StringComparison.Ordinal);
-        Assert.Contains("<InformationalVersion>1.3.0-beta.1</InformationalVersion>", app, StringComparison.Ordinal);
+        Assert.DoesNotContain("<Version>", app, StringComparison.Ordinal);
+        Assert.DoesNotContain("1.3.0-beta.1", app, StringComparison.Ordinal);
         var windows = ReadProject("src/CheckmkDesktopNotifier.App/CheckmkDesktopNotifier.App.csproj");
+        Assert.DoesNotContain("<Version>", windows, StringComparison.Ordinal);
         Assert.DoesNotContain("1.3.0-beta.1", windows, StringComparison.Ordinal);
         var installer = File.ReadAllText(Path.Combine(FindRepoRoot(), "installer/CheckmkDesktopNotifier.iss"));
-        Assert.Contains("#define MyAppVersion \"1.2.0\"", installer, StringComparison.Ordinal);
+        Assert.Contains("#define MyAppVersion \"1.3.0\"", installer, StringComparison.Ordinal);
         Assert.DoesNotContain("1.3.0-beta.1", installer, StringComparison.Ordinal);
+        Assert.DoesNotContain("#define MyAppVersion \"1.2.0\"", installer, StringComparison.Ordinal);
     }
 
     private static string ReadProject(string relative)

@@ -147,11 +147,11 @@ Phase 6B delivered:
 
 **Phase M4 COMPLETE / Intel macOS tested:** macOS UI/UX polish of the M3 surface. Light-mode polish across different Macs still needs broader beta coverage.
 
-**v1.3.0-beta.1 (macOS public tester pre-release):** first macOS `.app` ZIPs for Intel x64 (real-device validated) and Apple Silicon arm64 (published, not yet real-device validated). Not a stable macOS product. Windows v1.2.0 is unchanged.
+**v1.3.0 FEATURE COMPLETE / FEATURE FREEZE.** First unified Windows + macOS release. Windows v1.2.0 behavior preserved under product version 1.3.0. macOS menu-bar `.app` for Intel x64 (real-device validated) and Apple Silicon arm64 (packaged). Historical tags `v1.2.0` and `v1.3.0-beta.1` must not move.
 
-**Future / optional (after broader macOS beta):**
+**Future / optional (after user feedback; not a new phase now):**
 
-- macOS signing/notarization / DMG/PKG / stable product release
+- Signing/notarization
 - Ticket workflow
 - Zoho Desk integration
 

@@ -42,4 +42,4 @@ if (-not $iscc) {
 }
 
 & $iscc.Source "/DMyAppVersion=$version" (Join-Path $root "installer\CheckmkDesktopNotifier.iss")
-Write-Host "Installer: $(Join-Path $artifacts 'CheckmkDesktopNotifier-Setup-x64.exe')"
+Write-Host "Installer: $(Join-Path $artifacts "CheckmkDesktopNotifier-Setup-x64-v$version.exe")"

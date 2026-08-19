@@ -5,7 +5,7 @@
 - .NET 8 SDK
 - For **running** the WPF app: Windows 10/11
 - Linux can **build** Core, Infrastructure, Platform.MacOS, App.MacOS, tests, ConnectionTest, and (with Windows targeting) the WPF project
-- Running the Avalonia macOS host requires macOS (Keychain). v1.3.0-beta.1 is a public tester pre-release, not a stable macOS product.
+- Running the Avalonia macOS host requires macOS (Keychain). v1.3.0 is the unified Windows + macOS release.
 - No Administrator privileges required for build, test, or running the per-user Windows app
 
 ## Repository structure
@@ -14,7 +14,7 @@
 checkmk-desktop-notifier/
   README.md / README.pl.md
   LICENSE
-  Directory.Build.props          ← Version 1.2.0
+  Directory.Build.props          ← Version 1.3.0
   CheckmkDesktopNotifier.sln
   docs/                          ← durable project memory (read this first)
   installer/CheckmkDesktopNotifier.iss
@@ -25,7 +25,7 @@ checkmk-desktop-notifier/
   src/CheckmkDesktopNotifier.Platform.Windows/
   src/CheckmkDesktopNotifier.Platform.MacOS/
   src/CheckmkDesktopNotifier.App/              ← released Windows WPF host; do not rename
-  src/CheckmkDesktopNotifier.App.MacOS/        ← Avalonia macOS host (M0–M4 COMPLETE / Intel macOS tested); v1.3.0-beta.1 public tester pre-release
+  src/CheckmkDesktopNotifier.App.MacOS/        ← Avalonia macOS host (M0–M4 COMPLETE / Intel macOS tested); v1.3.0 unified release
   src/CheckmkDesktopNotifier.ConnectionTest/
   tests/CheckmkDesktopNotifier.Core.Tests/
   tests/CheckmkDesktopNotifier.Infrastructure.Tests/
@@ -255,7 +255,7 @@ Gear menu and tray share `IShellCommands` (`ShowBar`, `HideToTray`, `ToggleBar`,
 
 Tray uses built-in `System.Windows.Forms.NotifyIcon` (no extra NuGet). Left-click toggles bar visibility. Tray **Open** always restores the existing compact bar.
 
-Version in About is `AssemblyInformationalVersion` / assembly version from `Directory.Build.props` (currently `1.2.0`), not a string literal in XAML. Icon: original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256, no Checkmk logo). A final visual replacement may still be supplied before the public GitHub Release; do not invent a new icon in this phase.
+Version in About is `AssemblyInformationalVersion` / assembly version from `Directory.Build.props` (currently `1.3.0`), not a string literal in XAML. Icon: original `src/CheckmkDesktopNotifier.App/Assets/app.ico` (16–256, no Checkmk logo). A final visual replacement may still be supplied before the public GitHub Release; do not invent a new icon in this phase.
 
 Windows 11 checklist A–T: **PASSED**. Gear/tray visual leftover (system-boxed menus) is addressed in Phase 4B.
 
@@ -418,10 +418,10 @@ powershell -File scripts/build-windows-package.ps1
 Equivalent:
 
 ```text
-iscc /DMyAppVersion=1.2.0 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.3.0 installer\CheckmkDesktopNotifier.iss
 ```
 
-Output: `artifacts/CheckmkDesktopNotifier-Setup-x64.exe` (gitignored). `publish/` and `artifacts/` must not be committed.
+Output: `artifacts/CheckmkDesktopNotifier-Setup-x64-v1.3.0.exe` (gitignored). `publish/` and `artifacts/` must not be committed.
 
 ### Windows 11 checklist (Phase 4D)
 
@@ -465,7 +465,7 @@ No Administrator privileges.
 
 ## Phase 5 — COMPLETE / V1 READY
 
-User documentation: `README.md` / `README.pl.md`. Release notes: `docs/RELEASE_NOTES_1.0.0.md`, `docs/RELEASE_NOTES_1.1.0.md`, `docs/RELEASE_NOTES_1.2.0.md`. MIT `LICENSE` at the repository root. Sanitized screenshots under `docs/images/`.
+User documentation: `README.md` / `README.pl.md`. Release notes: `docs/RELEASE_NOTES_1.0.0.md`, `docs/RELEASE_NOTES_1.1.0.md`, `docs/RELEASE_NOTES_1.2.0.md`, `docs/RELEASE_NOTES_1.3.0-beta.1.md`, `docs/RELEASE_NOTES_1.3.0.md`. MIT `LICENSE` at the repository root. Sanitized screenshots under `docs/images/`.
 
 Installer SHA-256 for **1.0.0** is recorded in `SHA256SUMS.txt` (do not treat it as a 1.1.0 checksum). About on Windows 11 for this line is **1.1.0**.
 
@@ -750,23 +750,25 @@ Broader beta still required: native notification delivery across real-world usag
 | W | Apple Silicon real device | not yet validated (arm64 ZIP published) |
 | X | Long-running stability | broader beta |
 
-## macOS — self-contained osx-x64 / osx-arm64 publish (beta)
+## macOS — self-contained osx-x64 / osx-arm64 publish (v1.3.0)
 
 From the repository root:
 
 ```bash
-scripts/build-macos-beta.sh osx-x64
-scripts/build-macos-beta.sh osx-arm64
+scripts/build-macos-release.sh osx-x64
+scripts/build-macos-release.sh osx-arm64
 ```
 
-Each run publishes, wraps `Checkmk Desktop Notifier.app`, and writes a ZIP under gitignored `artifacts/`:
+Each run publishes and wraps `Checkmk Desktop Notifier.app` under gitignored `publish/macos-x64` or `publish/macos-arm64`.
 
-- `CheckmkDesktopNotifier-macOS-x64-v1.3.0-beta.1.zip`
-- `CheckmkDesktopNotifier-macOS-arm64-v1.3.0-beta.1.zip`
+DMG creation **requires macOS `hdiutil`**. Do not generate a fake DMG on Linux:
 
-Do not distribute raw `publish/` folders. SHA-256 for the ZIPs lives in `SHA256SUMS-macOS-v1.3.0-beta.1.txt` (do not overwrite Windows `SHA256SUMS.txt`). Tester notes: `docs/MACOS_BETA_TESTERS.md`.
+```bash
+scripts/create-macos-dmg.sh "publish/macos-x64/Checkmk Desktop Notifier.app" artifacts/CheckmkDesktopNotifier-macOS-x64-v1.3.0.dmg
+scripts/create-macos-dmg.sh "publish/macos-arm64/Checkmk Desktop Notifier.app" artifacts/CheckmkDesktopNotifier-macOS-arm64-v1.3.0.dmg
+```
 
-The Windows installer remains v1.2.0. The macOS host version override is `1.3.0-beta.1`.
+Do not distribute raw `publish/` folders. Historical tester ZIP checksums remain in `SHA256SUMS-macOS-v1.3.0-beta.1.txt`. v1.3.0 checksums go in `SHA256SUMS-v1.3.0.txt` after all four release files exist.
 
 ## Windows — self-contained win-x64 publish
 
@@ -828,4 +830,38 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not call Checkmk ACK from the eye button.
 - Take is a separate command. It must not mark Seen.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is RELEASED / Windows frozen. Phase M0 is COMPLETE / Windows-tested. Phases M1–M4 are COMPLETE / Intel macOS tested. macOS v1.3.0-beta.1 is a public tester pre-release, not a stable product. Do not convert the WPF app to Avalonia. Do not revert CDN Take comments to a multiline format. Do not move tag `v1.2.0`.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is historical Windows. Phases M0–M4 are COMPLETE / Intel macOS tested. v1.3.0 is FEATURE COMPLETE / FEATURE FREEZE (unified Windows + macOS). Do not convert the WPF app to Avalonia. Do not revert CDN Take comments to a multiline format. Do not move tags `v1.2.0` or `v1.3.0-beta.1`.
+
+## Remaining v1.3.0 packaging (real machines)
+
+Do not tag `v1.3.0` until these complete. Do not invent PASS results.
+
+**Windows 11** (Inno Setup 6):
+
+```powershell
+powershell -File scripts/build-windows-package.ps1
+powershell -File scripts/hash-windows-installer.ps1
+```
+
+Smoke: install/upgrade v1.3.0, start, Settings/Credential Manager, polling, Take → Taken → Release, Seen/Unseen, Open in Checkmk, tray, Start with Windows, Exit, restart.
+
+**Intel Mac** (`hdiutil`):
+
+```bash
+scripts/build-macos-release.sh osx-x64
+scripts/create-macos-dmg.sh "publish/macos-x64/Checkmk Desktop Notifier.app" artifacts/CheckmkDesktopNotifier-macOS-x64-v1.3.0.dmg
+scripts/build-macos-release.sh osx-arm64
+scripts/create-macos-dmg.sh "publish/macos-arm64/Checkmk Desktop Notifier.app" artifacts/CheckmkDesktopNotifier-macOS-arm64-v1.3.0.dmg
+```
+
+Smoke the x64 DMG: mount, drag to `/Applications`, eject, launch, Keychain/settings, menu bar, polling, panel, Take → Taken → Release, Open in Checkmk, Start at Login points at `/Applications/Checkmk Desktop Notifier.app`, second launch single instance, Quit/restart.
+
+After artifacts and smoke tests:
+
+```bash
+git tag -a v1.3.0 -m "Checkmk Desktop Notifier v1.3.0"
+git push origin v1.3.0
+git archive --format=zip --output artifacts/CheckmkDesktopNotifier-source-v1.3.0.zip v1.3.0
+# then write SHA256SUMS-v1.3.0.txt from the four files
+```
+

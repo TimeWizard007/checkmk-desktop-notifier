@@ -138,7 +138,7 @@ Installed + Start Menu + autostart + desktop would otherwise start multiple poll
 
 ## Central version (Phase 4D, COMPLETE / Windows-tested)
 
-`Directory.Build.props` defines `Version` / `AssemblyVersion` / `FileVersion` / `InformationalVersion`. About reads informational version. Inno uses `/DMyAppVersion` with the same value (fallback `#define` in the `.iss` must match; PackagingTests checks). Do not hardcode the version in the About UI. Product version is **1.2.0**.
+`Directory.Build.props` defines `Version` / `AssemblyVersion` / `FileVersion` / `InformationalVersion`. About reads informational version. Inno uses `/DMyAppVersion` with the same value (fallback `#define` in the `.iss` must match; PackagingTests checks). Do not hardcode the version in the About UI. Product version is **1.3.0** for both Windows and macOS.
 
 ## Dark compact menus (Phase 4B)
 
@@ -231,9 +231,9 @@ Reuse Windows-validated Take/Release, notification policy, sound mixing, and aut
 
 Polish the M3 surface to feel like Checkmk Desktop Notifier while looking native on macOS: dark professional cards, severity colors, in-app Take/Release dialogs, system appearance. Do not change polling, Take/Release, Seen, or notification semantics for appearance. Light-mode polish across different Macs remains a broader beta item.
 
-## macOS beta versioning is host-local (v1.3.0-beta.1)
+## Unified product version (v1.3.0)
 
-Do not bump `Directory.Build.props` or the Inno `#define MyAppVersion` for a macOS tester build. Windows v1.2.0 stays released and frozen; tag `v1.2.0` must not move. The Avalonia host overrides `Version` / `InformationalVersion` to `1.3.0-beta.1` (`AssemblyVersion` / `FileVersion` `1.3.0.0`) and the `.app` Info.plist uses the same product version. macOS checksums live in `SHA256SUMS-macOS-v1.3.0-beta.1.txt`, not in the Windows `SHA256SUMS.txt`.
+One product version line from v1.3.0 onward. `Directory.Build.props` is **1.3.0**. The macOS host must not override `Version`. Info.plist `CFBundleShortVersionString` / `CFBundleVersion` match. Historical v1.3.0-beta.1 used a host-local override so Windows v1.2.0 could stay frozen; that override is removed. Historical checksums stay in `SHA256SUMS.txt` (Windows 1.2.0) and `SHA256SUMS-macOS-v1.3.0-beta.1.txt`. New release checksums go in `SHA256SUMS-v1.3.0.txt`. Tags `v1.2.0` and `v1.3.0-beta.1` must not move.
 
 ## Host HTTP method
 

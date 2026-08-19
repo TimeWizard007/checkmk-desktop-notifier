@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-installer="$root/artifacts/CheckmkDesktopNotifier-Setup-x64.exe"
+version="$(python3 - <<PY
+import re, pathlib
+text = pathlib.Path("$root/Directory.Build.props").read_text(encoding="utf-8")
+match = re.search(r"<Version>([^<]+)</Version>", text)
+if not match:
+    raise SystemExit("Version not found in Directory.Build.props")
+print(match.group(1).strip())
+PY
+)"
+installer="$root/artifacts/CheckmkDesktopNotifier-Setup-x64-v${version}.exe"
 if [[ ! -f "$installer" ]]; then
   echo "Installer not found: $installer" >&2
   echo "Build it on Windows with: powershell -File scripts/build-windows-package.ps1" >&2

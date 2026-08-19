@@ -14,7 +14,7 @@ public sealed class MacAppBundleLayout
 
     public const string ExecutableName = "CheckmkDesktopNotifier.MacOS";
 
-    public const string ProductVersion = "1.3.0-beta.1";
+    public const string ProductVersion = "1.3.0";
 
     public static MacAppBundleLayout None { get; } = new(false, null, null, null);
 
@@ -217,7 +217,8 @@ public static class MacAppBundlePackager
         foreach (var entry in Directory.GetFileSystemEntries(publishDirectory))
         {
             var name = Path.GetFileName(entry);
-            if (name.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
+            if (name.EndsWith(".app", StringComparison.OrdinalIgnoreCase)
+                || name.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -258,6 +259,11 @@ public static class MacAppBundlePackager
         Directory.CreateDirectory(destination);
         foreach (var file in Directory.GetFiles(source))
         {
+            if (file.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             File.Copy(file, Path.Combine(destination, Path.GetFileName(file)), overwrite: true);
         }
 

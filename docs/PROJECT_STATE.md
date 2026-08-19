@@ -4,19 +4,23 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**v1.2.0 RELEASED / Windows frozen.** Tag `v1.2.0` must not move. Windows central version remains **1.2.0**.
+**v1.3.0 FEATURE COMPLETE. CURRENT DEVELOPMENT CYCLE CLOSED. FEATURE FREEZE.**
 
-**macOS v1.3.0-beta.1** is a public tester pre-release, not a stable macOS product. Phase M0 COMPLETE / Windows-tested. Phase M1 COMPLETE / Intel macOS tested. Phase M2 COMPLETE / Intel macOS tested. Phase M3 COMPLETE / Intel macOS tested. Phase M4 COMPLETE / Intel macOS tested. Broader beta coverage is still required. Do not claim final macOS release readiness.
+First unified Windows + macOS product release. Version **1.3.0** is shared (`Directory.Build.props`, Windows installer, macOS Info.plist). Tags `v1.2.0` and `v1.3.0-beta.1` must not move.
 
-Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. v1.1.0 tagged (no GitHub Release). Phase 7A COMPLETE / Windows-tested. **v1.2.0 tagged.** GitHub Release for 1.2.0 is a separate follow-up.
+Phase M0 COMPLETE / Windows-tested. Phases M1–M4 COMPLETE / Intel macOS tested.
 
-Windows product version **1.2.0** (from `Directory.Build.props` and the Inno installer). The macOS host overrides version to **1.3.0-beta.1** in `CheckmkDesktopNotifier.App.MacOS.csproj` only.
+Do not start M5 or another feature phase. Allowed later (not now): bug fixes, compatibility, signing/notarization, installer improvements, documentation, security.
 
-Installer SHA-256 (`SHA256SUMS.txt`) is the **1.2.0** installer:
+Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. v1.1.0 tagged (no GitHub Release). Phase 7A COMPLETE / Windows-tested. **v1.2.0 tagged** (historical Windows). **v1.3.0-beta.1 tagged** (historical macOS tester).
+
+Product version **1.3.0**. Historical v1.2.0 installer SHA-256 (`SHA256SUMS.txt`) must remain:
 
 ```
 8B880CB7EE363A135DACECDEF8A90FF6AA806315EA33D5028D327F0D3B8362BB  CheckmkDesktopNotifier-Setup-x64.exe
 ```
+
+v1.3.0 checksums belong in `SHA256SUMS-v1.3.0.txt` after the Windows EXE, macOS DMGs, and tagged source ZIP exist. Do not invent hashes.
 
 ## Git checkpoint
 
@@ -35,9 +39,9 @@ Installer SHA-256 (`SHA256SUMS.txt`) is the **1.2.0** installer:
 - Phase M0: COMPLETE / Windows-tested (platform seams; Windows v1.2.0 behavior frozen).
 - Phase M1: COMPLETE / Intel macOS tested (Avalonia host, Application Support, Keychain, connection/polling). Not a stable macOS product release.
 - Phase M2: COMPLETE / Intel macOS tested (menu-bar status item, problem panel, filters/search, Open in Checkmk, local Seen/Unseen). Not a stable macOS product release.
-- Phase M3: COMPLETE / Intel macOS tested (Take/Release, complete Settings, notifications, sound, Start at Login, single instance). Broader beta still required.
-- Phase M4: COMPLETE / Intel macOS tested (problem panel / Settings / dialog polish, system appearance). Broader beta still required.
-- macOS public tester build: **v1.3.0-beta.1** (unsigned `.app` ZIPs). Not Latest. Not a stable release.
+- Phase M3: COMPLETE / Intel macOS tested (Take/Release, complete Settings, notifications, sound, Start at Login, single instance).
+- Phase M4: COMPLETE / Intel macOS tested (problem panel / Settings / dialog polish, system appearance).
+- macOS public tester: **v1.3.0-beta.1** (historical). Unified product: **v1.3.0**.
 
 ## Phase 1 — complete
 
@@ -419,38 +423,37 @@ Broader beta still required: native notification delivery across real-world usag
 
 **Intel macOS validation: PASSED** (redesigned M4 UI usable). Light-mode polish across different Macs still needs broader beta coverage.
 
-### macOS beta / v1.3.0-beta.1
+### macOS v1.3.0 (unified release)
 
-Public tester pre-release. Intel x64 `.app` ZIP (real-device validated). Apple Silicon arm64 `.app` ZIP (cross-published; not yet real-device validated). Unsigned / not notarized. No DMG/PKG. Do not mark Latest. Do not move `v1.2.0`.
+First normal macOS distribution: `Checkmk Desktop Notifier.app` inside architecture-specific DMGs. Intel x64 real-device validated (M0–M4). Apple Silicon arm64 build/package validated. Unsigned / not notarized. LaunchAgent Start at Login. Secrets in Keychain. Do not move `v1.2.0` or `v1.3.0-beta.1`.
 
 ## Tests
 
-Last automated run (Linux, macOS v1.3.0-beta.1 preparation):
+Last automated run (Linux, v1.3.0 close-out source):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 545 passed, 0 failed
-  Core.Tests:              245 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 546 passed, 0 failed
+  Core.Tests:              246 passed
   Infrastructure.Tests:    228 passed
   Platform.MacOS.Tests:     34 passed
   App.MacOS.Tests:          38 passed
 ```
 
-Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464). Phase M1 added macOS path/URI/Keychain-identifier/isolation tests (487). Phase M2 added menu-bar/filter/startup projection tests (501), then status-item crash-hotfix tests (512). Phase M3/M4 added Take/Settings/notification/sound/login/single-instance, UI, and `.app` bundle tests. v1.3.0-beta.1 packaging/docs tests bring the Linux suite to 545. Linux does not call native Keychain or AppKit.
+Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464). Phase M1 added macOS path/URI/Keychain-identifier/isolation tests (487). Phase M2 added menu-bar/filter/startup projection tests (501), then status-item crash-hotfix tests (512). Phase M3/M4 added Take/Settings/notification/sound/login/single-instance, UI, and `.app` bundle tests. v1.3.0-beta.1 packaging/docs tests brought the Linux suite to 545. v1.3.0 unified-version tests bring it to 546. Linux does not call native Keychain or AppKit.
 
 ## What is NOT implemented
 
 - Authenticode signing / trusted SmartScreen reputation
+- macOS signing / notarization
 - Persistent window position on disk
-- Shared/team Seen (local Seen remains per Windows user)
+- Shared/team Seen (local Seen remains per OS user)
 - Ticketing / Zoho; custom shared backend/database
 - `expire_on` ACK expiry (HTTP 400 on validated RAW 2.4.0p34)
-- GitHub Release for 1.2.0 (follow-up; tag `v1.2.0` exists)
 - Windows Service (out of V1 by decision)
-- Stable macOS product release / signing / notarization / DMG/PKG
-- SMAppService login items (LaunchAgent is used until a signed `.app` exists)
-- Broader macOS beta: notifications, sleep/wake, VPN reconnect, Apple Silicon devices, long-running stability
+- SMAppService login items (LaunchAgent is used)
+- Physical Apple Silicon device validation (arm64 is packaged)
 
 ## Immediate next steps
 
-Phase M3 COMPLETE / Intel macOS tested. Phase M4 COMPLETE / Intel macOS tested. macOS v1.3.0-beta.1 is the public tester pre-release. Do not start new feature work. Do not start a stable macOS release. Do not change Windows v1.2.0. Do not move tag `v1.2.0`. Do not revert CDN Take comments to a multiline format. Collect broader beta coverage (notifications, sleep/wake, VPN, Apple Silicon, signing/notarization, long-running use).
+**v1.3.0 FEATURE COMPLETE / FEATURE FREEZE.** Finish remaining packaging on real machines (Windows Inno installer, macOS `hdiutil` DMGs, smoke tests), then tag `v1.3.0` and publish the GitHub Release. Do not start a new feature phase. Do not move `v1.2.0` or `v1.3.0-beta.1`. Do not revert CDN Take comments to a multiline format.

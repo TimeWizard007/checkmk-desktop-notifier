@@ -2,19 +2,21 @@
 
 **[English](README.md)** | **[Polski](README.pl.md)**
 
-Lekki monitor i powiadamiacz pulpitu dla Checkmk (wydanie Windows + beta macOS).
+Lekki monitor i powiadamiacz pulpitu dla Checkmk (Windows + macOS).
 
 To **niezależny projekt open source**. **Nie jest powiązany z Checkmk GmbH**, nie jest przez nią sponsorowany ani nie jest jej produktem. Nazwa „Checkmk” opisuje wyłącznie system monitoringu, z którym współpracuje ta aplikacja.
 
-Aktualna wersja Windows: **1.2.0** (wydana; zachowanie zamrożone). Tag `v1.2.0` pozostaje bez zmian.
+Aktualna wersja: **1.3.0** — pierwsze wspólne wydanie Windows + macOS. Zamrożenie funkcji w tym cyklu. Zob. [docs/RELEASE_NOTES_1.3.0.md](docs/RELEASE_NOTES_1.3.0.md).
 
-Aktualna wersja macOS: **1.3.0-beta.1** (publiczna wersja testowa / pre-release; to nie jest stabilny produkt macOS). Zob. [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md).
+Historyczne tagi `v1.2.0` i `v1.3.0-beta.1` pozostają bez zmian.
 
 ## Przegląd
 
-Checkmk Desktop Notifier to towarzysz per-user dla Windows 10/11. Odpytuje Checkmk przez REST API, pokazuje bieżące problemy HARD hostów i usług na kompaktowym pasku Always-on-Top i wyświetla powiadomienia pulpitu, gdy otwierają się nowe **lokalne** incydenty.
+Checkmk Desktop Notifier to towarzysz per-user dla **Windows 10/11** i **macOS 12+**. Odpytuje Checkmk przez REST API i pokazuje bieżące problemy HARD hostów i usług.
 
-**Nie zastępuje** interfejsu WWW Checkmk. Stan **Seen** jest lokalny dla tego użytkownika Windows. Opcjonalne **Przejmij** zapisuje w Checkmk trwałe ACK, żeby inni administratorzy widzieli, że problem jest obsługiwany. **Zwolnij** na przejęciu CDN usuwa to ACK w Checkmk. Ręcznego/ogólnego ACK notifier nie usuwa.
+Na Windows używa kompaktowego paska Always-on-Top i zasobnika. Na macOS jest natywną aplikacją **paska menu**. **Nie zastępuje** interfejsu WWW Checkmk.
+
+Stan **Seen** jest lokalny dla tego użytkownika systemu. Opcjonalne **Przejmij** zapisuje w Checkmk trwałe ACK, żeby inni administratorzy widzieli, że problem jest obsługiwany. **Zwolnij** na przejęciu CDN usuwa to ACK w Checkmk. Ręcznego/ogólnego ACK notifier nie usuwa.
 
 ## Zrzuty ekranu
 
@@ -48,15 +50,24 @@ Nazwy hostów i wewnętrzne adresy URL są pominięte albo zastąpione przykład
 - Znacznik ACK Checkmk (zwykłe ACK albo Przejęte przez nazwę wyświetlaną)
 - Znaczniki zaplanowanego przestoju
 - Odpytywanie w tle kolekcji REST usług i hostów
-- Dymki powiadomień Windows i dźwięk alertu
+- Powiadomienia pulpitu i dźwięk alertu (dymki zasobnika Windows; natywne powiadomienia macOS)
 - Dołączony WAV, opcjonalny własny WAV, głośność aplikacji, wyciszenie
 - Grupowanie powiadomień HOST DOWN / UNREACHABLE (tylko powiadomienia)
-- Ikona w zasobniku systemowym (pokaż / ukryj / Ustawienia / O programie / Wycisz / Zakończ)
-- Uruchamianie z systemem Windows (per-user, HKCU Run)
-- Ustawienia w GUI; sekret automatyzacji w Menedżerze poświadczeń Windows
-- Instalator per-user (bez uprawnień Administratora)
+- Ustawienia w GUI; sekret automatyzacji w **Menedżerze poświadczeń Windows** albo **Keychain** na macOS
+- Autostart: Windows HKCU Run albo LaunchAgent użytkownika na macOS, który otwiera `.app`
 - Pojedyncza instancja: drugie uruchomienie aktywuje istniejący proces
+
+**Windows**
+
+- Kompaktowy pasek Always-on-Top i zasobnik (pokaż / ukryj / Ustawienia / O programie / Wycisz / Zakończ)
+- Instalator per-user (bez uprawnień Administratora)
 - Nadal obsługiwany jest przenośny publikowany build win-x64
+
+**macOS**
+
+- Natywny element paska menu z licznikami NEW / CRIT / WARN / UNK / TAKEN na żywo
+- Panel problemów; zamknięcie okna nie kończy aplikacji (użyj Quit)
+- Jednostką dystrybucji jest `Checkmk Desktop Notifier.app` (nie surowy plik wykonywalny)
 
 ## Wymagania
 
@@ -66,10 +77,10 @@ Nazwy hostów i wewnętrzne adresy URL są pominięte albo zastąpione przykład
 - Do instalacji i zwykłego użycia **nie** są potrzebne uprawnienia Administratora
 - Sieciowy dostęp do serwera Checkmk (np. VPN, jeśli tak łączycie się z witryną)
 
-**macOS (beta)**
+**macOS**
 
 - macOS 12 lub nowszy
-- Intel x64 (zweryfikowane na prawdziwym urządzeniu) albo Apple Silicon arm64 (build dostępny; jeszcze nie zweryfikowany na prawdziwym urządzeniu)
+- Intel x64 (zweryfikowane na prawdziwym urządzeniu) albo Apple Silicon arm64 (build dostępny; weryfikacja na fizycznym urządzeniu może trwać po wydaniu)
 - Sieciowy dostęp do serwera Checkmk (np. VPN, jeśli tak łączycie się z witryną)
 
 **Checkmk**
@@ -81,7 +92,7 @@ Nazwy hostów i wewnętrzne adresy URL są pominięte albo zastąpione przykład
 
 ## Instalacja
 
-Zalecane przy zwykłym użytku: instalator per-user `CheckmkDesktopNotifier-Setup-x64.exe` z GitHub Release.
+Zalecane przy zwykłym użytku: instalator per-user `CheckmkDesktopNotifier-Setup-x64-v1.3.0.exe` z GitHub Release.
 
 - Uruchamia się jako **zwykły użytkownik Windows**. Bez UAC / uprawnień Administratora.
 - Instaluje do `%LocalAppData%\Programs\CheckmkDesktopNotifier`
@@ -98,20 +109,23 @@ polecenie: ścieżka do `CheckmkDesktopNotifier.exe` w cudzysłowie
 
 Dla tej opcji nie ma skrótu w folderze Autostart, zadania Harmonogramu zadań ani wpisu HKLM.
 
-Przed uruchomieniem porównaj sumę instalatora z [SHA256SUMS.txt](SHA256SUMS.txt).
+Przed uruchomieniem porównaj sumę instalatora z `SHA256SUMS-v1.3.0.txt` z GitHub Release (plik powstaje razem z binariami v1.3.0). Historyczna suma instalatora v1.2.0 pozostaje w [SHA256SUMS.txt](SHA256SUMS.txt).
 
-## Beta macOS
+## macOS
 
 macOS to towarzysz **paska menu**, który współdzieli Core / Infrastructure z Windows. **Nie** jest klonem pływającego paska Windows.
 
-**Status:** fazy M0–M4 zakończone na Intel macOS. Szersze testy beta nadal są potrzebne (powiadomienia, sen/wybudzenie, ponowne połączenie VPN, urządzenia Apple Silicon, podpisywanie/notaryzacja, długotrwała stabilność). To **nie** jest finalne wydanie macOS.
+**Pobranie** (sumy SHA-256 w `SHA256SUMS-v1.3.0.txt` na GitHub Release):
 
-**Pobranie** (sumy SHA-256 w [SHA256SUMS-macOS-v1.3.0-beta.1.txt](SHA256SUMS-macOS-v1.3.0-beta.1.txt)):
+- Intel: `CheckmkDesktopNotifier-macOS-x64-v1.3.0.dmg`
+- Apple Silicon: `CheckmkDesktopNotifier-macOS-arm64-v1.3.0.dmg`
 
-- Intel: `CheckmkDesktopNotifier-macOS-x64-v1.3.0-beta.1.zip`
-- Apple Silicon: `CheckmkDesktopNotifier-macOS-arm64-v1.3.0-beta.1.zip`
+1. Otwórz DMG.
+2. Przeciągnij `Checkmk Desktop Notifier.app` do Applications.
+3. Wysuń DMG.
+4. Uruchom z Applications.
 
-Każde ZIP zawiera wyłącznie `Checkmk Desktop Notifier.app`. Instrukcje dla testerów: [docs/MACOS_BETA_TESTERS.md](docs/MACOS_BETA_TESTERS.md).
+Jeśli Gatekeeper zablokuje pierwsze uruchomienie: **kliknięcie prawym → Open → Open**. **Nie** wyłączaj Gatekeepera, SIP ani innych zabezpieczeń macOS. Aplikacja jest niepodpisana i nienotaryzowana.
 
 **Zachowanie**
 
@@ -123,18 +137,11 @@ Każde ZIP zawiera wyłącznie `Checkmk Desktop Notifier.app`. Instrukcje dla te
 - Natywne powiadomienia i dźwięk (ta sama polityka co Windows; dostarczanie jest natywne dla macOS)
 - Pojedyncza instancja: drugie uruchomienie aktywuje istniejący proces
 
-**Ograniczenia bety**
-
-- Brak podpisu / notaryzacji; Gatekeeper może wymagać jednorazowego Open. **Nie** wyłączaj globalnie zabezpieczeń macOS
-- Uprawnienia i dostarczanie powiadomień nadal wymagają szerszych testów
-- Apple Silicon opublikowany, ale jeszcze nie zweryfikowany na prawdziwym urządzeniu
-- Brak instalatora DMG/PKG
-- Dopracowanie trybu jasnego może się różnić
-- Sen/wybudzenie, ponowne połączenie VPN i długotrwała stabilność nadal w teście
+Historyczne ZIP-y testerskie (`v1.3.0-beta.1`) pozostają w [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md). Preferuj DMG v1.3.0.
 
 ### Niepodpisany instalator / SmartScreen
 
-Binaria V1 są **niepodpisane**. Windows SmartScreen może pokazać ostrzeżenie o „nieznanym wydawcy”. Oznacza to brak podpisu Authenticode; **samo w sobie nie oznacza**, że plik jest złośliwy. Pobieraj wyłącznie z oficjalnego źródła tego repozytorium i weryfikuj SHA-256 z [SHA256SUMS.txt](SHA256SUMS.txt). **Nie** wyłączaj SmartScreen globalnie.
+Binaria V1 są **niepodpisane**. Windows SmartScreen może pokazać ostrzeżenie o „nieznanym wydawcy”. Oznacza to brak podpisu Authenticode; **samo w sobie nie oznacza**, że plik jest złośliwy. Pobieraj wyłącznie z oficjalnego źródła tego repozytorium i weryfikuj SHA-256 z `SHA256SUMS-v1.3.0.txt` (GitHub Release). **Nie** wyłączaj SmartScreen globalnie.
 
 ## Pierwsze uruchomienie / konfiguracja
 
@@ -284,7 +291,7 @@ Reset konfiguracji usuwa ustawienia GUI i zapisany sekret. **Nie** kasuje plikó
 
 ## Aktualizacja
 
-Uruchom nowszy `CheckmkDesktopNotifier-Setup-x64.exe` na istniejącej instalacji per-user.
+Uruchom nowszy `CheckmkDesktopNotifier-Setup-x64-v1.3.0.exe` na istniejącej instalacji per-user.
 
 - Zastępuje pliki programu w `%LocalAppData%\Programs\CheckmkDesktopNotifier`
 - Zachowuje dane użytkownika w `%LocalAppData%\CheckmkDesktopNotifier`
@@ -346,13 +353,13 @@ powershell -File scripts/build-windows-package.ps1
 Wynik (gitignored):
 
 ```text
-artifacts\CheckmkDesktopNotifier-Setup-x64.exe
+artifacts\CheckmkDesktopNotifier-Setup-x64-v1.3.0.exe
 ```
 
-Skrypt czyta wersję z `Directory.Build.props` (obecnie **1.2.0**) i przekazuje `/DMyAppVersion` do `iscc`. Równoważnie:
+Skrypt czyta wersję z `Directory.Build.props` (obecnie **1.3.0**) i przekazuje `/DMyAppVersion` do `iscc`. Równoważnie:
 
 ```text
-iscc /DMyAppVersion=1.2.0 installer\CheckmkDesktopNotifier.iss
+iscc /DMyAppVersion=1.3.0 installer\CheckmkDesktopNotifier.iss
 ```
 
 SHA-256 zbudowanego instalatora (nie wymyślaj sumy, zanim plik powstanie):
@@ -364,7 +371,7 @@ powershell -File scripts/hash-windows-installer.ps1
 albo:
 
 ```powershell
-Get-FileHash .\artifacts\CheckmkDesktopNotifier-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\artifacts\CheckmkDesktopNotifier-Setup-x64-v1.3.0.exe -Algorithm SHA256
 ```
 
 Sam Inno Setup **nie** jest commitowany. Źródłem jest tylko `installer/CheckmkDesktopNotifier.iss`.
@@ -373,7 +380,7 @@ Sam Inno Setup **nie** jest commitowany. Źródłem jest tylko `installer/Checkm
 
 To **świadome granice V1**, nie przypadkowe braki:
 
-- Windows 10/11 64-bit (wydane v1.2.0) oraz macOS 12+ (beta v1.3.0-beta.1; Intel zweryfikowany)
+- Windows 10/11 64-bit oraz macOS 12+ (Intel x64 i Apple Silicon arm64)
 - Specyficzne dla Checkmk (kolekcje REST opisane w `docs/CHECKMK_API.md`)
 - Lokalne Seen **nie** jest współdzielone między administratorami
 - Opcjonalne Przejmij zapisuje trwałe ACK w Checkmk; **Zwolnij** usuwa tylko przejęcie CDN (nigdy ręcznego/ogólnego ACK)
@@ -391,7 +398,9 @@ To **świadome granice V1**, nie przypadkowe braki:
 
 **1.2.0 (Windows, wydane):** Skonsolidowany workflow zespołowy. Bezpieczne Zwolnij / Untake przejęć CDN (`POST /domain-types/acknowledge/actions/delete/invoke`), ciemne potwierdzenia Przejmij/Zwolnij, stany wiersza zamiast natywnych MessageBox, Checkmk jako źródło prawdy. Fazy 6A, 6B i 7A są COMPLETE / przetestowane na Windows. Zob. [docs/RELEASE_NOTES_1.2.0.md](docs/RELEASE_NOTES_1.2.0.md).
 
-**1.3.0-beta.1 (macOS, pre-release):** Pierwszy publiczny build testerski macOS (Intel x64 zweryfikowany; Apple Silicon opublikowany). Zob. [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md). To nie jest stabilny produkt macOS.
+**1.3.0-beta.1 (macOS, pre-release):** Pierwszy publiczny build testerski macOS. Zob. [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md).
+
+**1.3.0 (FEATURE COMPLETE / FEATURE FREEZE):** Pierwsze wspólne wydanie Windows + macOS. Zachowanie Windows v1.2.0 zachowane; macOS menu-bar `.app` dla Intel x64 i Apple Silicon arm64. Zob. [docs/RELEASE_NOTES_1.3.0.md](docs/RELEASE_NOTES_1.3.0.md). W tym cyklu nie ma kolejnej fazy funkcji.
 
 **Przyszłość / opcjonalnie:**
 

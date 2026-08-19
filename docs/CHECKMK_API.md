@@ -9,6 +9,8 @@ Target environment for verification (sanitized):
 
 Do not invent endpoints. Prefer: (1) live verification, (2) the site’s OpenAPI/Swagger export, (3) general Checkmk docs last.
 
+v1.3.0 did not change the Checkmk REST contract. Windows and macOS share the same Core / Infrastructure client.
+
 The interactive API is Checkmk REST-API **1.0** (OAS3). Collections return domain objects; the list is under **`value`**. Object fields belong in **`extensions`**.
 
 ---

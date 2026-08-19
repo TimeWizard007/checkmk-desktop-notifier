@@ -1,6 +1,6 @@
 # Screenshots
 
-Sanitized Windows 11 captures used in `README.md` / `README.pl.md`. Host names are blurred or omitted; connection fields use example values.
+Sanitized Windows 11 captures used in `README.md` / `README.pl.md`. Host names are blurred or omitted; connection fields use example values. The Windows UI in these captures remains valid for v1.3.0 (v1.2.0 behavior preserved).
 
 | File | Subject | In README |
 |------|---------|-----------|

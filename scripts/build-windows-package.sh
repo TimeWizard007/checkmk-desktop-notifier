@@ -16,10 +16,10 @@ bash "$root/scripts/publish-win-x64.sh"
 mkdir -p "$root/artifacts"
 if command -v iscc >/dev/null 2>&1; then
   iscc "/DMyAppVersion=$version" "$root/installer/CheckmkDesktopNotifier.iss"
-  echo "Installer: $root/artifacts/CheckmkDesktopNotifier-Setup-x64.exe"
+  echo "Installer: $root/artifacts/CheckmkDesktopNotifier-Setup-x64-v${version}.exe"
 else
   echo "Inno Setup compiler (iscc) is not on PATH."
   echo "On Windows, after the publish above, run:"
   echo "  iscc /DMyAppVersion=$version installer\\CheckmkDesktopNotifier.iss"
-  echo "Output: artifacts\\CheckmkDesktopNotifier-Setup-x64.exe"
+  echo "Output: artifacts\\CheckmkDesktopNotifier-Setup-x64-v${version}.exe"
 fi
