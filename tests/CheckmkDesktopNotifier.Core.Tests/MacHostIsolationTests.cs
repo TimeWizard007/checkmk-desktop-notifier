@@ -87,6 +87,26 @@ public sealed class MacHostIsolationTests
         Assert.Contains("ICheckmkProblemNavigator", text, StringComparison.Ordinal);
         Assert.Contains("IMacStatusItem", text, StringComparison.Ordinal);
         Assert.Contains("MacProblemListViewModel", text, StringComparison.Ordinal);
+        Assert.Contains("ITakeService, CheckmkTakeService", text, StringComparison.Ordinal);
+        Assert.Contains("INotificationCoordinator, NotificationCoordinator", text, StringComparison.Ordinal);
+        Assert.Contains("MacAlertSoundService", text, StringComparison.Ordinal);
+        Assert.Contains("MacLaunchAgentAutostartStore", text, StringComparison.Ordinal);
+        Assert.Contains("MacApplicationExecutable", text, StringComparison.Ordinal);
+        Assert.Contains("PostedNotificationService", text, StringComparison.Ordinal);
+        Assert.Contains("MacNotificationFactory.Create", text, StringComparison.Ordinal);
+        Assert.Contains("DisabledMacNotificationService", text, StringComparison.Ordinal);
+        var program = File.ReadAllText(Path.Combine(
+            FindRepoRoot(),
+            "src/CheckmkDesktopNotifier.App.MacOS/Program.cs"));
+        Assert.Contains("MacSingleInstanceLock", program, StringComparison.Ordinal);
+        var notify = File.ReadAllText(Path.Combine(
+            FindRepoRoot(),
+            "src/CheckmkDesktopNotifier.Platform.MacOS/NativeMacNotificationService.cs"));
+        var request = notify.IndexOf("public static bool RequestModernAuthorization", StringComparison.Ordinal);
+        var gate = notify.IndexOf("HasMainBundleIdentifier", request, StringComparison.Ordinal);
+        var call = notify.IndexOf("currentNotificationCenter", request, StringComparison.Ordinal);
+        Assert.True(request >= 0);
+        Assert.True(call > gate);
         Assert.DoesNotContain("WindowsUserDataDirectory", text, StringComparison.Ordinal);
         Assert.DoesNotContain("WindowsCredentialSecretStore", text, StringComparison.Ordinal);
         Assert.DoesNotContain("WindowsShellUriLauncher", text, StringComparison.Ordinal);
@@ -104,6 +124,19 @@ public sealed class MacHostIsolationTests
             .Select(e => e.Value.Trim())
             .FirstOrDefault();
         Assert.Equal("1.2.0", version);
+    }
+
+    [Fact]
+    public void Macos_host_uses_beta_version_without_changing_windows_central_version()
+    {
+        var app = ReadProject("src/CheckmkDesktopNotifier.App.MacOS/CheckmkDesktopNotifier.App.MacOS.csproj");
+        Assert.Contains("<Version>1.3.0-beta.1</Version>", app, StringComparison.Ordinal);
+        Assert.Contains("<InformationalVersion>1.3.0-beta.1</InformationalVersion>", app, StringComparison.Ordinal);
+        var windows = ReadProject("src/CheckmkDesktopNotifier.App/CheckmkDesktopNotifier.App.csproj");
+        Assert.DoesNotContain("1.3.0-beta.1", windows, StringComparison.Ordinal);
+        var installer = File.ReadAllText(Path.Combine(FindRepoRoot(), "installer/CheckmkDesktopNotifier.iss"));
+        Assert.Contains("#define MyAppVersion \"1.2.0\"", installer, StringComparison.Ordinal);
+        Assert.DoesNotContain("1.3.0-beta.1", installer, StringComparison.Ordinal);
     }
 
     private static string ReadProject(string relative)

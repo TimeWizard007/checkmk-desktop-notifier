@@ -1,6 +1,6 @@
 # Architecture
 
-Checkmk Desktop Notifier is a per-user desktop companion for Checkmk. The released Windows product is a WPF host (`CheckmkDesktopNotifier.App`). Phase M1 added an Avalonia macOS host that shares Core and Infrastructure. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems. End-user documentation is `README.md` / `README.pl.md`. This file is the technical architecture. There is **no macOS product release** yet.
+Checkmk Desktop Notifier is a per-user desktop companion for Checkmk. The released Windows product is a WPF host (`CheckmkDesktopNotifier.App`, v1.2.0). The Avalonia macOS host (`CheckmkDesktopNotifier.App.MacOS`, v1.3.0-beta.1) shares Core and Infrastructure. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems. End-user documentation is `README.md` / `README.pl.md`. This file is the technical architecture. macOS is a **public beta**, not a stable product release.
 
 English is the language of source code, identifiers, comments, and commit messages. User-visible UI is localizable (`en`, `pl`).
 
@@ -13,7 +13,7 @@ CheckmkDesktopNotifier.sln
   src/CheckmkDesktopNotifier.Platform.Windows     net8.0-windows (Credential Manager, HKCU Run, shell URI, LocalAppData paths)
   src/CheckmkDesktopNotifier.Platform.MacOS       net8.0 (Application Support, Keychain, /usr/bin/open, NSStatusItem)
   src/CheckmkDesktopNotifier.App                  net8.0-windows WPF (WinExe) — released Windows host; do not rename
-  src/CheckmkDesktopNotifier.App.MacOS            net8.0 Avalonia (WinExe) — macOS host (M1 complete; M2 menu-bar complete / real-macOS tested); not a release
+  src/CheckmkDesktopNotifier.App.MacOS            net8.0 Avalonia (WinExe) — macOS host (M0–M4 COMPLETE / Intel macOS tested); v1.3.0-beta.1 public tester pre-release, not a stable product
   src/CheckmkDesktopNotifier.ConnectionTest       net8.0 console (one-shot service POST or `--hosts` GET)
   tests/CheckmkDesktopNotifier.Core.Tests         xUnit, net8.0
   tests/CheckmkDesktopNotifier.Infrastructure.Tests  xUnit, net8.0
@@ -87,7 +87,7 @@ Core must stay independently testable. Core does not read `%LocalAppData%` or `%
 
 App must not implement NEW / SEEN / RECOVERED itself.
 
-## Platform split (Phase M0 COMPLETE / Windows-tested; Phase M1 COMPLETE / real-macOS tested; Phase M2 COMPLETE / real-macOS tested)
+## Platform split (Phase M0 COMPLETE / Windows-tested; Phases M1–M4 COMPLETE / Intel macOS tested; macOS v1.3.0-beta.1 public tester pre-release)
 
 **Shared**
 
@@ -109,16 +109,21 @@ Windows user-data and install paths are unchanged:
 - data: `%LocalAppData%\CheckmkDesktopNotifier`
 - binaries: `%LocalAppData%\Programs\CheckmkDesktopNotifier`
 
-**macOS (Phase M1 COMPLETE / real-macOS tested; Phase M2 COMPLETE / real-macOS tested — not a release)**
+**macOS (Phases M1–M4 COMPLETE / Intel macOS tested — v1.3.0-beta.1 public tester pre-release, not a stable product)**
 
-- Avalonia host (`CheckmkDesktopNotifier.App.MacOS`) — composition root `MacDesktopHost`
-- Phase M1: connection Settings window, Keychain, shared poller smoke — COMPLETE / real-macOS tested
-- Phase M2 COMPLETE / real-macOS tested: `NSStatusItem` menu-bar counts, problem panel, shared filters/search, local Seen/Unseen, Open in Checkmk. Native IMPs marshal panel show/hide through Avalonia `PostDeferred`. Intel does not query `NSRect` via `objc_msgSend`.
-- `Platform.MacOS`: `MacUserDataDirectory`, `MacKeychainSecretStore` / `SecurityFrameworkKeychain`, `MacOpenUriLauncher` (`/usr/bin/open`), `NativeMacStatusItem`
+- Avalonia host (`CheckmkDesktopNotifier.App.MacOS`) — composition root `MacDesktopHost`; host version override `1.3.0-beta.1`
+- Phase M1: connection Settings window, Keychain, shared poller smoke — COMPLETE / Intel macOS tested
+- Phase M2 COMPLETE / Intel macOS tested: `NSStatusItem` menu-bar counts, problem panel, shared filters/search, local Seen/Unseen, Open in Checkmk. Native IMPs marshal panel show/hide through Avalonia `PostDeferred`. Intel does not query `NSRect` via `objc_msgSend`.
+- Phase M3 COMPLETE / Intel macOS tested: shared Take/Release (`CheckmkTakeService`), complete Settings, `NotificationCoordinator` + native `NSUserNotificationCenter` delivery **only from a `.app` bundle**, `NSSound` via `MacAlertSoundService`, LaunchAgent Start at Login via `/usr/bin/open` of the `.app`, file-lock single instance. `UNUserNotificationCenter.currentNotificationCenter` is gated on `NSBundle.mainBundle.bundleIdentifier`; a raw executable must not call it.
+- Phase M4 COMPLETE / Intel macOS tested: polished panel/Settings/dialogs, system appearance Dark/Light dictionaries
+- `Platform.MacOS`: `MacUserDataDirectory`, `MacKeychainSecretStore` / `SecurityFrameworkKeychain`, `MacOpenUriLauncher` (`/usr/bin/open`), `NativeMacStatusItem`, `NativeMacNotificationService`, `MacAlertSoundPlayer`, `MacLaunchAgentAutostartStore`, `MacSingleInstanceLock`
 - `AvaloniaUiThread` in App.MacOS (not WPF)
-- User data: `~/Library/Application Support/CheckmkDesktopNotifier` (`settings.json`, `state/`, `last-poll.txt`)
+- User data: `~/Library/Application Support/CheckmkDesktopNotifier` (`settings.json`, `preferences.json`, `state/`, `last-poll.txt`)
 - Automation secret: macOS Keychain generic password, service `CheckmkDesktopNotifier`, account = `SecretStoreKeys.AutomationSecret`. No plaintext fallback. No `InMemorySecretStore` in the macOS host.
-- Not in M2: Take/Release UI, UserNotifications, login items, signing/notarization, universal `.app` packaging (Phase M3+)
+- Start at Login: per-user LaunchAgent plist (not HKCU, not SMAppService). SMAppService needs a signed `.app` and is deferred.
+- Distribution: unsigned `Checkmk Desktop Notifier.app` ZIPs for `osx-x64` and `osx-arm64` (see `scripts/build-macos-beta.sh`). Not notarized. No DMG/PKG.
+- Broader beta still required: native notification delivery, permission prompts, sleep/wake, VPN reconnect, Apple Silicon devices, light-mode polish, long-running stability
+- Not yet: signing/notarization, stable macOS product release
 
 `CheckmkGuiUriBuilder` stays shared and unchanged. App.MacOS must not reference WPF, WinForms, Registry, Credential Manager, or the Inno installer.
 

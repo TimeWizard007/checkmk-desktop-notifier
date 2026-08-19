@@ -4,89 +4,163 @@
         x:Class="CheckmkDesktopNotifier.App.MacOS.ProblemPanelWindow"
         x:DataType="vm:MacProblemListViewModel"
         Title="Checkmk Desktop Notifier"
-        Width="420"
-        Height="560"
-        MinWidth="360"
-        MinHeight="420"
+        Width="520"
+        Height="640"
+        MinWidth="420"
+        MinHeight="460"
         CanResize="True"
         ShowInTaskbar="False"
-        SystemDecorations="BorderOnly"
+        SystemDecorations="Full"
         Topmost="True">
-    <DockPanel Margin="12">
-        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-            <TextBlock FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"
+    <DockPanel Margin="14">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
                        Text="Problems" />
-            <TextBlock Margin="10,0,0,0" Opacity="0.75" VerticalAlignment="Center"
+            <TextBlock Margin="10,0,0,0" Classes="muted" VerticalAlignment="Center"
                        Text="{Binding ConnectionLabel}" />
         </DockPanel>
 
-        <Grid DockPanel.Dock="Bottom" Margin="0,10,0,0" ColumnDefinitions="Auto,Auto,*,Auto">
-            <Button Grid.Column="0" Content="Settings" Margin="0,0,6,0"
+        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8"
+                   Foreground="{DynamicResource CdnCrit}"
+                   Text="{Binding ErrorText}"
+                   IsVisible="{Binding HasError}"
+                   TextWrapping="Wrap" />
+
+        <Grid DockPanel.Dock="Bottom" Margin="0,12,0,0" ColumnDefinitions="Auto,Auto,*,Auto">
+            <Button Grid.Column="0" Classes="cdn-secondary" Content="Settings" Margin="0,0,8,0"
                     Command="{Binding OpenSettingsCommand}" />
-            <Button Grid.Column="1" Content="Open Checkmk"
+            <Button Grid.Column="1" Classes="cdn-secondary" Content="Open Checkmk"
                     Command="{Binding OpenSiteCommand}" />
-            <Button Grid.Column="3" Content="Quit"
+            <Button Grid.Column="3" Classes="cdn-secondary" Content="Quit"
                     Command="{Binding QuitCommand}" />
         </Grid>
 
-        <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,8">
-            <StackPanel Orientation="Horizontal" Spacing="4">
-                <ToggleButton Content="ALL" IsChecked="{Binding IsFilterAll, Mode=OneWay}"
+        <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,10">
+            <WrapPanel>
+                <ToggleButton Classes="filter-chip" Margin="0,0,6,6"
+                              Content="{Binding FilterAllLabel}"
+                              IsChecked="{Binding IsFilterAll, Mode=OneWay}"
                               Command="{Binding SelectAllFilterCommand}" />
-                <ToggleButton Content="NEW" IsChecked="{Binding IsFilterNew, Mode=OneWay}"
+                <ToggleButton Classes="filter-chip" Margin="0,0,6,6"
+                              Content="{Binding FilterNewLabel}"
+                              IsChecked="{Binding IsFilterNew, Mode=OneWay}"
                               Command="{Binding SelectNewFilterCommand}" />
-                <ToggleButton Content="CRIT" IsChecked="{Binding IsFilterCritical, Mode=OneWay}"
+                <ToggleButton Classes="filter-chip" Margin="0,0,6,6"
+                              Content="{Binding FilterCriticalLabel}"
+                              IsChecked="{Binding IsFilterCritical, Mode=OneWay}"
                               Command="{Binding SelectCriticalFilterCommand}" />
-                <ToggleButton Content="WARN" IsChecked="{Binding IsFilterWarning, Mode=OneWay}"
+                <ToggleButton Classes="filter-chip" Margin="0,0,6,6"
+                              Content="{Binding FilterWarningLabel}"
+                              IsChecked="{Binding IsFilterWarning, Mode=OneWay}"
                               Command="{Binding SelectWarningFilterCommand}" />
-                <ToggleButton Content="UNK" IsChecked="{Binding IsFilterUnknown, Mode=OneWay}"
+                <ToggleButton Classes="filter-chip" Margin="0,0,6,6"
+                              Content="{Binding FilterUnknownLabel}"
+                              IsChecked="{Binding IsFilterUnknown, Mode=OneWay}"
                               Command="{Binding SelectUnknownFilterCommand}" />
-                <ToggleButton Content="TAKEN" IsChecked="{Binding IsFilterTaken, Mode=OneWay}"
+                <ToggleButton Classes="filter-chip" Margin="0,0,6,6"
+                              Content="{Binding FilterTakenLabel}"
+                              IsChecked="{Binding IsFilterTaken, Mode=OneWay}"
                               Command="{Binding SelectTakenFilterCommand}" />
-            </StackPanel>
+            </WrapPanel>
             <TextBox Watermark="Search host, service, Taken-by"
                      Text="{Binding SearchText}" />
         </StackPanel>
 
         <Panel>
-            <TextBlock Text="{Binding EmptyText}" Opacity="0.7" TextWrapping="Wrap"
+            <TextBlock Text="{Binding EmptyText}" Classes="muted" TextWrapping="Wrap"
                        IsVisible="{Binding HasEmptyText}"
-                       Margin="4,12" />
-            <ListBox ItemsSource="{Binding Rows}" IsVisible="{Binding HasRows}"
-                     Background="Transparent">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:MacProblemRowViewModel">
-                        <Border Padding="8,6" CornerRadius="6" Margin="0,0,0,6">
-                            <StackPanel Spacing="2">
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold"
-                                               Text="{Binding SeverityText}" />
-                                    <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
-                                               Text="{Binding HostName}" />
-                                </DockPanel>
-                                <TextBlock Opacity="0.9" TextTrimming="CharacterEllipsis"
-                                           Text="{Binding ServiceName}" />
-                                <TextBlock Opacity="0.75" FontSize="12" TextWrapping="Wrap"
-                                           Text="{Binding Summary}" />
-                                <DockPanel Margin="0,4,0,0">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock FontSize="12" Text="{Binding SeenLabel}" />
-                                        <TextBlock FontSize="12" Opacity="0.85"
-                                                   Text="{Binding TakeStateText}" />
+                       Margin="4,16" />
+            <ScrollViewer IsVisible="{Binding HasRows}">
+                <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MacProblemRowViewModel">
+                            <Border Classes="cdn-card">
+                                <Grid ColumnDefinitions="6,*">
+                                    <Border Grid.Column="0" CornerRadius="3"
+                                            Background="{DynamicResource CdnCrit}"
+                                            IsVisible="{Binding IsCritical}" />
+                                    <Border Grid.Column="0" CornerRadius="3"
+                                            Background="{DynamicResource CdnWarn}"
+                                            IsVisible="{Binding IsWarning}" />
+                                    <Border Grid.Column="0" CornerRadius="3"
+                                            Background="{DynamicResource CdnUnk}"
+                                            IsVisible="{Binding IsUnknown}" />
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="4">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Classes="badge-crit"
+                                                    IsVisible="{Binding IsCritical}">
+                                                <TextBlock Classes="badge-text" Text="{Binding SeverityText}" />
+                                            </Border>
+                                            <Border DockPanel.Dock="Right" Classes="badge-warn"
+                                                    IsVisible="{Binding IsWarning}">
+                                                <TextBlock Classes="badge-text" Text="{Binding SeverityText}" />
+                                            </Border>
+                                            <Border DockPanel.Dock="Right" Classes="badge-unk"
+                                                    IsVisible="{Binding IsUnknown}">
+                                                <TextBlock Classes="badge-text" Text="{Binding SeverityText}" />
+                                            </Border>
+                                            <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                                       Text="{Binding HostDisplay}" />
+                                        </DockPanel>
+                                        <TextBlock Opacity="0.92" TextTrimming="CharacterEllipsis"
+                                                   Text="{Binding ServiceDisplay}" />
+                                        <TextBlock Classes="muted" FontSize="12" TextWrapping="NoWrap"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Text="{Binding SummaryDisplay}" />
+                                        <WrapPanel Margin="0,6,0,0">
+                                            <Border Classes="badge-new" Margin="0,0,6,4"
+                                                    IsVisible="{Binding IsNew}">
+                                                <TextBlock Classes="badge-text" Text="NEW" />
+                                            </Border>
+                                            <Border Background="{DynamicResource CdnCardBackground}"
+                                                    BorderBrush="{DynamicResource CdnBorder}"
+                                                    BorderThickness="1" CornerRadius="4"
+                                                    Padding="6,2" Margin="0,0,6,4"
+                                                    IsVisible="{Binding IsSeen}">
+                                                <TextBlock FontSize="11" Text="Seen" />
+                                            </Border>
+                                            <Button Classes="badge-taken" Margin="0,0,6,4"
+                                                    Content="{Binding TakeStateText}"
+                                                    Command="{Binding ReleaseCommand}"
+                                                    IsVisible="{Binding CanRelease}"
+                                                    ToolTip.Tip="Release this Checkmk Desktop Notifier take" />
+                                            <Border Classes="badge-taken" Margin="0,0,6,4"
+                                                    IsVisible="{Binding ShowTakenBadge}">
+                                                <TextBlock Classes="badge-text"
+                                                           Text="{Binding TakeStateText}" />
+                                            </Border>
+                                            <Border Classes="badge-ack" Margin="0,0,6,4"
+                                                    IsVisible="{Binding ShowAck}">
+                                                <TextBlock Classes="badge-text" Text="ACK" />
+                                            </Border>
+                                            <TextBlock Classes="muted" FontSize="12" Margin="0,0,6,4"
+                                                       VerticalAlignment="Center"
+                                                       Text="{Binding TakeStateText}"
+                                                       IsVisible="{Binding ShowTaking}" />
+                                            <TextBlock Classes="muted" FontSize="12" Margin="0,0,6,4"
+                                                       VerticalAlignment="Center"
+                                                       Text="{Binding TakeStateText}"
+                                                       IsVisible="{Binding ShowReleasing}" />
+                                        </WrapPanel>
+                                        <WrapPanel>
+                                            <Button Classes="cdn-secondary" Margin="0,0,6,0"
+                                                    Content="{Binding ToggleSeenLabel}"
+                                                    Command="{Binding ToggleSeenCommand}" />
+                                            <Button Classes="cdn-primary" Margin="0,0,6,0"
+                                                    Content="{Binding TakeButtonText}"
+                                                    Command="{Binding TakeCommand}"
+                                                    IsVisible="{Binding ShowTake}" />
+                                            <Button Classes="cdn-secondary"
+                                                    Content="Open in Checkmk"
+                                                    Command="{Binding OpenInCheckmkCommand}" />
+                                        </WrapPanel>
                                     </StackPanel>
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6"
-                                                HorizontalAlignment="Right">
-                                        <Button Content="{Binding ToggleSeenLabel}"
-                                                Command="{Binding ToggleSeenCommand}" />
-                                        <Button Content="Open in Checkmk"
-                                                Command="{Binding OpenInCheckmkCommand}" />
-                                    </StackPanel>
-                                </DockPanel>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Panel>
     </DockPanel>
 </Window>

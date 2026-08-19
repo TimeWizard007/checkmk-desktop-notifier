@@ -79,6 +79,60 @@ public sealed class PackagingTests
             "8B880CB7EE363A135DACECDEF8A90FF6AA806315EA33D5028D327F0D3B8362BB",
             sums,
             StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CheckmkDesktopNotifier-macOS", sums, StringComparison.Ordinal);
+        Assert.DoesNotContain("1.3.0-beta.1", sums, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Macos_beta_release_docs_exist()
+    {
+        var root = FindRepoRoot();
+        foreach (var relative in new[]
+                 {
+                     "docs/RELEASE_NOTES_1.3.0-beta.1.md",
+                     "docs/MACOS_BETA_TESTERS.md",
+                     "scripts/package-macos-app.sh",
+                     "scripts/build-macos-beta.sh"
+                 })
+        {
+            Assert.True(File.Exists(Path.Combine(root, relative)), relative);
+        }
+
+        var notes = File.ReadAllText(Path.Combine(root, "docs/RELEASE_NOTES_1.3.0-beta.1.md"));
+        Assert.Contains("macOS beta", notes, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("1.3.0-beta.1", notes, StringComparison.Ordinal);
+        Assert.DoesNotContain("10.10.20.", notes, StringComparison.Ordinal);
+        var testers = File.ReadAllText(Path.Combine(root, "docs/MACOS_BETA_TESTERS.md"));
+        Assert.Contains("Gatekeeper", testers, StringComparison.Ordinal);
+        Assert.DoesNotContain("10.10.20.", testers, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Macos_beta_checksums_do_not_overwrite_windows_sums()
+    {
+        var root = FindRepoRoot();
+        var windows = File.ReadAllText(Path.Combine(root, "SHA256SUMS.txt"));
+        Assert.Contains(
+            "8B880CB7EE363A135DACECDEF8A90FF6AA806315EA33D5028D327F0D3B8362BB",
+            windows,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CheckmkDesktopNotifier-macOS", windows, StringComparison.Ordinal);
+
+        var macosPath = Path.Combine(root, "SHA256SUMS-macOS-v1.3.0-beta.1.txt");
+        Assert.True(File.Exists(macosPath), "SHA256SUMS-macOS-v1.3.0-beta.1.txt");
+        var macos = File.ReadAllText(macosPath);
+        Assert.Contains("CheckmkDesktopNotifier-macOS-x64-v1.3.0-beta.1.zip", macos, StringComparison.Ordinal);
+        Assert.Contains("CheckmkDesktopNotifier-macOS-arm64-v1.3.0-beta.1.zip", macos, StringComparison.Ordinal);
+        Assert.Contains(
+            "6F019D58BAA33D2561691742C1F645E37F28FAE226FE651339CA25AB7678FD86",
+            macos,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            "6F225EF0E78BECDCEE0CAA2D6BD7FB8813AE475579A4D22ED4660766D57F51BF",
+            macos,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CheckmkDesktopNotifier-Setup-x64.exe", macos, StringComparison.Ordinal);
+        Assert.DoesNotContain("10.10.20.", macos, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -174,7 +228,9 @@ public sealed class PackagingTests
                      "scripts/build-windows-package.sh",
                      "scripts/publish-win-x64.sh",
                      "scripts/hash-windows-installer.ps1",
-                     "scripts/hash-windows-installer.sh"
+                     "scripts/hash-windows-installer.sh",
+                     "scripts/package-macos-app.sh",
+                     "scripts/build-macos-beta.sh"
                  })
         {
             var text = File.ReadAllText(Path.Combine(root, relative));

@@ -1,4 +1,7 @@
 using CheckmkDesktopNotifier.Core.Abstractions;
+using CheckmkDesktopNotifier.Core.Acknowledgements;
+using CheckmkDesktopNotifier.Core.Autostart;
+using CheckmkDesktopNotifier.Core.Domain;
 using CheckmkDesktopNotifier.Core.Navigation;
 using CheckmkDesktopNotifier.Core.Persistence;
 using CheckmkDesktopNotifier.Core.State;
@@ -6,6 +9,7 @@ using CheckmkDesktopNotifier.Core.Storage;
 using CheckmkDesktopNotifier.Core.Threading;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
+using CheckmkDesktopNotifier.Infrastructure.Notifications;
 using CheckmkDesktopNotifier.Infrastructure.Rest;
 using CheckmkDesktopNotifier.Infrastructure.Secrets;
 using CheckmkDesktopNotifier.Platform.MacOS;
@@ -72,11 +76,40 @@ public sealed class MacDesktopHost : IAsyncDisposable
                 services.AddSingleton<IUriLauncher, MacOpenUriLauncher>();
                 services.AddSingleton<IUiThread, AvaloniaUiThread>();
                 services.AddSingleton<MacHostErrorLog>();
+                services.AddSingleton<MacNotificationActivateSink>();
                 services.AddSingleton<IMacStatusItem>(sp =>
                 {
                     MacNativeCallbackGuard.ErrorSink = sp.GetRequiredService<MacHostErrorLog>().Write;
                     return MacStatusItemFactory.Create();
                 });
+                services.AddSingleton<IUserPreferences>(new JsonUserPreferencesStore(paths.PreferencesPath));
+                services.AddSingleton(new TakeSessionState());
+                services.AddSingleton<NotificationSoundStore>();
+                services.AddSingleton<IAlertSoundService, MacAlertSoundService>();
+                services.AddSingleton<INotificationService>(sp =>
+                {
+                    var sink = sp.GetRequiredService<MacNotificationActivateSink>();
+                    INotificationService inner;
+                    try
+                    {
+                        inner = MacNotificationFactory.Create(id => sink.Handler?.Invoke(id));
+                    }
+                    catch (Exception)
+                    {
+                        inner = new DisabledMacNotificationService();
+                    }
+
+                    var ui = sp.GetRequiredService<IUiThread>();
+                    return new PostedNotificationService(ui, new GuardedNotificationService(inner));
+                });
+                services.AddSingleton<INotificationCoordinator, NotificationCoordinator>();
+                services.AddSingleton<IApplicationExecutable, MacApplicationExecutable>();
+                services.AddSingleton<IAutostartStore>(_ => new MacLaunchAgentAutostartStore());
+                services.AddSingleton<AutostartService>();
+                services.AddSingleton(new DelegatingCheckmkAcknowledgementClient(new UnavailableCheckmkAcknowledgementClient()));
+                services.AddSingleton<ICheckmkAcknowledgementClient>(sp =>
+                    sp.GetRequiredService<DelegatingCheckmkAcknowledgementClient>());
+                services.AddSingleton<ITakeService, CheckmkTakeService>();
 
                 IAlertStateStore alertStore = loaded.Identity is not null
                     ? new JsonAlertStateStore(paths.AlertStatePathFor(loaded.Identity), paths.LegacyAlertStatePath)
@@ -129,4 +162,9 @@ public sealed class MacDesktopHost : IAsyncDisposable
         await Host.StopAsync().ConfigureAwait(false);
         Host.Dispose();
     }
+}
+
+public sealed class MacNotificationActivateSink
+{
+    public Action<MonitoredObjectId>? Handler { get; set; }
 }

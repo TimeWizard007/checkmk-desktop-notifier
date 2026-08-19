@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CheckmkDesktopNotifier.App.MacOS"
+        x:Class="CheckmkDesktopNotifier.App.MacOS.MacConfirmWindow"
+        x:DataType="vm:MacConfirmViewModel"
+        Title="{Binding Title}"
+        Width="440"
+        SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Topmost="True">
+    <Border Classes="cdn-dialog">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Classes="cdn-dialog-header">
+                <TextBlock Classes="cdn-dialog-title" Text="{Binding Title}" TextWrapping="Wrap" />
+            </Border>
+            <StackPanel Margin="20,16">
+                <TextBlock Classes="cdn-dialog-body" Text="{Binding Body}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,20,0,0">
+                    <Button Classes="cdn-secondary" MinWidth="96" MinHeight="32"
+                            Content="{Binding Cancel}"
+                            IsVisible="{Binding ShowCancel}"
+                            Command="{Binding DismissCommand}"
+                            IsCancel="True" />
+                    <Button Classes="cdn-primary" MinWidth="96" MinHeight="32"
+                            Content="{Binding Confirm}"
+                            Command="{Binding AcceptCommand}"
+                            IsDefault="True" />
+                </StackPanel>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

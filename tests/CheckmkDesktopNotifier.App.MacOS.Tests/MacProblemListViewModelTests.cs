@@ -23,6 +23,9 @@ public sealed class MacProblemListViewModelTests
 
         vm.SelectCriticalFilterCommand.Execute(null);
         Assert.True(vm.IsFilterCritical);
+        Assert.StartsWith("CRIT ", vm.FilterCriticalLabel, StringComparison.Ordinal);
+        Assert.StartsWith("NEW ", vm.FilterNewLabel, StringComparison.Ordinal);
+        Assert.Equal("ALL", vm.FilterAllLabel);
         Assert.All(vm.Rows, row => Assert.Equal(Severity.Critical, row.Severity));
 
         vm.SelectAllFilterCommand.Execute(null);

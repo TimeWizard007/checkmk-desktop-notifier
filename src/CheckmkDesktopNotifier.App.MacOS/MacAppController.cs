@@ -1,6 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
+using CheckmkDesktopNotifier.Core.Autostart;
+using CheckmkDesktopNotifier.Core.Domain;
 using CheckmkDesktopNotifier.Core.Threading;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
 using CheckmkDesktopNotifier.Platform.MacOS;
@@ -15,6 +18,8 @@ public sealed class MacAppController : IDisposable
     private readonly LoadedConfiguration _loaded;
     private readonly IUiThread _uiThread;
     private readonly MacHostErrorLog _errors;
+    private readonly MacNotificationActivateSink _activate;
+    private readonly AutostartService? _autostart;
     private readonly MacSingleInstanceToggle<ProblemPanelWindow> _panelLifetime = new();
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private MacStatusItemEventRouter? _statusEvents;
@@ -28,7 +33,9 @@ public sealed class MacAppController : IDisposable
         IMacStatusItem statusItem,
         LoadedConfiguration loaded,
         IUiThread uiThread,
-        MacHostErrorLog errors)
+        MacHostErrorLog errors,
+        MacNotificationActivateSink activate,
+        AutostartService? autostart = null)
     {
         _problems = problems ?? throw new ArgumentNullException(nameof(problems));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -36,6 +43,8 @@ public sealed class MacAppController : IDisposable
         _loaded = loaded ?? throw new ArgumentNullException(nameof(loaded));
         _uiThread = uiThread ?? throw new ArgumentNullException(nameof(uiThread));
         _errors = errors ?? throw new ArgumentNullException(nameof(errors));
+        _activate = activate ?? throw new ArgumentNullException(nameof(activate));
+        _autostart = autostart;
     }
 
     public int ProblemPanelCreateCount => _panelLifetime.CreateCount;
@@ -66,10 +75,22 @@ public sealed class MacAppController : IDisposable
             _problems.Reload();
             HideSettings();
         };
-
+        _settings.CloseRequested += (_, _) => HideSettings();
+        _settings.PickWavFile = PickWavAsync;
+        _problems.Confirm = ConfirmAsync;
         _problems.RequestSettings = ShowSettings;
         _problems.RequestOpenSite = () => _settings.OpenCheckmkCommand.Execute(null);
         _problems.RequestQuit = Quit;
+        _activate.Handler = OnNotificationActivated;
+        try
+        {
+            _autostart?.RepairIfRegistered();
+        }
+        catch (Exception)
+        {
+        }
+
+        MacRuntime.SingleInstance?.Listen(() => MarshalFromNative(ShowProblems));
 
         var hidden = new Window
         {
@@ -254,5 +275,48 @@ public sealed class MacAppController : IDisposable
 
         e.Cancel = true;
         HideSettings();
+    }
+
+    private void OnNotificationActivated(MonitoredObjectId id)
+    {
+        MarshalFromNative(() =>
+        {
+            _problems.FocusProblem(id);
+            ShowProblems();
+        });
+    }
+
+    private async Task<bool?> ConfirmAsync(string title, string body, string confirm)
+    {
+        var owner = _panel is { IsVisible: true } ? (Window)_panel : _settingsWindow;
+        var vm = new MacConfirmViewModel(title, body, confirm, MacUiCopy.Cancel);
+        var window = new MacConfirmWindow(vm);
+        if (owner is null)
+        {
+            window.Show();
+            return false;
+        }
+
+        return await window.ShowDialog<bool?>(owner).ConfigureAwait(true);
+    }
+
+    private async Task<string?> PickWavAsync()
+    {
+        if (_settingsWindow is null)
+        {
+            return null;
+        }
+
+        var files = await _settingsWindow.StorageProvider.OpenFilePickerAsync(
+            new FilePickerOpenOptions
+            {
+                Title = "Custom notification sound",
+                AllowMultiple = false,
+                FileTypeFilter =
+                [
+                    new FilePickerFileType("WAV") { Patterns = ["*.wav"] }
+                ]
+            }).ConfigureAwait(true);
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 }

@@ -223,6 +223,18 @@ Keep `CheckmkDesktopNotifier.App` as the Windows WPF host. Add `Platform.MacOS` 
 
 The macOS host is a menu-bar utility, not a clone of the Windows floating compact bar. Counts and the problem panel project shared Core/Infrastructure state (`ProblemListFilterLogic`, `IAlertStateService`, `IProblemPoller`). Left-click the status item to open a compact panel. Native `NSStatusItem` IMPs must not show Avalonia windows inline: marshal through Avalonia `Dispatcher.UIThread` (`PostDeferred`) so the AppKit click returns first. Do not call `objc_msgSend` for `NSRect` on Intel x86_64 (`objc_msgSend_stret` ABI); fall back to a default panel position. Settings remains the M1 connection window. Local Seen/Unseen is in M2; Take/Release UI is deferred to M3. Do not advertise a macOS release.
 
+## Phase M3 — feature parity, shared workflow (COMPLETE / Intel macOS tested)
+
+Reuse Windows-validated Take/Release, notification policy, sound mixing, and autostart *service* on macOS. Do not fork a second Checkmk ACK client. Delivery is AppKit (`NSUserNotificationCenter`, `NSSound`). `UNUserNotificationCenter.currentNotificationCenter` must not run unless the process is a `.app` with a bundle identifier — the Objective-C assertion is fatal and is not containable by C# try/catch. Start at Login is a per-user LaunchAgent that `/usr/bin/open`s the `.app`; do not fake SMAppService success. Single instance is a file lock, not a Windows `Local\` mutex. Do not change Windows behavior. Broader beta still required for notifications, sleep/wake, VPN reconnect, Apple Silicon, and long-running use.
+
+## Phase M4 — macOS UI polish (COMPLETE / Intel macOS tested)
+
+Polish the M3 surface to feel like Checkmk Desktop Notifier while looking native on macOS: dark professional cards, severity colors, in-app Take/Release dialogs, system appearance. Do not change polling, Take/Release, Seen, or notification semantics for appearance. Light-mode polish across different Macs remains a broader beta item.
+
+## macOS beta versioning is host-local (v1.3.0-beta.1)
+
+Do not bump `Directory.Build.props` or the Inno `#define MyAppVersion` for a macOS tester build. Windows v1.2.0 stays released and frozen; tag `v1.2.0` must not move. The Avalonia host overrides `Version` / `InformationalVersion` to `1.3.0-beta.1` (`AssemblyVersion` / `FileVersion` `1.3.0.0`) and the `.app` Info.plist uses the same product version. macOS checksums live in `SHA256SUMS-macOS-v1.3.0-beta.1.txt`, not in the Windows `SHA256SUMS.txt`.
+
 ## Host HTTP method
 
 Until proven otherwise, host monitoring is **GET** `/domain-types/host/collections/all`. Do not invent a host POST.

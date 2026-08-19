@@ -3,44 +3,120 @@
         xmlns:vm="using:CheckmkDesktopNotifier.App.MacOS"
         x:Class="CheckmkDesktopNotifier.App.MacOS.MainWindow"
         x:DataType="vm:MacConnectionViewModel"
-        Title="Checkmk Desktop Notifier"
-        Width="560"
-        Height="640"
-        MinWidth="480"
-        MinHeight="520">
-    <ScrollViewer>
-        <StackPanel Margin="20" Spacing="12">
-            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Settings" />
-            <TextBlock Opacity="0.8" TextWrapping="Wrap"
-                       Text="Checkmk connection. The automation secret is stored in the macOS Keychain." />
+        Title="Settings"
+        Width="620"
+        Height="720"
+        MinWidth="520"
+        MinHeight="560">
+    <DockPanel Margin="18">
+        <TextBlock DockPanel.Dock="Top" FontSize="20" FontWeight="SemiBold" Text="Settings" />
+        <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,4,0,14" TextWrapping="Wrap"
+                   Text="Checkmk Desktop Notifier for macOS. Secrets stay in Keychain." />
 
-            <TextBlock FontWeight="SemiBold" Margin="0,8,0,0" Text="Connection settings" />
-            <TextBox Watermark="Base URL (https://…)" Text="{Binding BaseUrl}"
-                     IsEnabled="{Binding CanInteract}" />
-            <TextBox Watermark="Site" Text="{Binding Site}"
-                     IsEnabled="{Binding CanInteract}" />
-            <TextBox Watermark="Automation user" Text="{Binding Username}"
-                     IsEnabled="{Binding CanInteract}" />
-            <TextBox Watermark="Automation secret" PasswordChar="*" Text="{Binding Secret}"
-                     IsEnabled="{Binding CanInteract}" />
-            <TextBlock Opacity="0.7" TextWrapping="Wrap"
-                       Text="The automation secret is stored in macOS Keychain, never in settings JSON." />
-
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Content="Save" Command="{Binding SaveCommand}"
-                        IsEnabled="{Binding CanInteract}" />
-                <Button Content="Test connection" Command="{Binding TestConnectionCommand}"
-                        IsEnabled="{Binding CanInteract}" />
-                <Button Content="Open Checkmk" Command="{Binding OpenCheckmkCommand}"
-                        IsEnabled="{Binding CanInteract}" />
-            </StackPanel>
-
-            <TextBlock FontWeight="SemiBold" Margin="0,8,0,0" Text="Status" />
-            <TextBlock TextWrapping="Wrap" Text="{Binding StatusText}" />
-
-            <TextBlock FontWeight="SemiBold" Margin="0,8,0,0" Text="Poller" />
-            <TextBlock TextWrapping="Wrap" FontFamily="Menlo, Monaco, Consolas, monospace"
-                       Text="{Binding DiagnosticText}" />
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
+            <ToggleButton Classes="filter-chip" Content="General"
+                          IsChecked="{Binding IsGeneralSection, Mode=OneWay}"
+                          Command="{Binding SelectGeneralCommand}" />
+            <ToggleButton Classes="filter-chip" Content="Connection"
+                          IsChecked="{Binding IsConnectionSection, Mode=OneWay}"
+                          Command="{Binding SelectConnectionCommand}" />
+            <ToggleButton Classes="filter-chip" Content="Notifications"
+                          IsChecked="{Binding IsNotificationsSection, Mode=OneWay}"
+                          Command="{Binding SelectNotificationsCommand}" />
         </StackPanel>
-    </ScrollViewer>
+
+        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="0,16,0,0">
+            <Button Grid.Column="0" Classes="cdn-secondary" Content="Reset configuration"
+                    Command="{Binding ResetCommand}" IsEnabled="{Binding CanInteract}" />
+            <Button Grid.Column="2" Classes="cdn-secondary" Content="Cancel" Margin="0,0,8,0"
+                    Command="{Binding CancelCommand}" IsEnabled="{Binding CanInteract}" />
+            <Button Grid.Column="3" Classes="cdn-secondary" Content="Test connection" Margin="0,0,8,0"
+                    Command="{Binding TestConnectionCommand}" IsEnabled="{Binding CanInteract}" />
+            <Button Grid.Column="4" Classes="cdn-primary" Content="Save"
+                    Command="{Binding SaveCommand}" IsEnabled="{Binding CanInteract}" />
+        </Grid>
+
+        <ScrollViewer>
+            <StackPanel Spacing="12">
+                <StackPanel Spacing="10" IsVisible="{Binding IsGeneralSection}">
+                    <TextBlock FontWeight="SemiBold" Text="Start at Login" />
+                    <CheckBox Content="Open Checkmk Desktop Notifier when I log in"
+                              IsChecked="{Binding StartAtLogin}"
+                              IsEnabled="{Binding CanInteract}" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding LoginItemHint}" />
+                    <TextBlock Foreground="{DynamicResource CdnCrit}" TextWrapping="Wrap"
+                               Text="{Binding AutostartStatusText}"
+                               IsVisible="{Binding HasAutostartStatus}" />
+
+                    <TextBlock FontWeight="SemiBold" Margin="0,8,0,0" Text="Team coordination" />
+                    <CheckBox Content="Enable Take / Acknowledge in Checkmk"
+                              IsChecked="{Binding EnableTake}"
+                              IsEnabled="{Binding CanInteract}" />
+                    <TextBlock Text="Display name" />
+                    <TextBox Watermark="Shown in Checkmk as Taken by …"
+                             Text="{Binding TakeDisplayName}"
+                             IsEnabled="{Binding CanInteract}" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding TeamHint}" />
+                </StackPanel>
+
+                <StackPanel Spacing="10" IsVisible="{Binding IsConnectionSection}">
+                    <TextBlock FontWeight="SemiBold" Text="Checkmk connection" />
+                    <TextBlock Text="Checkmk server URL" />
+                    <TextBox Watermark="https://…" Text="{Binding BaseUrl}"
+                             IsEnabled="{Binding CanInteract}" />
+                    <TextBlock Text="Site" />
+                    <TextBox Watermark="Site" Text="{Binding Site}"
+                             IsEnabled="{Binding CanInteract}" />
+                    <TextBlock Text="Username / Automation user" />
+                    <TextBox Watermark="Automation user" Text="{Binding Username}"
+                             IsEnabled="{Binding CanInteract}" />
+                    <TextBlock Text="Automation secret" />
+                    <TextBox Watermark="Leave blank to keep the stored Keychain secret"
+                             PasswordChar="*" Text="{Binding Secret}"
+                             IsEnabled="{Binding CanInteract}" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap"
+                               Text="The automation secret is stored in macOS Keychain, never in settings JSON, logs, or command-line arguments." />
+                    <TextBlock Text="Polling interval (seconds)" />
+                    <TextBox Watermark="60" Text="{Binding PollIntervalText}"
+                             IsEnabled="{Binding CanInteract}" Width="120" HorizontalAlignment="Left" />
+                    <Button Classes="cdn-secondary" Content="Open Checkmk"
+                            Command="{Binding OpenCheckmkCommand}"
+                            IsEnabled="{Binding CanInteract}" HorizontalAlignment="Left" />
+                    <TextBlock FontWeight="SemiBold" Text="Status" />
+                    <TextBlock TextWrapping="Wrap" Text="{Binding StatusText}" />
+                    <TextBlock FontWeight="SemiBold" Text="Poller" />
+                    <TextBlock TextWrapping="Wrap" FontFamily="Menlo, Monaco, Consolas, monospace"
+                               Classes="muted" Text="{Binding DiagnosticText}" />
+                </StackPanel>
+
+                <StackPanel Spacing="10" IsVisible="{Binding IsNotificationsSection}">
+                    <TextBlock FontWeight="SemiBold" Text="Notifications" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap"
+                               Text="Alerts follow the shared Checkmk Desktop Notifier policy: new HARD problems after the first successful poll, grouped host-down, and no storm on startup or VPN reconnect. Delivery uses macOS notifications. There is no separate notifications-off switch; mute sound matches the Windows application." />
+                    <CheckBox Content="Mute notification sound"
+                              IsChecked="{Binding MuteSound}" />
+                    <TextBlock Text="Volume" />
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Width="48" Text="{Binding VolumePercentText}" />
+                        <Slider Minimum="0" Maximum="100" Value="{Binding VolumePercent}" />
+                    </DockPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="cdn-secondary" Content="Default sound"
+                                Command="{Binding SelectDefaultSoundCommand}" />
+                        <Button Classes="cdn-secondary" Content="Custom WAV"
+                                Command="{Binding ChooseCustomWavCommand}" />
+                        <Button Classes="cdn-secondary" Content="Test sound"
+                                Command="{Binding TestNotificationSoundCommand}" />
+                        <Button Classes="cdn-secondary" Content="Restore default"
+                                Command="{Binding RestoreDefaultSoundCommand}" />
+                    </StackPanel>
+                    <TextBlock Classes="muted" IsVisible="{Binding HasCustomSoundName}"
+                               Text="{Binding CustomSoundDisplayName}" />
+                    <TextBlock Foreground="{DynamicResource CdnCrit}" TextWrapping="Wrap"
+                               Text="{Binding SoundStatusText}"
+                               IsVisible="{Binding HasSoundStatus}" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
 </Window>

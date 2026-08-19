@@ -8,6 +8,10 @@
     <RootNamespace>CheckmkDesktopNotifier.App.MacOS</RootNamespace>
     <AssemblyName>CheckmkDesktopNotifier.MacOS</AssemblyName>
     <ApplicationTitle>Checkmk Desktop Notifier</ApplicationTitle>
+    <Version>1.3.0-beta.1</Version>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
+    <FileVersion>1.3.0.0</FileVersion>
+    <InformationalVersion>1.3.0-beta.1</InformationalVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RuntimeIdentifiers>osx-x64;osx-arm64</RuntimeIdentifiers>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -18,6 +22,10 @@
     <ProjectReference Include="..\CheckmkDesktopNotifier.Core\CheckmkDesktopNotifier.Core.csproj" />
     <ProjectReference Include="..\CheckmkDesktopNotifier.Infrastructure\CheckmkDesktopNotifier.Infrastructure.csproj" />
     <ProjectReference Include="..\CheckmkDesktopNotifier.Platform.MacOS\CheckmkDesktopNotifier.Platform.MacOS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\notifier.wav" />
   </ItemGroup>
 
   <ItemGroup>

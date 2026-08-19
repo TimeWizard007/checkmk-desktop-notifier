@@ -2,11 +2,13 @@
 
 **[English](README.md)** | **[Polski](README.pl.md)**
 
-A lightweight Windows desktop monitor and notifier for Checkmk.
+A lightweight desktop monitor and notifier for Checkmk (Windows release + macOS beta).
 
 This is an **independent open-source project**. It is **not affiliated with Checkmk GmbH**, and is not endorsed by or a product of Checkmk GmbH. “Checkmk” is used only to name the monitoring system this companion talks to.
 
-Current version: **1.2.0** (FEATURE COMPLETE / RELEASE CANDIDATE — Phase 6A Take, Phase 6B Open in Checkmk + Seen/Unseen, and Phase 7A Release / Untake, all COMPLETE / Windows-tested). This is the consolidated public-release candidate. Tag `v1.1.0` is unchanged; a GitHub Release was not published for 1.1.0.
+Current Windows version: **1.2.0** (released; behavior frozen). Tag `v1.2.0` is unchanged.
+
+Current macOS version: **1.3.0-beta.1** (public tester pre-release; not a stable macOS product). See [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md).
 
 ## Overview
 
@@ -64,6 +66,12 @@ Host names and internal URLs are omitted or replaced with examples.
 - No Administrator rights for install or normal use
 - Network path to the Checkmk server (for example a VPN, if that is how you reach the site)
 
+**macOS (beta)**
+
+- macOS 12 or later
+- Intel x64 (real-device validated) or Apple Silicon arm64 (build available; not yet real-device validated)
+- Network path to the Checkmk server (for example a VPN, if that is how you reach the site)
+
 **Checkmk**
 
 - Verified against **Checkmk CRE / RAW 2.4.0p34** REST API 1.0
@@ -91,6 +99,38 @@ command: quoted path to `CheckmkDesktopNotifier.exe`
 There is no Startup-folder shortcut, scheduled task, or HKLM entry for this option.
 
 Verify the installer hash against [SHA256SUMS.txt](SHA256SUMS.txt) before running it.
+
+## macOS Beta
+
+macOS is a **menu-bar** companion that reuses the same Core / Infrastructure as Windows. It is **not** a clone of the Windows compact bar.
+
+**Status:** Phase M0–M4 complete on Intel macOS. Broader beta coverage is still required (notifications, sleep/wake, VPN reconnect, Apple Silicon devices, signing/notarization, long-running use). This is **not** a final macOS release.
+
+**Download** (verify hashes in [SHA256SUMS-macOS-v1.3.0-beta.1.txt](SHA256SUMS-macOS-v1.3.0-beta.1.txt)):
+
+- Intel: `CheckmkDesktopNotifier-macOS-x64-v1.3.0-beta.1.zip`
+- Apple Silicon: `CheckmkDesktopNotifier-macOS-arm64-v1.3.0-beta.1.zip`
+
+Each ZIP contains `Checkmk Desktop Notifier.app` only. Tester steps: [docs/MACOS_BETA_TESTERS.md](docs/MACOS_BETA_TESTERS.md).
+
+**Behavior**
+
+- Menu-bar status item with live NEW / CRIT / WARN / UNK / TAKEN counts
+- Problem panel: filters, search, Seen/Unseen, Take / Taken by / Release, Open in Checkmk
+- Background polling while panels are hidden; Quit is explicit
+- Automation secret in **Keychain** only
+- Start at Login via a per-user LaunchAgent that opens the `.app`
+- Native notifications and sound (policy shared with Windows; delivery is macOS-native)
+- Single instance: a second launch activates the existing process
+
+**Beta limitations**
+
+- Unsigned / not notarized; Gatekeeper may require a one-time Open. Do not disable macOS security globally
+- Notification permission and delivery still under broader testing
+- Apple Silicon published but not yet validated on a real device
+- No DMG/PKG yet
+- Light-mode polish may vary
+- Sleep/wake, VPN reconnect, and long-running stability still under test
 
 ### Unsigned installer / SmartScreen
 
@@ -333,7 +373,7 @@ Inno Setup itself is **not** committed. Only `installer/CheckmkDesktopNotifier.i
 
 These are **intentional V1 boundaries**, not accidental omissions:
 
-- Windows only
+- Windows 10/11 64-bit (released v1.2.0) and macOS 12+ (beta v1.3.0-beta.1; Intel validated)
 - Checkmk-specific (REST collections as documented in `docs/CHECKMK_API.md`)
 - Local Seen is **not** shared between administrators
 - Optional Take writes sticky Checkmk ACK; **Release** removes a CDN Take only (never a generic/manual ACK)
@@ -349,7 +389,9 @@ These are **intentional V1 boundaries**, not accidental omissions:
 
 **1.1.0 (tagged, not published as a GitHub Release):** Team Take / shared sticky Checkmk ACK, Taken by, TAKEN filter/counter, search, ACK-aware notification suppression, Open in Checkmk, reversible local Seen/Unseen. CDN comments are single-line because Checkmk RAW 2.4 truncates multiline ACK comments.
 
-**1.2.0 (FEATURE COMPLETE / RELEASE CANDIDATE):** Consolidated team workflow. Safe Release / Untake of CDN Takes (`POST /domain-types/acknowledge/actions/delete/invoke`), dark Take/Release confirmation, row waiting states instead of native MessageBoxes, Checkmk remaining source of truth. Phase 6A, 6B, and 7A are COMPLETE / Windows-tested. See [docs/RELEASE_NOTES_1.2.0.md](docs/RELEASE_NOTES_1.2.0.md).
+**1.2.0 (Windows released):** Consolidated team workflow. Safe Release / Untake of CDN Takes (`POST /domain-types/acknowledge/actions/delete/invoke`), dark Take/Release confirmation, row waiting states instead of native MessageBoxes, Checkmk remaining source of truth. Phase 6A, 6B, and 7A are COMPLETE / Windows-tested. See [docs/RELEASE_NOTES_1.2.0.md](docs/RELEASE_NOTES_1.2.0.md).
+
+**1.3.0-beta.1 (macOS pre-release):** First public macOS tester build (Intel x64 validated; Apple Silicon published). See [docs/RELEASE_NOTES_1.3.0-beta.1.md](docs/RELEASE_NOTES_1.3.0-beta.1.md). Not a stable macOS product.
 
 **Future / optional:**
 

@@ -4,11 +4,13 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**v1.2.0 RELEASED / Windows frozen.** Phase M0 COMPLETE / Windows-tested. Phase M1 COMPLETE / real-macOS tested. Phase M2 COMPLETE / real-macOS tested (macOS menu-bar + problem panel). Do not change the product version. Do not advertise a macOS release.
+**v1.2.0 RELEASED / Windows frozen.** Tag `v1.2.0` must not move. Windows central version remains **1.2.0**.
+
+**macOS v1.3.0-beta.1** is a public tester pre-release, not a stable macOS product. Phase M0 COMPLETE / Windows-tested. Phase M1 COMPLETE / Intel macOS tested. Phase M2 COMPLETE / Intel macOS tested. Phase M3 COMPLETE / Intel macOS tested. Phase M4 COMPLETE / Intel macOS tested. Broader beta coverage is still required. Do not claim final macOS release readiness.
 
 Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. v1.1.0 tagged (no GitHub Release). Phase 7A COMPLETE / Windows-tested. **v1.2.0 tagged.** GitHub Release for 1.2.0 is a separate follow-up.
 
-Product version **1.2.0** (from `Directory.Build.props`).
+Windows product version **1.2.0** (from `Directory.Build.props` and the Inno installer). The macOS host overrides version to **1.3.0-beta.1** in `CheckmkDesktopNotifier.App.MacOS.csproj` only.
 
 Installer SHA-256 (`SHA256SUMS.txt`) is the **1.2.0** installer:
 
@@ -31,8 +33,11 @@ Installer SHA-256 (`SHA256SUMS.txt`) is the **1.2.0** installer:
 - Phase 6B: COMPLETE / Windows-tested (Open in Checkmk + Seen/Unseen). v1.1.0 tagged.
 - Phase 7A: COMPLETE / Windows-tested (safe Release / Untake). v1.2.0 tagged.
 - Phase M0: COMPLETE / Windows-tested (platform seams; Windows v1.2.0 behavior frozen).
-- Phase M1: COMPLETE / real-macOS tested (Avalonia host, Application Support, Keychain, connection/polling). Not a macOS product release.
-- Phase M2: COMPLETE / real-macOS tested (menu-bar status item, problem panel, filters/search, Open in Checkmk, local Seen/Unseen). Not a macOS product release.
+- Phase M1: COMPLETE / Intel macOS tested (Avalonia host, Application Support, Keychain, connection/polling). Not a stable macOS product release.
+- Phase M2: COMPLETE / Intel macOS tested (menu-bar status item, problem panel, filters/search, Open in Checkmk, local Seen/Unseen). Not a stable macOS product release.
+- Phase M3: COMPLETE / Intel macOS tested (Take/Release, complete Settings, notifications, sound, Start at Login, single instance). Broader beta still required.
+- Phase M4: COMPLETE / Intel macOS tested (problem panel / Settings / dialog polish, system appearance). Broader beta still required.
+- macOS public tester build: **v1.3.0-beta.1** (unsigned `.app` ZIPs). Not Latest. Not a stable release.
 
 ## Phase 1 — complete
 
@@ -391,20 +396,47 @@ Not a macOS product release. Windows v1.2.0 remains frozen.
 
 See `docs/DEVELOPMENT.md` for the Phase M2 real-Mac checklist (A–S).
 
+### Phase M3 — COMPLETE / Intel macOS tested (feature parity)
+
+Not a stable macOS product release. Windows v1.2.0 remains frozen. Reuses shared `CheckmkTakeService`, `NotificationCoordinator`, `NotificationSoundMixer` / `NotificationSoundStore`, `AutostartService`, and `JsonUserPreferencesStore`.
+
+- Take/Release UI on the problem panel using shared eligibility, confirmation, waiting visuals, and Checkmk ACK read-back. Generic ACK is not releasable.
+- Complete Settings: General (Start at Login, Take enable + display name), Connection (URL/site/user/secret/poll interval, Test/Save/Cancel/Reset), Notifications (mute, volume, default/custom WAV, test, restore)
+- Native macOS notification delivery (`NSUserNotificationCenter`) only after a real `.app` bundle identifier is present. `UNUserNotificationCenter.currentNotificationCenter` is never called from a raw executable — that API asserts and kills the process. Policy stays in Core/Infrastructure.
+- macOS `NSSound` playback; no Windows `SoundPlayer`
+- Start at Login via per-user LaunchAgent (`RunAtLoad`). SMAppService / signed `.app` is deferred until packaging.
+- File-lock single instance (not Windows `Local\` mutex). Second start activates the existing instance.
+
+**Intel macOS validation: PASSED** (bundled `.app`, x86_64). Startup without SIGSEGV, native menu-bar, live Checkmk counts, problem panel, filters/search, Seen/Unseen, Open in Checkmk, Take / Taken by / TAKEN / Release, Settings General / Connection / Notifications, Keychain, LaunchAgent Start at Login, single-instance, polling, Quit.
+
+Broader beta still required: native notification delivery across real-world usage, notification permission prompts, sleep/wake, VPN disconnect/reconnect, Apple Silicon devices, signing/notarization, long-running stability.
+
+### Phase M4 — COMPLETE / Intel macOS tested (UI/UX polish)
+
+- Dark professional panel/Settings/dialogs with system appearance (`RequestedThemeVariant=Default`) and readable light-mode dictionaries
+- Compact live menu-bar counts with shortening; redesigned problem cards, filter chips with counts, Take/Release confirmations
+- Escape hides panel/Settings/dialogs; closing those windows does not quit
+
+**Intel macOS validation: PASSED** (redesigned M4 UI usable). Light-mode polish across different Macs still needs broader beta coverage.
+
+### macOS beta / v1.3.0-beta.1
+
+Public tester pre-release. Intel x64 `.app` ZIP (real-device validated). Apple Silicon arm64 `.app` ZIP (cross-published; not yet real-device validated). Unsigned / not notarized. No DMG/PKG. Do not mark Latest. Do not move `v1.2.0`.
+
 ## Tests
 
-Last automated run (Linux, Phase M2 close-out):
+Last automated run (Linux, macOS v1.3.0-beta.1 preparation):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 512 passed, 0 failed
-  Core.Tests:              242 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 545 passed, 0 failed
+  Core.Tests:              245 passed
   Infrastructure.Tests:    228 passed
-  Platform.MacOS.Tests:     23 passed
-  App.MacOS.Tests:          19 passed
+  Platform.MacOS.Tests:     34 passed
+  App.MacOS.Tests:          38 passed
 ```
 
-Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464). Phase M1 added macOS path/URI/Keychain-identifier/isolation tests (487). Phase M2 added menu-bar/filter/startup projection tests (501), then status-item crash-hotfix tests (512). Linux does not call native Keychain or AppKit.
+Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464). Phase M1 added macOS path/URI/Keychain-identifier/isolation tests (487). Phase M2 added menu-bar/filter/startup projection tests (501), then status-item crash-hotfix tests (512). Phase M3/M4 added Take/Settings/notification/sound/login/single-instance, UI, and `.app` bundle tests. v1.3.0-beta.1 packaging/docs tests bring the Linux suite to 545. Linux does not call native Keychain or AppKit.
 
 ## What is NOT implemented
 
@@ -415,9 +447,10 @@ Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 clos
 - `expire_on` ACK expiry (HTTP 400 on validated RAW 2.4.0p34)
 - GitHub Release for 1.2.0 (follow-up; tag `v1.2.0` exists)
 - Windows Service (out of V1 by decision)
-- macOS product release / UserNotifications / login items / signing / notarization
-- macOS Take/Release UI, complete Settings, native notifications, Start at Login (Phase M3)
+- Stable macOS product release / signing / notarization / DMG/PKG
+- SMAppService login items (LaunchAgent is used until a signed `.app` exists)
+- Broader macOS beta: notifications, sleep/wake, VPN reconnect, Apple Silicon devices, long-running stability
 
 ## Immediate next steps
 
-Phase M2 COMPLETE / real-macOS tested. Next: Phase M3 feature parity, then Phase M4 UI polish. Do not change the Windows product version. Do not revert CDN Take comments to a multiline format. Do not ship a macOS release from M2.
+Phase M3 COMPLETE / Intel macOS tested. Phase M4 COMPLETE / Intel macOS tested. macOS v1.3.0-beta.1 is the public tester pre-release. Do not start new feature work. Do not start a stable macOS release. Do not change Windows v1.2.0. Do not move tag `v1.2.0`. Do not revert CDN Take comments to a multiline format. Collect broader beta coverage (notifications, sleep/wake, VPN, Apple Silicon, signing/notarization, long-running use).

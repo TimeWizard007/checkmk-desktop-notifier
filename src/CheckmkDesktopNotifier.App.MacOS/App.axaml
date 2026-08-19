@@ -2,7 +2,150 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="CheckmkDesktopNotifier.App.MacOS.App"
              RequestedThemeVariant="Default">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="CdnPanelBackground">#1B1F24</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnCardBackground">#242A32</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnBorder">#3A424C</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnText">#F2F4F7</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnMuted">#A8B0BA</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnAccent">#3D8BFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnCrit">#E24B4B</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnWarn">#E0A100</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnUnk">#8B7CFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnNew">#3D8BFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnTaken">#2FA37A</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnAck">#7A8490</SolidColorBrush>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="CdnPanelBackground">#F4F6F8</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnCardBackground">#FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnBorder">#D5DCE3</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnText">#1B1F24</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnMuted">#5C6670</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnAccent">#0B63D6</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnCrit">#C62828</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnWarn">#B45309</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnUnk">#5B4DB8</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnNew">#0B63D6</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnTaken">#1F7A5C</SolidColorBrush>
+                    <SolidColorBrush x:Key="CdnAck">#5C6670</SolidColorBrush>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
     <Application.Styles>
         <FluentTheme />
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource CdnPanelBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource CdnText}" />
+            <Setter Property="FontFamily" Value="Inter, -apple-system, BlinkMacSystemFont, Helvetica Neue, Segoe UI" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource CdnText}" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="MinHeight" Value="32" />
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="12,6" />
+        </Style>
+        <Style Selector="Button.cdn-primary">
+            <Setter Property="Background" Value="{DynamicResource CdnAccent}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.cdn-secondary">
+            <Setter Property="Background" Value="{DynamicResource CdnCardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CdnBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="ToggleButton.filter-chip">
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CdnBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="ToggleButton.filter-chip:checked">
+            <Setter Property="Background" Value="{DynamicResource CdnAccent}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Border.cdn-card">
+            <Setter Property="Background" Value="{DynamicResource CdnCardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CdnBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        <Style Selector="Border.cdn-dialog">
+            <Setter Property="Background" Value="{DynamicResource CdnPanelBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CdnBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Border.cdn-dialog-header">
+            <Setter Property="Background" Value="{DynamicResource CdnCardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CdnBorder}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="16,12" />
+        </Style>
+        <Style Selector="TextBlock.cdn-dialog-title">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.cdn-dialog-body">
+            <Setter Property="Foreground" Value="{DynamicResource CdnMuted}" />
+            <Setter Property="LineHeight" Value="20" />
+        </Style>
+        <Style Selector="Border.badge-new">
+            <Setter Property="Background" Value="{DynamicResource CdnNew}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+        <Style Selector="Button.badge-taken">
+            <Setter Property="Background" Value="{DynamicResource CdnTaken}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="MinHeight" Value="24" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Border.badge-taken">
+            <Setter Property="Background" Value="{DynamicResource CdnTaken}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+        <Style Selector="Border.badge-ack">
+            <Setter Property="Background" Value="{DynamicResource CdnAck}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+        <Style Selector="Border.badge-crit">
+            <Setter Property="Background" Value="{DynamicResource CdnCrit}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+        <Style Selector="Border.badge-warn">
+            <Setter Property="Background" Value="{DynamicResource CdnWarn}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+        <Style Selector="Border.badge-unk">
+            <Setter Property="Background" Value="{DynamicResource CdnUnk}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+        <Style Selector="TextBlock.badge-text">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="{DynamicResource CdnMuted}" />
+        </Style>
     </Application.Styles>
 </Application>

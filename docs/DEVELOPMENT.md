@@ -5,7 +5,7 @@
 - .NET 8 SDK
 - For **running** the WPF app: Windows 10/11
 - Linux can **build** Core, Infrastructure, Platform.MacOS, App.MacOS, tests, ConnectionTest, and (with Windows targeting) the WPF project
-- Running the Avalonia macOS host requires macOS (Keychain). There is no macOS product release yet.
+- Running the Avalonia macOS host requires macOS (Keychain). v1.3.0-beta.1 is a public tester pre-release, not a stable macOS product.
 - No Administrator privileges required for build, test, or running the per-user Windows app
 
 ## Repository structure
@@ -25,7 +25,7 @@ checkmk-desktop-notifier/
   src/CheckmkDesktopNotifier.Platform.Windows/
   src/CheckmkDesktopNotifier.Platform.MacOS/
   src/CheckmkDesktopNotifier.App/              ← released Windows WPF host; do not rename
-  src/CheckmkDesktopNotifier.App.MacOS/        ← Avalonia macOS host (M1 complete; M2 complete / real-macOS tested); not a release
+  src/CheckmkDesktopNotifier.App.MacOS/        ← Avalonia macOS host (M0–M4 COMPLETE / Intel macOS tested); v1.3.0-beta.1 public tester pre-release
   src/CheckmkDesktopNotifier.ConnectionTest/
   tests/CheckmkDesktopNotifier.Core.Tests/
   tests/CheckmkDesktopNotifier.Infrastructure.Tests/
@@ -695,6 +695,79 @@ D failed on the first pass (left-click SIGSEGV: *Aplikacja Avalonia Application 
 | R | Settings remains accessible | PASS |
 | S | Quit exits cleanly | PASS |
 
+## Phase M3 — macOS feature parity (COMPLETE / Intel macOS tested)
+
+Not a stable macOS product release. Reuses shared Take/Release (`CheckmkTakeService`), notification *policy* (`NotificationCoordinator`), sound mixer/store, preferences JSON, and `AutostartService`. Windows behavior is unchanged.
+
+Implemented and Intel-validated:
+
+- Take confirmation, `Taking...`, Checkmk ACK read-back, Taken by, TAKEN filter/counter
+- Generic ACK is visible and not releasable; notifier-created Taken badge is the Release action
+- Release confirmation, `Releasing...`, read-back restores Take; failures use in-panel error text (no success dialogs)
+- Settings General / Connection / Notifications (Start at Login, Take enable + display name, connection fields, Keychain secret, mute/volume/custom WAV/test/restore)
+- Native macOS notifications from the `.app` bundle only. `UNUserNotificationCenter.currentNotificationCenter` is **not** called unless `NSBundle.mainBundle.bundleIdentifier` is present (a raw `CheckmkDesktopNotifier.MacOS` executable asserts and SIGSEGVs). Unbundled startup keeps menu-bar, polling, Settings, Take/Release, and sound; notification delivery is disabled. Click still focuses host/service when delivery works.
+- `NSSound` playback of the mixed WAV; default bundled `Assets/notifier.wav`
+- Start at Login writes `~/Library/LaunchAgents/com.timewizard.checkmkdesktopnotifier.plist` with `RunAtLoad`. When running from the `.app`, the agent launches that bundle with `/usr/bin/open`. SMAppService is not faked.
+- File-lock single instance under Application Support. Second start pings `instance.activate` and exits.
+- Testable layout: `Checkmk Desktop Notifier.app/Contents/{MacOS,Resources,Info.plist}` with `CFBundleIdentifier` `com.timewizard.checkmkdesktopnotifier`
+
+Broader beta still required: native notification delivery across real-world usage, notification permission prompts, sleep/wake, VPN disconnect/reconnect, Apple Silicon devices, signing/notarization, long-running stability.
+
+## Phase M4 — macOS UI polish (COMPLETE / Intel macOS tested)
+
+- Dark professional cards, severity colors, filter chips with counts, ellipsized host/service/summary
+- Dark in-app Take/Release confirmations (not native white MessageBoxes)
+- Settings section chips matching Windows tab quality
+- System appearance (`RequestedThemeVariant=Default`) with Dark and Light dictionaries
+- Escape hides panel, Settings, and confirmations; closing those windows does not quit
+
+**Real Mac validation (Phase M3/M4) — PASSED on Intel macOS (bundled `.app`, x86_64)**
+
+| | Check | Result |
+| --- | --- | --- |
+| A | Configured start without unnecessary Settings | PASS |
+| B | Native menu-bar status item with live counts | PASS |
+| C | Left-click opens polished problem panel | PASS |
+| D | Filters ALL/NEW/CRIT/WARN/UNK/TAKEN | PASS |
+| E | Search host / service / Taken-by | PASS |
+| F | Seen/Unseen remains local | PASS |
+| G | Take confirm → Taking... → Taken by after read-back | PASS |
+| H | Generic ACK is not releasable | PASS (Take/Release Intel path) |
+| I | Release confirm → Releasing... → Take available | PASS |
+| J | Take/Release failures show in-app error, no crash | PASS (happy path Intel; broader failure coverage still beta) |
+| K | Settings General / Connection / Notifications | PASS |
+| L | Blank secret preserves Keychain; secret absent from JSON | PASS |
+| M | Test connection | PASS |
+| N | Start at Login enable/disable reflects LaunchAgent | PASS |
+| O | Mute / volume / test sound / restore default / custom WAV | PASS |
+| P | Native notifications (if permission granted); no startup storm | broader beta |
+| Q | Notification click opens/focuses the problem | broader beta |
+| R | Second launch activates existing instance (no duplicate icon) | PASS |
+| S | Escape/close hide panel/Settings; polling continues; Quit exits | PASS |
+| T | Light/dark follows system appearance and stays readable | Intel usable; light-mode polish across Macs still broader beta |
+| U | VPN disconnect/reconnect (if time) | broader beta |
+| V | Sleep/wake | broader beta |
+| W | Apple Silicon real device | not yet validated (arm64 ZIP published) |
+| X | Long-running stability | broader beta |
+
+## macOS — self-contained osx-x64 / osx-arm64 publish (beta)
+
+From the repository root:
+
+```bash
+scripts/build-macos-beta.sh osx-x64
+scripts/build-macos-beta.sh osx-arm64
+```
+
+Each run publishes, wraps `Checkmk Desktop Notifier.app`, and writes a ZIP under gitignored `artifacts/`:
+
+- `CheckmkDesktopNotifier-macOS-x64-v1.3.0-beta.1.zip`
+- `CheckmkDesktopNotifier-macOS-arm64-v1.3.0-beta.1.zip`
+
+Do not distribute raw `publish/` folders. SHA-256 for the ZIPs lives in `SHA256SUMS-macOS-v1.3.0-beta.1.txt` (do not overwrite Windows `SHA256SUMS.txt`). Tester notes: `docs/MACOS_BETA_TESTERS.md`.
+
+The Windows installer remains v1.2.0. The macOS host version override is `1.3.0-beta.1`.
+
 ## Windows — self-contained win-x64 publish
 
 No admin required. From the repository root:
@@ -755,4 +828,4 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not call Checkmk ACK from the eye button.
 - Take is a separate command. It must not mark Seen.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is RELEASED / Windows frozen. Phase M0 is COMPLETE / Windows-tested. Phase M1 is COMPLETE / real-macOS tested. Phase M2 is COMPLETE / real-macOS tested. Do not convert the WPF app to Avalonia. Do not revert CDN Take comments to a multiline format.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is RELEASED / Windows frozen. Phase M0 is COMPLETE / Windows-tested. Phases M1–M4 are COMPLETE / Intel macOS tested. macOS v1.3.0-beta.1 is a public tester pre-release, not a stable product. Do not convert the WPF app to Avalonia. Do not revert CDN Take comments to a multiline format. Do not move tag `v1.2.0`.

@@ -143,13 +143,15 @@ Phase 6B delivered:
 
 **Phase M2 COMPLETE / real-macOS tested.** macOS menu-bar status item and problem panel, reusing shared filter/poller state. Intel left-click crash (`objc_msgSend`/`NSRect`) was hotfixed and retested. Not a macOS product release.
 
-**Phase M3 (next):** feature parity — Take/Release, complete Settings, native notifications, sound, Start at Login, single instance.
+**Phase M3 COMPLETE / Intel macOS tested:** feature parity — Take/Release, complete Settings, native notifications from a `.app` bundle, sound, Start at Login via LaunchAgent `/usr/bin/open`, single instance. Shared Core/Infrastructure reused. Raw-executable `UNUserNotificationCenter` startup crash is treated as a packaging/init bug, not a C# try/catch. Broader beta still required (notifications, sleep/wake, VPN reconnect, Apple Silicon, signing/notarization, long-running use).
 
-**Phase M4 (after M3):** macOS UI/UX polish.
+**Phase M4 COMPLETE / Intel macOS tested:** macOS UI/UX polish of the M3 surface. Light-mode polish across different Macs still needs broader beta coverage.
 
-**Future / optional (after M4):**
+**v1.3.0-beta.1 (macOS public tester pre-release):** first macOS `.app` ZIPs for Intel x64 (real-device validated) and Apple Silicon arm64 (published, not yet real-device validated). Not a stable macOS product. Windows v1.2.0 is unchanged.
 
-- macOS signing/notarization / `.app` packaging
+**Future / optional (after broader macOS beta):**
+
+- macOS signing/notarization / DMG/PKG / stable product release
 - Ticket workflow
 - Zoho Desk integration
 
