@@ -219,6 +219,10 @@ Keep the released WPF app. Extract Windows-only I/O (Credential Manager, HKCU Ru
 
 Keep `CheckmkDesktopNotifier.App` as the Windows WPF host. Add `Platform.MacOS` and `App.MacOS` without converting WPF. Reuse Core + Infrastructure (client, poller, coordinator, settings, connection tester). macOS secrets go to Keychain only (no plaintext fallback, no `InMemorySecretStore` in the macOS composition root). User data lives under `~/Library/Application Support/CheckmkDesktopNotifier`. M1 UI is a minimal connection window, not the final menu-bar product. Do not advertise a macOS release.
 
+## Phase M2 — macOS menu-bar companion, shared problem list (COMPLETE / real-macOS tested)
+
+The macOS host is a menu-bar utility, not a clone of the Windows floating compact bar. Counts and the problem panel project shared Core/Infrastructure state (`ProblemListFilterLogic`, `IAlertStateService`, `IProblemPoller`). Left-click the status item to open a compact panel. Native `NSStatusItem` IMPs must not show Avalonia windows inline: marshal through Avalonia `Dispatcher.UIThread` (`PostDeferred`) so the AppKit click returns first. Do not call `objc_msgSend` for `NSRect` on Intel x86_64 (`objc_msgSend_stret` ABI); fall back to a default panel position. Settings remains the M1 connection window. Local Seen/Unseen is in M2; Take/Release UI is deferred to M3. Do not advertise a macOS release.
+
 ## Host HTTP method
 
 Until proven otherwise, host monitoring is **GET** `/domain-types/host/collections/all`. Do not invent a host POST.

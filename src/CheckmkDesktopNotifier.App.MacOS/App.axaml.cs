@@ -3,7 +3,6 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
-using CheckmkDesktopNotifier.Infrastructure.Rest;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CheckmkDesktopNotifier.App.MacOS;
@@ -11,6 +10,7 @@ namespace CheckmkDesktopNotifier.App.MacOS;
 public partial class App : Application
 {
     private MacDesktopHost? _host;
+    private MacAppController? _controller;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
@@ -19,29 +19,24 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             _host = MacDesktopHost.Create();
-            var viewModel = _host.Services.GetRequiredService<MacConnectionViewModel>();
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = viewModel
-            };
+            _controller = _host.Services.GetRequiredService<MacAppController>();
             desktop.ShutdownRequested += OnShutdownRequested;
 
             var loaded = _host.Services.GetRequiredService<LoadedConfiguration>();
-            if (loaded.IsUsableReal)
+            if (MacStartupPolicy.StartPollingOnStartup(loaded.IsUsableReal))
             {
                 var coordinator = _host.Services.GetRequiredService<IMonitoringCoordinator>();
                 try
                 {
                     await coordinator.ApplyAsync(loaded.Options).ConfigureAwait(true);
                 }
-                catch (Exception ex) when (ex is CheckmkOptionsValidationException or InvalidOperationException or IOException)
+                catch (Exception)
                 {
-                    viewModel.SetStatus(ConnectionTestResult.Sanitize(ex.Message));
                 }
             }
 
             await _host.StartAsync().ConfigureAwait(true);
-            viewModel.StartListening();
+            _controller.Attach(desktop);
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -49,6 +44,8 @@ public partial class App : Application
 
     private async void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
     {
+        _controller?.Dispose();
+        _controller = null;
         if (_host is not null)
         {
             await _host.StopAsync().ConfigureAwait(true);

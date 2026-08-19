@@ -141,9 +141,15 @@ Phase 6B delivered:
 - ACK metadata refreshes on every successful snapshot (Taken must clear when `acknowledged = 0`)
 - Successful Take/Release uses row waiting states (`Taking...` / `Releasing...`); no native Windows MessageBox
 
-**Future / optional (Phase M2+):**
+**Phase M2 COMPLETE / real-macOS tested.** macOS menu-bar status item and problem panel, reusing shared filter/poller state. Intel left-click crash (`objc_msgSend`/`NSRect`) was hotfixed and retested. Not a macOS product release.
 
-- macOS menu-bar app, problem panel, notifications, login items, signing (Phase M2+)
+**Phase M3 (next):** feature parity — Take/Release, complete Settings, native notifications, sound, Start at Login, single instance.
+
+**Phase M4 (after M3):** macOS UI/UX polish.
+
+**Future / optional (after M4):**
+
+- macOS signing/notarization / `.app` packaging
 - Ticket workflow
 - Zoho Desk integration
 

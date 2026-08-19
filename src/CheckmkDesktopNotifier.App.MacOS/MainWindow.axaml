@@ -10,9 +10,9 @@
         MinHeight="520">
     <ScrollViewer>
         <StackPanel Margin="20" Spacing="12">
-            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Checkmk Desktop Notifier" />
+            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Settings" />
             <TextBlock Opacity="0.8" TextWrapping="Wrap"
-                       Text="macOS host (Phase M1). Connection and shared polling only — not a product release." />
+                       Text="Checkmk connection. The automation secret is stored in the macOS Keychain." />
 
             <TextBlock FontWeight="SemiBold" Margin="0,8,0,0" Text="Connection settings" />
             <TextBox Watermark="Base URL (https://…)" Text="{Binding BaseUrl}"

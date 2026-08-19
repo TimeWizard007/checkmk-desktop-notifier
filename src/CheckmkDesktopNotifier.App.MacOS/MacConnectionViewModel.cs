@@ -80,6 +80,8 @@ public sealed partial class MacConnectionViewModel : ObservableObject
     [ObservableProperty]
     private string _diagnosticText = string.Empty;
 
+    public event EventHandler? Saved;
+
     public bool CanInteract => !IsBusy;
 
     public void StartListening()
@@ -129,6 +131,7 @@ public sealed partial class MacConnectionViewModel : ObservableObject
             StatusText = "Connected";
             Secret = string.Empty;
             RefreshDiagnostic();
+            Saved?.Invoke(this, EventArgs.Empty);
         }
         catch (PlatformNotSupportedException)
         {

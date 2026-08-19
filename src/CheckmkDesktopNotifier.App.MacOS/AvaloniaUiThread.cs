@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Threading;
 using CheckmkDesktopNotifier.Core.Threading;
 
@@ -51,5 +50,22 @@ public sealed class AvaloniaUiThread : IUiThread
         }
 
         dispatcher.Post(action);
+    }
+
+    /// <summary>
+    /// Always queues, even when already on the Avalonia UI thread. Status-item
+    /// IMPs must return before any Avalonia window is shown.
+    /// </summary>
+    public void PostDeferred(Action action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        var dispatcher = _dispatcher();
+        if (dispatcher is null)
+        {
+            action();
+            return;
+        }
+
+        dispatcher.Post(action, DispatcherPriority.Background);
     }
 }

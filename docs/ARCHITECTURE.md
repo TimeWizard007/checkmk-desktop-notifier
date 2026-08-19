@@ -11,13 +11,14 @@ CheckmkDesktopNotifier.sln
   src/CheckmkDesktopNotifier.Core                 net8.0 class library
   src/CheckmkDesktopNotifier.Infrastructure       net8.0 class library (Checkmk REST, polling, settings)
   src/CheckmkDesktopNotifier.Platform.Windows     net8.0-windows (Credential Manager, HKCU Run, shell URI, LocalAppData paths)
-  src/CheckmkDesktopNotifier.Platform.MacOS       net8.0 (Application Support paths, Keychain, /usr/bin/open)
+  src/CheckmkDesktopNotifier.Platform.MacOS       net8.0 (Application Support, Keychain, /usr/bin/open, NSStatusItem)
   src/CheckmkDesktopNotifier.App                  net8.0-windows WPF (WinExe) — released Windows host; do not rename
-  src/CheckmkDesktopNotifier.App.MacOS            net8.0 Avalonia (WinExe) — Phase M1 macOS host (COMPLETE / real-macOS tested); not a release
+  src/CheckmkDesktopNotifier.App.MacOS            net8.0 Avalonia (WinExe) — macOS host (M1 complete; M2 menu-bar complete / real-macOS tested); not a release
   src/CheckmkDesktopNotifier.ConnectionTest       net8.0 console (one-shot service POST or `--hosts` GET)
   tests/CheckmkDesktopNotifier.Core.Tests         xUnit, net8.0
   tests/CheckmkDesktopNotifier.Infrastructure.Tests  xUnit, net8.0
-  tests/CheckmkDesktopNotifier.Platform.MacOS.Tests  xUnit, net8.0 (no real Keychain)
+  tests/CheckmkDesktopNotifier.Platform.MacOS.Tests  xUnit, net8.0 (no real Keychain / AppKit)
+  tests/CheckmkDesktopNotifier.App.MacOS.Tests    xUnit, net8.0 (menu-bar/filter/startup projection)
 ```
 
 Core has no WPF, no Avalonia, no `HttpClient`, and no Checkmk JSON envelope types.
@@ -86,7 +87,7 @@ Core must stay independently testable. Core does not read `%LocalAppData%` or `%
 
 App must not implement NEW / SEEN / RECOVERED itself.
 
-## Platform split (Phase M0 COMPLETE / Windows-tested; Phase M1 COMPLETE / real-macOS tested)
+## Platform split (Phase M0 COMPLETE / Windows-tested; Phase M1 COMPLETE / real-macOS tested; Phase M2 COMPLETE / real-macOS tested)
 
 **Shared**
 
@@ -108,14 +109,16 @@ Windows user-data and install paths are unchanged:
 - data: `%LocalAppData%\CheckmkDesktopNotifier`
 - binaries: `%LocalAppData%\Programs\CheckmkDesktopNotifier`
 
-**macOS (Phase M1 COMPLETE / real-macOS tested — not a release)**
+**macOS (Phase M1 COMPLETE / real-macOS tested; Phase M2 COMPLETE / real-macOS tested — not a release)**
 
-- Avalonia host (`CheckmkDesktopNotifier.App.MacOS`) — composition root `MacDesktopHost`, minimal connection window (not the final menu-bar app)
-- `Platform.MacOS`: `MacUserDataDirectory`, `MacKeychainSecretStore` / `SecurityFrameworkKeychain`, `MacOpenUriLauncher` (`/usr/bin/open`)
+- Avalonia host (`CheckmkDesktopNotifier.App.MacOS`) — composition root `MacDesktopHost`
+- Phase M1: connection Settings window, Keychain, shared poller smoke — COMPLETE / real-macOS tested
+- Phase M2 COMPLETE / real-macOS tested: `NSStatusItem` menu-bar counts, problem panel, shared filters/search, local Seen/Unseen, Open in Checkmk. Native IMPs marshal panel show/hide through Avalonia `PostDeferred`. Intel does not query `NSRect` via `objc_msgSend`.
+- `Platform.MacOS`: `MacUserDataDirectory`, `MacKeychainSecretStore` / `SecurityFrameworkKeychain`, `MacOpenUriLauncher` (`/usr/bin/open`), `NativeMacStatusItem`
 - `AvaloniaUiThread` in App.MacOS (not WPF)
 - User data: `~/Library/Application Support/CheckmkDesktopNotifier` (`settings.json`, `state/`, `last-poll.txt`)
 - Automation secret: macOS Keychain generic password, service `CheckmkDesktopNotifier`, account = `SecretStoreKeys.AutomationSecret`. No plaintext fallback. No `InMemorySecretStore` in the macOS host.
-- Not in M1: menu-bar/tray, problem-list UX, Take/Release UI, UserNotifications, login items, signing/notarization, universal `.app` packaging
+- Not in M2: Take/Release UI, UserNotifications, login items, signing/notarization, universal `.app` packaging (Phase M3+)
 
 `CheckmkGuiUriBuilder` stays shared and unchanged. App.MacOS must not reference WPF, WinForms, Registry, Credential Manager, or the Inno installer.
 

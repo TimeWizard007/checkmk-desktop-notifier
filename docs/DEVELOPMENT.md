@@ -25,11 +25,12 @@ checkmk-desktop-notifier/
   src/CheckmkDesktopNotifier.Platform.Windows/
   src/CheckmkDesktopNotifier.Platform.MacOS/
   src/CheckmkDesktopNotifier.App/              ← released Windows WPF host; do not rename
-  src/CheckmkDesktopNotifier.App.MacOS/        ← Phase M1 Avalonia host (COMPLETE / real-macOS tested); not a release
+  src/CheckmkDesktopNotifier.App.MacOS/        ← Avalonia macOS host (M1 complete; M2 complete / real-macOS tested); not a release
   src/CheckmkDesktopNotifier.ConnectionTest/
   tests/CheckmkDesktopNotifier.Core.Tests/
   tests/CheckmkDesktopNotifier.Infrastructure.Tests/
   tests/CheckmkDesktopNotifier.Platform.MacOS.Tests/
+  tests/CheckmkDesktopNotifier.App.MacOS.Tests/
 ```
 
 ## Linux — build and test
@@ -658,6 +659,42 @@ dotnet publish src/CheckmkDesktopNotifier.App.MacOS/CheckmkDesktopNotifier.App.M
 
 Not in M1: full problem list, Take/Release UI, notifications, login item, signing/notarization.
 
+## Phase M2 — macOS menu-bar + problem list (COMPLETE / real-macOS tested)
+
+Not a macOS product release. Reuses the shared poller, `ProblemListFilterLogic`, `IAlertStateService`, and `CheckmkProblemNavigator`. Does not clone the Windows compact bar.
+
+- Menu-bar `NSStatusItem` (`NativeMacStatusItem`): compact `N: C: W: U: T:` title, connection tooltip, left-click toggles the problem panel, Control/right-click menu (Problems, Settings, Open Checkmk, Quit)
+- Problem panel: ALL/NEW/CRIT/WARN/UNK/TAKEN, search (host/service/Taken-by), rows, local Seen/Unseen, Open in Checkmk
+- Settings is the M1 connection window; shown only when unconfigured
+- Native IMPs marshal panel operations through Avalonia `PostDeferred`. Intel x86_64 does not query `NSRect` via `objc_msgSend`.
+- Take/Release actions are not enabled in M2 (Phase M3)
+
+**Real Mac validation (Phase M2) — PASSED on Intel macOS (x86_64 host, VPN Checkmk)**
+
+D failed on the first pass (left-click SIGSEGV: *Aplikacja Avalonia Application nieoczekiwanie zakończyła pracę*) and passed after the Intel `NSRect` / dispatcher hotfix. Extra checks: Mark seen / Seen-Unseen, hide/show panel repeatedly, Settings, Open Checkmk, Quit.
+
+| | Check | Result |
+| --- | --- | --- |
+| A | Configured app starts without showing connection setup unnecessarily | PASS |
+| B | Menu-bar item appears | PASS |
+| C | Counts match Checkmk and refresh | PASS |
+| D | Click opens problem panel | PASS (after Intel hotfix) |
+| E | ALL filter works | PASS |
+| F | NEW works | PASS |
+| G | CRIT works | PASS |
+| H | WARN works | PASS |
+| I | UNK works | PASS |
+| J | TAKEN works | PASS |
+| K | Search by host works | PASS |
+| L | Search by service works | PASS |
+| M | Search / Taken-related state | PASS |
+| N | Open in Checkmk opens exact problem | PASS |
+| O | Poll refresh updates counts/list without restart | PASS |
+| P | VPN disconnect shows connection error without crash | not separately re-run in M2 (M1 VPN Checkmk already passed on this Mac) |
+| Q | VPN reconnect recovers automatically | not separately re-run in M2 (M1 VPN Checkmk already passed on this Mac) |
+| R | Settings remains accessible | PASS |
+| S | Quit exits cleanly | PASS |
+
 ## Windows — self-contained win-x64 publish
 
 No admin required. From the repository root:
@@ -718,4 +755,4 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not call Checkmk ACK from the eye button.
 - Take is a separate command. It must not mark Seen.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is RELEASED / Windows frozen. Phase M0 is COMPLETE / Windows-tested. Phase M1 is COMPLETE / real-macOS tested. Do not convert the WPF app to Avalonia. Do not revert CDN Take comments to a multiline format.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is RELEASED / Windows frozen. Phase M0 is COMPLETE / Windows-tested. Phase M1 is COMPLETE / real-macOS tested. Phase M2 is COMPLETE / real-macOS tested. Do not convert the WPF app to Avalonia. Do not revert CDN Take comments to a multiline format.

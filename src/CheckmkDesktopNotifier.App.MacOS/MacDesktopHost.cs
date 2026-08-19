@@ -71,6 +71,12 @@ public sealed class MacDesktopHost : IAsyncDisposable
                 services.AddSingleton<CheckmkConnectionTester>();
                 services.AddSingleton<IUriLauncher, MacOpenUriLauncher>();
                 services.AddSingleton<IUiThread, AvaloniaUiThread>();
+                services.AddSingleton<MacHostErrorLog>();
+                services.AddSingleton<IMacStatusItem>(sp =>
+                {
+                    MacNativeCallbackGuard.ErrorSink = sp.GetRequiredService<MacHostErrorLog>().Write;
+                    return MacStatusItemFactory.Create();
+                });
 
                 IAlertStateStore alertStore = loaded.Identity is not null
                     ? new JsonAlertStateStore(paths.AlertStatePathFor(loaded.Identity), paths.LegacyAlertStatePath)
@@ -90,7 +96,22 @@ public sealed class MacDesktopHost : IAsyncDisposable
                 services.AddSingleton<ICheckmkClient>(sp => sp.GetRequiredService<DelegatingCheckmkClient>());
                 services.AddSingleton<IMonitoringCoordinator, MonitoringCoordinator>();
                 services.AddCheckmkPolling(paths.LastPollPath);
+                services.AddSingleton<ICheckmkProblemNavigator>(sp =>
+                {
+                    var current = sp.GetRequiredService<LoadedConfiguration>();
+                    var coordinator = sp.GetService<IMonitoringCoordinator>();
+                    var launcher = sp.GetRequiredService<IUriLauncher>();
+                    return new CheckmkProblemNavigator(
+                        () =>
+                        {
+                            var options = coordinator?.CurrentOptions ?? current.Options;
+                            return (options.BaseUrl, options.Site);
+                        },
+                        launcher.Open);
+                });
                 services.AddSingleton<MacConnectionViewModel>();
+                services.AddSingleton<MacProblemListViewModel>();
+                services.AddSingleton<MacAppController>();
             })
             .Build();
 

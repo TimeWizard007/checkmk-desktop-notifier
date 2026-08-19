@@ -84,7 +84,9 @@ public sealed class MacHostIsolationTests
         Assert.Contains("GuiConfigurationService", text, StringComparison.Ordinal);
         Assert.Contains("CheckmkConnectionTester", text, StringComparison.Ordinal);
         Assert.Contains("IMonitoringCoordinator, MonitoringCoordinator", text, StringComparison.Ordinal);
-        Assert.Contains("AddCheckmkPolling", text, StringComparison.Ordinal);
+        Assert.Contains("ICheckmkProblemNavigator", text, StringComparison.Ordinal);
+        Assert.Contains("IMacStatusItem", text, StringComparison.Ordinal);
+        Assert.Contains("MacProblemListViewModel", text, StringComparison.Ordinal);
         Assert.DoesNotContain("WindowsUserDataDirectory", text, StringComparison.Ordinal);
         Assert.DoesNotContain("WindowsCredentialSecretStore", text, StringComparison.Ordinal);
         Assert.DoesNotContain("WindowsShellUriLauncher", text, StringComparison.Ordinal);

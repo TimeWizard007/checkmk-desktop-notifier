@@ -4,7 +4,7 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**v1.2.0 RELEASED / Windows frozen.** Phase M0 COMPLETE / Windows-tested. Phase M1 COMPLETE / real-macOS tested. Do not change the product version. Do not advertise a macOS release.
+**v1.2.0 RELEASED / Windows frozen.** Phase M0 COMPLETE / Windows-tested. Phase M1 COMPLETE / real-macOS tested. Phase M2 COMPLETE / real-macOS tested (macOS menu-bar + problem panel). Do not change the product version. Do not advertise a macOS release.
 
 Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. v1.1.0 tagged (no GitHub Release). Phase 7A COMPLETE / Windows-tested. **v1.2.0 tagged.** GitHub Release for 1.2.0 is a separate follow-up.
 
@@ -32,6 +32,7 @@ Installer SHA-256 (`SHA256SUMS.txt`) is the **1.2.0** installer:
 - Phase 7A: COMPLETE / Windows-tested (safe Release / Untake). v1.2.0 tagged.
 - Phase M0: COMPLETE / Windows-tested (platform seams; Windows v1.2.0 behavior frozen).
 - Phase M1: COMPLETE / real-macOS tested (Avalonia host, Application Support, Keychain, connection/polling). Not a macOS product release.
+- Phase M2: COMPLETE / real-macOS tested (menu-bar status item, problem panel, filters/search, Open in Checkmk, local Seen/Unseen). Not a macOS product release.
 
 ## Phase 1 — complete
 
@@ -374,19 +375,36 @@ Windows v1.2.0 remains released and frozen. M1 added `Platform.MacOS` and `App.M
 
 **Intel macOS validation: PASSED** (x86_64 self-contained host, Application Support path, login Keychain, settings.json has no secret, restart restores config, real Checkmk over VPN, shared poller + problem counts, Open Checkmk in default browser, no Windows Credential Manager / Registry at runtime).
 
+### Phase M2 — COMPLETE / real-macOS tested (macOS menu-bar + problem list)
+
+Not a macOS product release. Windows v1.2.0 remains frozen.
+
+- Menu-bar `NSStatusItem` with compact counts (`N: C: W: U: T:`) and connection state
+- Click toggles a compact problem panel (not a Windows-style floating bar). Native status-item callbacks marshal panel show/hide through Avalonia `Dispatcher.UIThread` (`PostDeferred`). Intel x86_64 does not query `NSRect` via `objc_msgSend` (that ABI crashes); panel falls back to a default position.
+- Shared `ProblemListFilterLogic` for ALL/NEW/CRIT/WARN/UNK/TAKEN and host/service/Taken-by search
+- Local Seen/Unseen via `IAlertStateService` (same semantics as Windows)
+- Per-row Open in Checkmk via `CheckmkGuiUriBuilder` + `MacOpenUriLauncher`
+- M1 connection window is Settings; shown on first run only
+- Take/Release UI, UserNotifications, login items, signing: not in M2
+
+**Intel macOS validation: PASSED** (x86_64 self-contained host). A–C PASS on first pass. D failed on first pass (left-click SIGSEGV from Intel `NSRect` `objc_msgSend`); hotfix retested and D PASS. E–S PASS (filters, search, Open in Checkmk, poll refresh, Settings, Quit). Extra: Mark seen / Seen-Unseen, hide/show panel repeatedly, Open Checkmk, Quit exits cleanly. Checklist P–Q (VPN disconnect/reconnect) were not separately re-run in M2; M1 already validated VPN Checkmk on this Mac.
+
+See `docs/DEVELOPMENT.md` for the Phase M2 real-Mac checklist (A–S).
+
 ## Tests
 
-Last automated run (Linux, Phase M1 implementation):
+Last automated run (Linux, Phase M2 close-out):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 487 passed, 0 failed
+dotnet test  CheckmkDesktopNotifier.sln   → 512 passed, 0 failed
   Core.Tests:              242 passed
   Infrastructure.Tests:    228 passed
-  Platform.MacOS.Tests:     17 passed
+  Platform.MacOS.Tests:     23 passed
+  App.MacOS.Tests:          19 passed
 ```
 
-Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464). Phase M1 added macOS path/URI/Keychain-identifier/isolation tests (487). Linux does not call native Keychain.
+Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464). Phase M1 added macOS path/URI/Keychain-identifier/isolation tests (487). Phase M2 added menu-bar/filter/startup projection tests (501), then status-item crash-hotfix tests (512). Linux does not call native Keychain or AppKit.
 
 ## What is NOT implemented
 
@@ -397,9 +415,9 @@ Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 clos
 - `expire_on` ACK expiry (HTTP 400 on validated RAW 2.4.0p34)
 - GitHub Release for 1.2.0 (follow-up; tag `v1.2.0` exists)
 - Windows Service (out of V1 by decision)
-- macOS product release / menu-bar app / UserNotifications / login items / signing / notarization
-- macOS problem-list UX and Take/Release UI (Phase M2+)
+- macOS product release / UserNotifications / login items / signing / notarization
+- macOS Take/Release UI, complete Settings, native notifications, Start at Login (Phase M3)
 
 ## Immediate next steps
 
-Phase M2 is next: macOS menu-bar status item and problem panel, reusing shared filter/poller state. Do not change the Windows product version. Do not revert CDN Take comments to a multiline format. Do not ship a macOS release from M1.
+Phase M2 COMPLETE / real-macOS tested. Next: Phase M3 feature parity, then Phase M4 UI polish. Do not change the Windows product version. Do not revert CDN Take comments to a multiline format. Do not ship a macOS release from M2.
