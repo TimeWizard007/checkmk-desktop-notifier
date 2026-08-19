@@ -21,7 +21,8 @@ checkmk-desktop-notifier/
   config/checkmk.local.json.example
   src/CheckmkDesktopNotifier.Core/
   src/CheckmkDesktopNotifier.Infrastructure/
-  src/CheckmkDesktopNotifier.App/
+  src/CheckmkDesktopNotifier.Platform.Windows/
+  src/CheckmkDesktopNotifier.App/              ← released Windows WPF host; do not rename
   src/CheckmkDesktopNotifier.ConnectionTest/
   tests/CheckmkDesktopNotifier.Core.Tests/
   tests/CheckmkDesktopNotifier.Infrastructure.Tests/
@@ -576,7 +577,22 @@ No Administrator privileges. Existing Phase 6A/6B behavior remains intact. Suppo
 | P | Network/write failure does not invent released state | PASS |
 | Q | Successful Take/Release: no native white MessageBox; row stays Taking.../Releasing... until Checkmk read-back | PASS |
 
-**Windows 11 Phase 7A validation: PASSED.** v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE.
+**Windows 11 Phase 7A validation: PASSED.** v1.2.0 is tagged.
+
+## Phase M0 — platform seams (COMPLETE / Windows-tested)
+
+Shared ports for a future Avalonia macOS host. Windows v1.2.0 remains released and behavior-frozen. Phase M1 is planned, not started.
+
+**Windows smoke validation: PASSED** (start, polling, Credential Manager, Open in Checkmk, Take / Taken / Release, tray / Exit).
+
+- Do not convert WPF to Avalonia. Do not implement macOS UI, Keychain, UserNotifications, or login items.
+- `IUiThread` / `WpfDispatcherUiThread` — `ShellViewModel` must not reference `Application.Current.Dispatcher`.
+- `IUserDataDirectory` / `AppStoragePaths.For` — Windows remains `%LocalAppData%\CheckmkDesktopNotifier`.
+- `IUriLauncher` in Core; Windows `WindowsShellUriLauncher` (`Process.Start` + `UseShellExecute`).
+- `CheckmkDesktopNotifier.Platform.Windows` — Credential Manager, HKCU Run, Windows URI launcher, Windows path helpers.
+- `IAutostartStore` policy stays in Core; Windows store is HKCU Run; macOS store is later.
+- Notification *policy* and WAV processing stay shared; `NotifyIconTray` / `SoundPlayer` stay Windows presentation.
+- Single-instance: Windows `Local\` mutex in App. Future macOS plugs in at its composition root, not `SingleInstanceIdentity`.
 
 ## Windows — self-contained win-x64 publish
 
@@ -638,4 +654,4 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not call Checkmk ACK from the eye button.
 - Take is a separate command. It must not mark Seen.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE. Do not start a further feature phase. Do not revert CDN Take comments to a multiline format.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is RELEASED / Windows frozen. Phase M0 is COMPLETE / Windows-tested. Phase M1 is planned, not started. Do not convert the WPF app to Avalonia. Do not revert CDN Take comments to a multiline format.

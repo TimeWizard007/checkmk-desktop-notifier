@@ -7,6 +7,7 @@ using CheckmkDesktopNotifier.App.Views;
 using CheckmkDesktopNotifier.Core;
 using CheckmkDesktopNotifier.Core.Acknowledgements;
 using CheckmkDesktopNotifier.Core.Autostart;
+using CheckmkDesktopNotifier.Core.Navigation;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
 using CheckmkDesktopNotifier.Infrastructure.Notifications;

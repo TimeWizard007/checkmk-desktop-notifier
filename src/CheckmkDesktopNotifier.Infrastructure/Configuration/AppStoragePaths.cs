@@ -1,3 +1,5 @@
+using CheckmkDesktopNotifier.Core.Storage;
+
 namespace CheckmkDesktopNotifier.Infrastructure.Configuration;
 
 public sealed class AppStoragePaths
@@ -34,11 +36,18 @@ public sealed class AppStoragePaths
     public string AlertStatePathFor(ConnectionIdentity identity) =>
         Path.Combine(AppDataDirectory, "state", identity.FileId, LegacyAlertStateFileName);
 
-    public static AppStoragePaths ForCurrentUser()
+    /// <summary>
+    /// Builds paths under a platform-supplied user-data directory. Does not read OS special folders.
+    /// </summary>
+    public static AppStoragePaths For(IUserDataDirectory userData)
     {
-        var appData = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            ApplicationFolderName);
+        ArgumentNullException.ThrowIfNull(userData);
+        var appData = userData.GetDirectory();
+        if (string.IsNullOrWhiteSpace(appData))
+        {
+            throw new InvalidOperationException("User data directory must not be empty.");
+        }
+
         Directory.CreateDirectory(appData);
         return new AppStoragePaths(appData);
     }

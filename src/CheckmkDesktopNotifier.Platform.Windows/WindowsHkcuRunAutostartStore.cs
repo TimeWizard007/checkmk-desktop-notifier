@@ -1,7 +1,7 @@
 using Microsoft.Win32;
 using CheckmkDesktopNotifier.Core.Autostart;
 
-namespace CheckmkDesktopNotifier.App;
+namespace CheckmkDesktopNotifier.Platform.Windows;
 
 /// <summary>
 /// Per-user HKCU Run entry. No HKLM, no scheduled task, no elevation.

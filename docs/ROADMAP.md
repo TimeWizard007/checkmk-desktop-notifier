@@ -112,7 +112,9 @@ User-facing 1.0.0 documentation, MIT license, sanitized screenshots, `SHA256SUMS
 
 **v1.1.0** is tagged and was **not** published as a GitHub Release. Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested.
 
-**v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE.** Phase 7A COMPLETE / Windows-tested (safe Release / Untake). No further feature phase. GitHub Release for 1.2.0 is a separate follow-up after the installer build and tag.
+**v1.2.0 is RELEASED (Windows frozen).** Tag `v1.2.0` exists.
+
+**Phase M0 COMPLETE / Windows-tested.** Shared platform seams for a future Avalonia macOS host. Windows v1.2.0 remains released and behavior-frozen. Phase M1 is planned, not started.
 
 Phase 6A delivered:
 
@@ -137,8 +139,9 @@ Phase 6B delivered:
 - ACK metadata refreshes on every successful snapshot (Taken must clear when `acknowledged = 0`)
 - Successful Take/Release uses row waiting states (`Taking...` / `Releasing...`); no native Windows MessageBox
 
-**Future / optional (do not implement now):**
+**Future / optional (Phase M1 planned, not started):**
 
+- macOS Avalonia menu-bar host (Phase M1+)
 - Ticket workflow
 - Zoho Desk integration
 

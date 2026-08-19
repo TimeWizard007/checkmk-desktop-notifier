@@ -76,7 +76,7 @@ public sealed class PackagingTests
         var sums = File.ReadAllText(Path.Combine(root, "SHA256SUMS.txt"));
         Assert.Contains("CheckmkDesktopNotifier-Setup-x64.exe", sums, StringComparison.Ordinal);
         Assert.Contains(
-            "71C5A97C461B513DF2B977F4FEC39C2E739E5817779EF9BA205C44EDEF847B2E",
+            "8B880CB7EE363A135DACECDEF8A90FF6AA806315EA33D5028D327F0D3B8362BB",
             sums,
             StringComparison.OrdinalIgnoreCase);
     }
@@ -105,12 +105,13 @@ public sealed class PackagingTests
     [Fact]
     public void Install_binaries_and_user_data_are_separate()
     {
-        Assert.True(InstallLayout.BinariesAreSeparateFromUserData());
+        var root = Path.Combine(Path.GetTempPath(), "cdn-layout", Guid.NewGuid().ToString("N"));
+        Assert.True(InstallLayout.BinariesAreSeparateFromUserData(root));
         Assert.EndsWith(
             Path.Combine("Programs", "CheckmkDesktopNotifier"),
-            InstallLayout.GetPerUserInstallDirectory(),
+            InstallLayout.GetPerUserInstallDirectory(root),
             StringComparison.Ordinal);
-        Assert.False(InstallLayout.GetPerUserDataDirectory().Contains(
+        Assert.False(InstallLayout.GetPerUserDataDirectory(root).Contains(
             Path.Combine("Programs", "CheckmkDesktopNotifier"),
             StringComparison.OrdinalIgnoreCase));
         Assert.Equal("CheckmkDesktopNotifier.exe", InstallLayout.ExecutableFileName);
@@ -119,7 +120,8 @@ public sealed class PackagingTests
     [Fact]
     public void Installed_autostart_command_is_quoted_path_without_secrets()
     {
-        var command = AutostartCommand.Format(InstallLayout.GetPerUserInstallExecutablePath());
+        var root = Path.Combine(Path.GetTempPath(), "cdn-layout", Guid.NewGuid().ToString("N"));
+        var command = AutostartCommand.Format(InstallLayout.GetPerUserInstallExecutablePath(root));
         Assert.StartsWith("\"", command, StringComparison.Ordinal);
         Assert.EndsWith("\"", command, StringComparison.Ordinal);
         Assert.Contains(InstallLayout.ExecutableFileName, command, StringComparison.Ordinal);

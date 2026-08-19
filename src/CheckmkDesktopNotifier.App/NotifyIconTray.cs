@@ -7,6 +7,10 @@ using Forms = System.Windows.Forms;
 
 namespace CheckmkDesktopNotifier.App;
 
+/// <summary>
+/// WinForms tray icon and balloon tips. Notification policy is <see cref="INotificationCoordinator"/>;
+/// this type is Windows presentation only.
+/// </summary>
 public sealed class NotifyIconTray : INotificationService, IDisposable
 {
     private static readonly Color MenuBackground = Color.FromArgb(255, 37, 42, 51);

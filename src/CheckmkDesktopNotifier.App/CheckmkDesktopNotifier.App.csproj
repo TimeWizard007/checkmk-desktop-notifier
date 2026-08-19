@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CheckmkDesktopNotifier.Core\CheckmkDesktopNotifier.Core.csproj" />
     <ProjectReference Include="..\CheckmkDesktopNotifier.Infrastructure\CheckmkDesktopNotifier.Infrastructure.csproj" />
+    <ProjectReference Include="..\CheckmkDesktopNotifier.Platform.Windows\CheckmkDesktopNotifier.Platform.Windows.csproj" />
   </ItemGroup>
 
   <ItemGroup>

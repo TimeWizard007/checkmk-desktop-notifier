@@ -1,11 +1,11 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Windows;
 using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.Core;
 using CheckmkDesktopNotifier.Core.Abstractions;
 using CheckmkDesktopNotifier.Core.Acknowledgements;
 using CheckmkDesktopNotifier.Core.Domain;
+using CheckmkDesktopNotifier.Core.Threading;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
 using CheckmkDesktopNotifier.Infrastructure.Notifications;
@@ -27,6 +27,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly ICheckmkProblemNavigator? _navigator;
     private readonly TakeSessionState? _takeSession;
     private readonly LoadedConfiguration? _loaded;
+    private readonly IUiThread _uiThread;
     private readonly ProblemListViewState _listView = new();
     private readonly bool _settingsAvailable;
     private ShellPhase _phase = ShellPhase.Initializing;
@@ -44,7 +45,8 @@ public sealed partial class ShellViewModel : ObservableObject
         IUserPreferences? preferences = null,
         ITakeService? take = null,
         TakeSessionState? takeSession = null,
-        ICheckmkProblemNavigator? navigator = null)
+        ICheckmkProblemNavigator? navigator = null,
+        IUiThread? uiThread = null)
     {
         _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
         Text = text ?? throw new ArgumentNullException(nameof(text));
@@ -57,6 +59,7 @@ public sealed partial class ShellViewModel : ObservableObject
         _navigator = navigator;
         _takeSession = takeSession;
         _loaded = loaded;
+        _uiThread = uiThread ?? ImmediateUiThread.Instance;
         _settingsAvailable = loaded?.IsMock != true;
         _poller.StateChanged += OnPollerStateChanged;
         _preferences.Changed += (_, _) =>
@@ -580,14 +583,13 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private void OnPollerStateChanged(object? sender, EventArgs e)
     {
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.CheckAccess())
+        if (_uiThread.CheckAccess())
         {
             Reload();
             return;
         }
 
-        dispatcher.BeginInvoke(Reload);
+        _uiThread.Post(Reload);
     }
 
     private ProblemItemViewModel ToItem(OpenIncident incident)

@@ -1,7 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using CheckmkDesktopNotifier.Infrastructure.Secrets;
 
-namespace CheckmkDesktopNotifier.Infrastructure.Secrets;
+namespace CheckmkDesktopNotifier.Platform.Windows;
 
 public sealed class WindowsCredentialSecretStore : ISecretStore
 {

@@ -1,5 +1,6 @@
 using CheckmkDesktopNotifier.App.Localization;
 using CheckmkDesktopNotifier.Core;
+using CheckmkDesktopNotifier.Core.Navigation;
 using CommunityToolkit.Mvvm.Input;
 
 namespace CheckmkDesktopNotifier.App.ViewModels;

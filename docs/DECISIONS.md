@@ -209,7 +209,11 @@ Sticky is intentional so WARN → Take → CRIT stays Taken (same local incident
 
 ## Open in Checkmk uses GUI URLs, not REST show links
 
-REST collection items may include `rel: urn:com.checkmk:rels/show` hrefs under `/api/1.0/objects/.../actions/show_service/invoke`. Those are API invoke endpoints, not the interactive GUI. Phase 6B builds `{BaseUrl}/{site}/check_mk/index.py?start_url=view.py?...` from the configured origin, site, and host/service identity. No credentials or automation secret in the URL. Default browser only.
+REST collection items may include `rel: urn:com.checkmk:rels/show` hrefs under `/api/1.0/objects/.../actions/show_service/invoke`. Those are API invoke endpoints, not the interactive GUI. Phase 6B builds `{BaseUrl}/{site}/check_mk/index.py?start_url=view.py?...` from the configured origin, site, and host/service identity. No credentials or automation secret in the URL. Default browser via `IUriLauncher` (Windows: shell execute).
+
+## Phase M0 — shared ports, Windows host frozen (COMPLETE / Windows-tested)
+
+Keep the released WPF app. Extract Windows-only I/O (Credential Manager, HKCU Run, shell URI, LocalAppData roots) behind Core ports so a later Avalonia macOS host can supply Keychain, login items, NSWorkspace, and Application Support paths. Do not change Take/Release/Seen/notification semantics. Phase M1 is planned, not started.
 
 ## Host HTTP method
 

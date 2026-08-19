@@ -1,6 +1,6 @@
 # Architecture
 
-Checkmk Desktop Notifier is a per-user Windows desktop companion for Checkmk. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems. End-user documentation is `README.md` / `README.pl.md`. This file is the technical architecture.
+Checkmk Desktop Notifier is a per-user desktop companion for Checkmk. The released Windows product is a WPF host; a future macOS host will share Core and Infrastructure. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems. End-user documentation is `README.md` / `README.pl.md`. This file is the technical architecture.
 
 English is the language of source code, identifiers, comments, and commit messages. User-visible UI is localizable (`en`, `pl`).
 
@@ -8,19 +8,24 @@ English is the language of source code, identifiers, comments, and commit messag
 
 ```
 CheckmkDesktopNotifier.sln
-  src/CheckmkDesktopNotifier.Core              net8.0 class library
-  src/CheckmkDesktopNotifier.Infrastructure    net8.0 class library (Checkmk REST)
-  src/CheckmkDesktopNotifier.App               net8.0-windows WPF (WinExe)
-  src/CheckmkDesktopNotifier.ConnectionTest    net8.0 console (one-shot service POST or `--hosts` GET)
-  tests/CheckmkDesktopNotifier.Core.Tests      xUnit, net8.0
+  src/CheckmkDesktopNotifier.Core                 net8.0 class library
+  src/CheckmkDesktopNotifier.Infrastructure       net8.0 class library (Checkmk REST, polling, settings)
+  src/CheckmkDesktopNotifier.Platform.Windows     net8.0-windows (Credential Manager, HKCU Run, shell URI, LocalAppData paths)
+  src/CheckmkDesktopNotifier.App                  net8.0-windows WPF (WinExe) — released Windows host; do not rename
+  src/CheckmkDesktopNotifier.ConnectionTest       net8.0 console (one-shot service POST or `--hosts` GET)
+  tests/CheckmkDesktopNotifier.Core.Tests         xUnit, net8.0
   tests/CheckmkDesktopNotifier.Infrastructure.Tests  xUnit, net8.0
 ```
 
 Core has no WPF, no `HttpClient`, and no Checkmk JSON envelope types.
 
-Infrastructure references Core. It owns REST DTOs, authentication headers, `HttpClient`, and mapping `value[].extensions` → `MonitoredProblem`.
+Infrastructure references Core. It owns REST DTOs, authentication headers, `HttpClient`, and mapping `value[].extensions` → `MonitoredProblem`. It does **not** P/Invoke Credential Manager.
 
-App references Core and Infrastructure. Tests: Core.Tests → Core only. Infrastructure.Tests → Core + Infrastructure.
+`Platform.Windows` references Core + Infrastructure. It owns Windows-only implementations of shared ports.
+
+App references Core, Infrastructure, and Platform.Windows. Tests: Core.Tests → Core only. Infrastructure.Tests → Core + Infrastructure.
+
+A future **Avalonia** macOS host (`CheckmkDesktopNotifier.App.MacOS`) is not in this solution yet. It must not convert or replace the WPF App.
 
 ## Core responsibilities
 
@@ -30,10 +35,13 @@ App references Core and Infrastructure. Tests: Core.Tests → Core only. Infrast
 - Optional Checkmk write port: `ICheckmkAcknowledgementClient` (ACK create/delete; not mixed into the read client)
 - Take / Release workflow: `ITakeService` / `TakeEligibility` / `CdnTakeComment`
 - Checkmk GUI navigation: `CheckmkGuiUriBuilder` / `ICheckmkProblemNavigator` (no REST `show` hrefs)
+- URI opening port: `IUriLauncher` (Windows: `WindowsShellUriLauncher`)
+- UI thread port: `IUiThread` (Windows WPF: `WpfDispatcherUiThread` in App)
+- User-data directory port: `IUserDataDirectory` (Windows: `WindowsUserDataDirectory` → `%LocalAppData%\CheckmkDesktopNotifier`)
 - Persistence port: `IAlertStateStore` (`InMemoryAlertStateStore`, `JsonAlertStateStore`)
 - Mock: `MockCheckmkClient`, `DemoSnapshotFactory`
 
-Core must stay independently testable.
+Core must stay independently testable. Core does not read `%LocalAppData%` or `%LocalAppData%\Programs\CheckmkDesktopNotifier`; `InstallLayout` takes an explicit LocalAppData root.
 
 ## Infrastructure responsibilities
 
@@ -46,8 +54,8 @@ Core must stay independently testable.
 - `ServiceProblemMapper` / `HostProblemMapper` → Core `MonitoredProblem`
 - Failed HTTP/JSON → `ProblemSnapshot.Failure` (`Unavailable` / `Authentication` / `Protocol` / `Configuration`)
 - `CheckmkPoller` / `CheckmkPollingHostedService` — background polling while the desktop app is running (not a Windows Service)
-- `PollDiagnosticsWriter` — `%LocalAppData%/CheckmkDesktopNotifier/last-poll.txt` (counts and error kind only)
-- GUI settings store, `ISecretStore` / Windows Credential Manager, `CheckmkConfigurationResolver`, `MonitoringCoordinator`, `CheckmkConnectionTester`
+- `PollDiagnosticsWriter` — `last-poll.txt` under the platform user-data directory
+- GUI settings store, `ISecretStore` (interface + in-memory), `CheckmkConfigurationResolver`, `MonitoringCoordinator`, `CheckmkConnectionTester`
 - Notification policy (`INotificationCoordinator` / `NotificationCoordinator`) maps `AlertDelta.Opened` to desktop alerts after ACK suppression and host-failure grouping; `IUserPreferences` / `preferences.json` (mute, volume, Default vs Custom WAV, Take enabled, display name)
 - `ICheckmkAcknowledgementClient` / `CheckmkAcknowledgementClient` — optional Take writes (`POST .../acknowledge/collections/service` and `.../host`) and Release deletes (`POST .../acknowledge/actions/delete/invoke`)
 - `CheckmkTakeService` — ACK POST or delete then `IProblemPoller.RefreshWhenIdleAsync` (no second poll loop)
@@ -60,6 +68,7 @@ Core must stay independently testable.
 - ViewModels that **project** Core state and **invoke** Core / shell commands
 - Localization (`Strings.resx`, `Strings.pl.resx`, `ILocalizationService`)
 - Shared shell commands (`IShellCommands` / `UiShell`) for bar, Hide to tray, Settings, About, Exit
+- `IUiThread` / `WpfDispatcherUiThread` for poller → list marshaling (no `Application.Current.Dispatcher` in ViewModels)
 - System tray (`NotifyIconTray` via WinForms `NotifyIcon`) including balloon notifications; left-click toggles bar visibility
 - Alert sound (`WindowsAlertSoundService` / bundled `notifier.wav`), per-app volume, optional imported custom WAV, and mute (shared `IUserPreferences`)
 - Dark compact gear/tray menu styling; dark problem-list `WindowChrome`, scrollbar, and `Button` templates (no default Aero2 chrome)
@@ -71,6 +80,39 @@ Core must stay independently testable.
 - Connection status projection (`Initializing` / `Setup required` / `Connected` / `Refreshing` / `Connection error`)
 
 App must not implement NEW / SEEN / RECOVERED itself.
+
+## Platform split (Phase M0 COMPLETE / Windows-tested)
+
+**Shared**
+
+- Core: domain, incident engine, Take/Release eligibility, GUI URI builder, `IUiThread`, `IUriLauncher`, `IUserDataDirectory`, `IAutostartStore` policy (`AutostartService`)
+- Infrastructure: Checkmk REST, polling, settings/preferences JSON, `ISecretStore` port, notification *policy*, WAV import/validation helpers
+
+**Windows (released v1.2.0 host — do not convert to Avalonia)**
+
+- WPF shell (`CheckmkDesktopNotifier.App`)
+- WinForms tray / balloon (`NotifyIconTray`)
+- `SoundPlayer` (`WindowsAlertSoundService`)
+- `WpfDispatcherUiThread`
+- `SingleInstanceGuard` using `Local\` mutex/event (`SingleInstanceIdentity`)
+- Inno Setup per-user installer
+- `Platform.Windows`: Credential Manager, HKCU Run, `WindowsShellUriLauncher`, `WindowsUserDataDirectory` / `WindowsInstallLayout`
+
+Windows user-data and install paths are unchanged:
+
+- data: `%LocalAppData%\CheckmkDesktopNotifier`
+- binaries: `%LocalAppData%\Programs\CheckmkDesktopNotifier`
+
+**Future macOS (not implemented)**
+
+- Avalonia menu-bar host (`CheckmkDesktopNotifier.App.MacOS`)
+- Keychain (`ISecretStore`)
+- `UserNotifications`
+- macOS sound playback (`IAlertSoundService`)
+- login item (`IAutostartStore`)
+- NSWorkspace / `open` (`IUriLauncher`)
+- `~/Library/Application Support/CheckmkDesktopNotifier` (`IUserDataDirectory`)
+- macOS single-instance at the macOS composition root (not `Local\` mutex names)
 
 ## Dependency flow
 

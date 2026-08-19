@@ -4,7 +4,10 @@ using CheckmkDesktopNotifier.Core;
 namespace CheckmkDesktopNotifier.App;
 
 /// <summary>
-/// Per-user single instance. Second launch signals the existing process to show the bar, then exits.
+/// Per-user single instance on Windows. Second launch signals the existing process
+/// via <see cref="SingleInstanceIdentity"/> (<c>Local\</c> mutex + event), then exits.
+/// Future macOS must not use this class; the macOS host should own an equivalent
+/// composition-root guard.
 /// </summary>
 internal sealed class SingleInstanceGuard : IDisposable
 {

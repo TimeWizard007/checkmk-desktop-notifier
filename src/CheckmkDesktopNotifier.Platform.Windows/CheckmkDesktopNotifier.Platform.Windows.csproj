@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CheckmkDesktopNotifier.Platform.Windows</RootNamespace>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CheckmkDesktopNotifier.Core\CheckmkDesktopNotifier.Core.csproj" />
+    <ProjectReference Include="..\CheckmkDesktopNotifier.Infrastructure\CheckmkDesktopNotifier.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

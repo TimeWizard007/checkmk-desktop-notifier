@@ -11,11 +11,13 @@ using CheckmkDesktopNotifier.Core.Autostart;
 using CheckmkDesktopNotifier.Core.Navigation;
 using CheckmkDesktopNotifier.Core.Persistence;
 using CheckmkDesktopNotifier.Core.State;
+using CheckmkDesktopNotifier.Core.Threading;
 using CheckmkDesktopNotifier.Infrastructure;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
 using CheckmkDesktopNotifier.Infrastructure.Notifications;
 using CheckmkDesktopNotifier.Infrastructure.Rest;
 using CheckmkDesktopNotifier.Infrastructure.Secrets;
+using CheckmkDesktopNotifier.Platform.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -36,7 +38,7 @@ public partial class App : Application
 
         base.OnStartup(e);
 
-        var paths = AppStoragePaths.ForCurrentUser();
+        var paths = AppStoragePaths.For(new WindowsUserDataDirectory());
         ISecretStore secrets = OperatingSystem.IsWindows()
             ? new WindowsCredentialSecretStore()
             : new InMemorySecretStore();
@@ -71,7 +73,8 @@ public partial class App : Application
                 services.AddSingleton(loaded);
                 services.AddSingleton<CheckmkConnectionTester>();
                 services.AddSingleton<ILocalizationService, LocalizationService>();
-                services.AddSingleton<IUriLauncher, ShellUriLauncher>();
+                services.AddSingleton<IUriLauncher, WindowsShellUriLauncher>();
+                services.AddSingleton<IUiThread, WpfDispatcherUiThread>();
                 services.AddSingleton<WindowSessionState>();
                 services.AddSingleton<IUserPreferences>(new JsonUserPreferencesStore(paths.PreferencesPath));
                 services.AddSingleton(new TakeSessionState());

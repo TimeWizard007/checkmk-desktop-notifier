@@ -14,8 +14,3 @@ public interface IShellCommands
 
     void Exit();
 }
-
-public interface IUriLauncher
-{
-    void Open(Uri uri);
-}

@@ -1,7 +1,8 @@
 namespace CheckmkDesktopNotifier.Core;
 
 /// <summary>
-/// Installed binaries and per-user data are siblings under LocalAppData, never the same folder.
+/// Windows per-user install vs data folder layout under a LocalAppData root.
+/// Callers supply the root; Core does not read OS special folders.
 /// </summary>
 public static class InstallLayout
 {
@@ -11,27 +12,32 @@ public static class InstallLayout
 
     public const string ExecutableFileName = "CheckmkDesktopNotifier.exe";
 
-    public static string GetPerUserInstallDirectory() =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            ProgramsFolderName,
-            ApplicationFolderName);
+    public static string GetPerUserInstallDirectory(string localApplicationDataRoot) =>
+        Path.Combine(RequireRoot(localApplicationDataRoot), ProgramsFolderName, ApplicationFolderName);
 
-    public static string GetPerUserInstallExecutablePath() =>
-        Path.Combine(GetPerUserInstallDirectory(), ExecutableFileName);
+    public static string GetPerUserInstallExecutablePath(string localApplicationDataRoot) =>
+        Path.Combine(GetPerUserInstallDirectory(localApplicationDataRoot), ExecutableFileName);
 
-    public static string GetPerUserDataDirectory() =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            ApplicationFolderName);
+    public static string GetPerUserDataDirectory(string localApplicationDataRoot) =>
+        Path.Combine(RequireRoot(localApplicationDataRoot), ApplicationFolderName);
 
-    public static bool BinariesAreSeparateFromUserData()
+    public static bool BinariesAreSeparateFromUserData(string localApplicationDataRoot)
     {
-        var install = Path.GetFullPath(GetPerUserInstallDirectory());
-        var data = Path.GetFullPath(GetPerUserDataDirectory());
+        var install = Path.GetFullPath(GetPerUserInstallDirectory(localApplicationDataRoot));
+        var data = Path.GetFullPath(GetPerUserDataDirectory(localApplicationDataRoot));
         return !string.Equals(install, data, StringComparison.OrdinalIgnoreCase)
             && !IsUnder(install, data)
             && !IsUnder(data, install);
+    }
+
+    private static string RequireRoot(string localApplicationDataRoot)
+    {
+        if (string.IsNullOrWhiteSpace(localApplicationDataRoot))
+        {
+            throw new ArgumentException("Local application data root must not be empty.", nameof(localApplicationDataRoot));
+        }
+
+        return localApplicationDataRoot;
     }
 
     private static bool IsUnder(string path, string parent)

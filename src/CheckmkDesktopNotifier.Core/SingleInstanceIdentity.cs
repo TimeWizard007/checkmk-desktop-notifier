@@ -1,7 +1,10 @@
 namespace CheckmkDesktopNotifier.Core;
 
 /// <summary>
-/// Per-user session names. <c>Local\</c> is this Windows logon; not <c>Global\</c> (no admin).
+/// Windows per-user kernel object names for single-instance. <c>Local\</c> is this
+/// Windows logon session, not <c>Global\</c> (no admin). A future macOS host must
+/// not reuse these names; it should plug in at the composition root with its own
+/// lock (bundle identifier / <c>NSRunningApplication</c>), not this type.
 /// </summary>
 public static class SingleInstanceIdentity
 {

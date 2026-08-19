@@ -12,6 +12,7 @@ namespace CheckmkDesktopNotifier.App;
 /// <summary>
 /// Holds the WinForms balloon implementation until the tray icon exists.
 /// Polling may start only after <see cref="UiShell.Show"/> attaches the inner service.
+/// Notification *policy* stays in Infrastructure; this is Windows presentation only.
 /// </summary>
 public sealed class DeferredNotificationService : INotificationService
 {
@@ -38,6 +39,10 @@ public sealed class DeferredNotificationService : INotificationService
     }
 }
 
+/// <summary>
+/// Windows <see cref="SoundPlayer"/> playback. WAV validation and PCM volume live in Core;
+/// a future macOS host will replace this class only.
+/// </summary>
 public sealed class WindowsAlertSoundService : IAlertSoundService, IDisposable
 {
     private readonly IUserPreferences _preferences;

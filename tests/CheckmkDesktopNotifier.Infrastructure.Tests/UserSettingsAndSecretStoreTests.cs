@@ -1,3 +1,4 @@
+using CheckmkDesktopNotifier.Core.Storage;
 using CheckmkDesktopNotifier.Infrastructure.Configuration;
 using CheckmkDesktopNotifier.Infrastructure.Secrets;
 using CheckmkDesktopNotifier.Infrastructure.Tests.TestSupport;
@@ -98,6 +99,27 @@ public sealed class UserSettingsAndSecretStoreTests
             Assert.DoesNotContain("old-secret", json, StringComparison.Ordinal);
             Assert.DoesNotContain("new-secret", json, StringComparison.Ordinal);
             Assert.Contains("45", json, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void App_storage_paths_use_supplied_user_data_directory()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "cdn-app-storage", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = AppStoragePaths.For(new ExplicitUserDataDirectory(directory));
+            Assert.Equal(directory, paths.AppDataDirectory);
+            Assert.True(Directory.Exists(directory));
+            Assert.Equal(Path.Combine(directory, "settings.json"), paths.SettingsPath);
+            Assert.DoesNotContain("Programs", paths.AppDataDirectory, StringComparison.Ordinal);
         }
         finally
         {

@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.App"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.Infrastructure", "src\CheckmkDesktopNotifier.Infrastructure\CheckmkDesktopNotifier.Infrastructure.csproj", "{B15DED51-6B3F-4AFE-8B1C-C2EE8E6A4DEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.Platform.Windows", "src\CheckmkDesktopNotifier.Platform.Windows\CheckmkDesktopNotifier.Platform.Windows.csproj", "{A3F1C8E2-9B47-4D6A-8E21-7C4F0B91D5A8}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.ConnectionTest", "src\CheckmkDesktopNotifier.ConnectionTest\CheckmkDesktopNotifier.ConnectionTest.csproj", "{E84EEA7A-2269-4E2F-B5A7-41AE3E527368}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.Infrastructure.Tests", "tests\CheckmkDesktopNotifier.Infrastructure.Tests\CheckmkDesktopNotifier.Infrastructure.Tests.csproj", "{7E0E8A46-37DD-4D08-B2B1-A6A4DA473EF8}"
@@ -44,6 +46,10 @@ Global
 		{B15DED51-6B3F-4AFE-8B1C-C2EE8E6A4DEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B15DED51-6B3F-4AFE-8B1C-C2EE8E6A4DEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B15DED51-6B3F-4AFE-8B1C-C2EE8E6A4DEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3F1C8E2-9B47-4D6A-8E21-7C4F0B91D5A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3F1C8E2-9B47-4D6A-8E21-7C4F0B91D5A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3F1C8E2-9B47-4D6A-8E21-7C4F0B91D5A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3F1C8E2-9B47-4D6A-8E21-7C4F0B91D5A8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E84EEA7A-2269-4E2F-B5A7-41AE3E527368}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E84EEA7A-2269-4E2F-B5A7-41AE3E527368}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E84EEA7A-2269-4E2F-B5A7-41AE3E527368}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -58,6 +64,7 @@ Global
 		{7F1EA555-6B07-43C9-8592-26C97BEF2C2E} = {4FE3F94D-9B8B-46C5-9E11-601F5833E36B}
 		{5EBF58F3-6251-4C65-8279-258D8C19405F} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
 		{B15DED51-6B3F-4AFE-8B1C-C2EE8E6A4DEB} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
+		{A3F1C8E2-9B47-4D6A-8E21-7C4F0B91D5A8} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
 		{E84EEA7A-2269-4E2F-B5A7-41AE3E527368} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
 		{7E0E8A46-37DD-4D08-B2B1-A6A4DA473EF8} = {4FE3F94D-9B8B-46C5-9E11-601F5833E36B}
 	EndGlobalSection

@@ -4,16 +4,16 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**v1.2.0 FEATURE COMPLETE / RELEASE CANDIDATE** — Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. Phase 7A COMPLETE / Windows-tested. No further feature phase. Tag `v1.1.0` is unchanged and was **not** published as a GitHub Release. Do not start ticketing.
+**v1.2.0 RELEASED / Windows frozen.** Phase M0 COMPLETE / Windows-tested. Phase M1 (Avalonia macOS host) is planned, not started. Do not change the product version.
 
-Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. v1.1.0 tagged (no GitHub Release). Phase 7A COMPLETE / Windows-tested.
+Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. v1.1.0 tagged (no GitHub Release). Phase 7A COMPLETE / Windows-tested. **v1.2.0 tagged.** GitHub Release for 1.2.0 is a separate follow-up.
 
-Product version **1.2.0** (from `Directory.Build.props`). Remaining release work is installer build, SHA-256, tag, and GitHub Release — not further product features.
+Product version **1.2.0** (from `Directory.Build.props`).
 
-Installer SHA-256 below is the **1.0.0** installer (`SHA256SUMS.txt`). Do not treat it as a 1.1.0 or 1.2.0 checksum.
+Installer SHA-256 (`SHA256SUMS.txt`) is the **1.2.0** installer:
 
 ```
-71C5A97C461B513DF2B977F4FEC39C2E739E5817779EF9BA205C44EDEF847B2E  CheckmkDesktopNotifier-Setup-x64.exe
+8B880CB7EE363A135DACECDEF8A90FF6AA806315EA33D5028D327F0D3B8362BB  CheckmkDesktopNotifier-Setup-x64.exe
 ```
 
 ## Git checkpoint
@@ -29,7 +29,8 @@ Installer SHA-256 below is the **1.0.0** installer (`SHA256SUMS.txt`). Do not tr
 - Phase 5: COMPLETE / V1 READY
 - Phase 6A: COMPLETE / Windows-tested (Take / shared ACK).
 - Phase 6B: COMPLETE / Windows-tested (Open in Checkmk + Seen/Unseen). v1.1.0 tagged.
-- Phase 7A: COMPLETE / Windows-tested (safe Release / Untake). v1.2.0 FEATURE COMPLETE / RELEASE CANDIDATE.
+- Phase 7A: COMPLETE / Windows-tested (safe Release / Untake). v1.2.0 tagged.
+- Phase M0: COMPLETE / Windows-tested (platform seams; Windows v1.2.0 behavior frozen). Phase M1 planned, not started.
 
 ## Phase 1 — complete
 
@@ -345,18 +346,32 @@ Version **1.2.0**. FEATURE COMPLETE / RELEASE CANDIDATE. Live Checkmk RAW 2.4.0p
 
 **Windows 11 Phase 7A validation: PASSED.**
 
+### Phase M0 — COMPLETE / Windows-tested (platform seams for a future macOS host)
+
+Windows v1.2.0 behavior remains released and frozen. M0 added ports only.
+
+**Windows smoke validation: PASSED** (start, polling, Credential Manager, Open in Checkmk, Take / Taken / Release, tray / Exit).
+
+- `IUiThread` + WPF `WpfDispatcherUiThread` (ViewModels no longer use `Application.Current.Dispatcher`)
+- `IUserDataDirectory` / `AppStoragePaths.For` (Windows still `%LocalAppData%\CheckmkDesktopNotifier`)
+- `IUriLauncher` in Core; Windows `Process.Start` + `UseShellExecute` in `Platform.Windows`
+- `WindowsCredentialSecretStore` and `WindowsHkcuRunAutostartStore` moved to `CheckmkDesktopNotifier.Platform.Windows`
+- Single-instance remains Windows `Local\` mutex in App; macOS must plug in at its composition root later
+
+No Avalonia UI, Keychain, UserNotifications, or login items. Phase M1 is planned, not started.
+
 ## Tests
 
-Last automated run (Linux, v1.2.0 documentation / release-preparation pass):
+Last automated run (Linux, Phase M0 seams):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 457 passed, 0 failed
-  Core.Tests:            230 passed
-  Infrastructure.Tests:  227 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 464 passed, 0 failed
+  Core.Tests:            236 passed
+  Infrastructure.Tests:  228 passed
 ```
 
-Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. Phase 7A / v1.2.0 documentation pass is 457 passed.
+Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464).
 
 ## What is NOT implemented
 
@@ -365,10 +380,10 @@ Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. Phase 7A / 
 - Shared/team Seen (local Seen remains per Windows user)
 - Ticketing / Zoho; custom shared backend/database
 - `expire_on` ACK expiry (HTTP 400 on validated RAW 2.4.0p34)
-- GitHub Release (follow-up; `v1.1.0` is tagged but was not published; `v1.2.0` is not tagged yet)
+- GitHub Release for 1.2.0 (follow-up; tag `v1.2.0` exists)
 - Windows Service (out of V1 by decision)
-- 1.2.0 installer SHA-256 (do not reuse the 1.0.0 checksum in `SHA256SUMS.txt`)
+- macOS host / Keychain / UserNotifications / login items (Phase M1+)
 
 ## Immediate next steps
 
-v1.2.0 is FEATURE COMPLETE / RELEASE CANDIDATE. Remaining release work: Windows installer build from 1.2.0 source, SHA-256, tag `v1.2.0`, GitHub Release. Do not start a further feature phase. Do not start ticketing. Do not revert CDN Take comments to a multiline format. Do not alter tag `v1.1.0`.
+Phase M1 is planned, not started: Avalonia macOS host (composition root, Application Support paths, Keychain, connection/polling). Do not start M1 in this close-out. Do not change the Windows product version. Do not revert CDN Take comments to a multiline format.
