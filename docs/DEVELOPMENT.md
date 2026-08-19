@@ -4,8 +4,9 @@
 
 - .NET 8 SDK
 - For **running** the WPF app: Windows 10/11
-- Linux can **build** Core, Infrastructure, tests, ConnectionTest, and (with Windows targeting) the WPF project
-- No Administrator privileges required for build, test, or running the per-user app
+- Linux can **build** Core, Infrastructure, Platform.MacOS, App.MacOS, tests, ConnectionTest, and (with Windows targeting) the WPF project
+- Running the Avalonia macOS host requires macOS (Keychain). There is no macOS product release yet.
+- No Administrator privileges required for build, test, or running the per-user Windows app
 
 ## Repository structure
 
@@ -22,10 +23,13 @@ checkmk-desktop-notifier/
   src/CheckmkDesktopNotifier.Core/
   src/CheckmkDesktopNotifier.Infrastructure/
   src/CheckmkDesktopNotifier.Platform.Windows/
+  src/CheckmkDesktopNotifier.Platform.MacOS/
   src/CheckmkDesktopNotifier.App/              ← released Windows WPF host; do not rename
+  src/CheckmkDesktopNotifier.App.MacOS/        ← Phase M1 Avalonia host (COMPLETE / real-macOS tested); not a release
   src/CheckmkDesktopNotifier.ConnectionTest/
   tests/CheckmkDesktopNotifier.Core.Tests/
   tests/CheckmkDesktopNotifier.Infrastructure.Tests/
+  tests/CheckmkDesktopNotifier.Platform.MacOS.Tests/
 ```
 
 ## Linux — build and test
@@ -37,7 +41,7 @@ dotnet build CheckmkDesktopNotifier.sln
 dotnet test CheckmkDesktopNotifier.sln
 ```
 
-The App project sets `EnableWindowsTargeting` so WPF can compile on non-Windows agents. That does **not** make the UI runnable on Linux.
+The App project sets `EnableWindowsTargeting` so WPF can compile on non-Windows agents. That does **not** make the UI runnable on Linux. App.MacOS compiles on Linux; Keychain and a real Checkmk connection require macOS.
 
 ## Windows — run the mock UI
 
@@ -581,11 +585,11 @@ No Administrator privileges. Existing Phase 6A/6B behavior remains intact. Suppo
 
 ## Phase M0 — platform seams (COMPLETE / Windows-tested)
 
-Shared ports for a future Avalonia macOS host. Windows v1.2.0 remains released and behavior-frozen. Phase M1 is planned, not started.
+Shared ports for a future Avalonia macOS host. Windows v1.2.0 remains released and behavior-frozen.
 
 **Windows smoke validation: PASSED** (start, polling, Credential Manager, Open in Checkmk, Take / Taken / Release, tray / Exit).
 
-- Do not convert WPF to Avalonia. Do not implement macOS UI, Keychain, UserNotifications, or login items.
+- Do not convert WPF to Avalonia.
 - `IUiThread` / `WpfDispatcherUiThread` — `ShellViewModel` must not reference `Application.Current.Dispatcher`.
 - `IUserDataDirectory` / `AppStoragePaths.For` — Windows remains `%LocalAppData%\CheckmkDesktopNotifier`.
 - `IUriLauncher` in Core; Windows `WindowsShellUriLauncher` (`Process.Start` + `UseShellExecute`).
@@ -593,6 +597,66 @@ Shared ports for a future Avalonia macOS host. Windows v1.2.0 remains released a
 - `IAutostartStore` policy stays in Core; Windows store is HKCU Run; macOS store is later.
 - Notification *policy* and WAV processing stay shared; `NotifyIconTray` / `SoundPlayer` stay Windows presentation.
 - Single-instance: Windows `Local\` mutex in App. Future macOS plugs in at its composition root, not `SingleInstanceIdentity`.
+
+## Phase M1 — first macOS host and Checkmk connection (COMPLETE / real-macOS tested)
+
+Not a macOS product release. Windows v1.2.0 UI and runtime behavior must not change.
+
+**Projects**
+
+- `CheckmkDesktopNotifier.Platform.MacOS` — `MacUserDataDirectory`, `MacKeychainSecretStore` / Security.framework Keychain, `MacOpenUriLauncher` (`/usr/bin/open`). No Checkmk REST duplication.
+- `CheckmkDesktopNotifier.App.MacOS` — Avalonia composition root (`MacDesktopHost`), `AvaloniaUiThread`, minimal connection window. Reuses `GuiConfigurationService`, `CheckmkConnectionTester`, `MonitoringCoordinator`, `CheckmkPoller`.
+
+**User data**
+
+- `~/Library/Application Support/CheckmkDesktopNotifier`
+- Do not use `~/.local/share` or Windows LocalAppData on macOS.
+
+**Secrets**
+
+- Keychain generic password, service `CheckmkDesktopNotifier`, account `CheckmkDesktopNotifier` (`SecretStoreKeys.AutomationSecret`).
+- No plaintext fallback. The macOS host does not register `InMemorySecretStore`.
+- Off macOS, Keychain operations throw `PlatformNotSupportedException`. Linux CI must not call native Keychain.
+- Real Keychain save/read/delete was validated on Intel macOS (login Keychain).
+
+**Publish (development RIDs, not universal packaging)**
+
+From Linux (cross-publish managed + Avalonia native assets; does not produce a signed `.app`):
+
+```bash
+dotnet publish src/CheckmkDesktopNotifier.App.MacOS/CheckmkDesktopNotifier.App.MacOS.csproj \
+  -c Release \
+  -r osx-x64 \
+  --self-contained true \
+  -o publish/macos-x64
+
+dotnet publish src/CheckmkDesktopNotifier.App.MacOS/CheckmkDesktopNotifier.App.MacOS.csproj \
+  -c Release \
+  -r osx-arm64 \
+  --self-contained true \
+  -o publish/macos-arm64
+```
+
+**Real Mac validation (Phase M1) — PASSED on Intel macOS (x86_64 host, VPN Checkmk)**
+
+| | Check | Result |
+| --- | --- | --- |
+| A | Host starts on macOS | PASS |
+| B | No crash at startup | PASS |
+| C | Application Support directory is `~/Library/Application Support/CheckmkDesktopNotifier` | PASS |
+| D | Secret saves to Keychain (service `CheckmkDesktopNotifier`) | PASS |
+| E | Secret is not present in JSON/settings files | PASS |
+| F | Restart reads the Keychain secret | PASS |
+| G | Test Connection succeeds against real Checkmk | PASS |
+| H | Wrong secret shows connection error | PASS |
+| I | Correct secret recovers | PASS |
+| J | Shared poller starts after save | PASS |
+| K | Real problem counts appear (Problems / Hosts / Services / Last poll) | PASS |
+| L | Restart preserves configuration | PASS |
+| M | Open Checkmk uses the default browser | PASS |
+| N | No Windows registry / Credential Manager dependencies load | PASS |
+
+Not in M1: full problem list, Take/Release UI, notifications, login item, signing/notarization.
 
 ## Windows — self-contained win-x64 publish
 
@@ -645,7 +709,7 @@ Never commit:
 - Event Log dumps that contain Authorization headers
 - `config/checkmk.local.json` (gitignored)
 
-Phase 3D stores the automation secret in Windows Credential Manager (this Windows user). Developer/CI may still use `config/checkmk.local.json` (gitignored) or `CHECKMK_*` / `CHECKMK_CONFIG`. Do not commit secrets.
+Phase 3D stores the automation secret in Windows Credential Manager (this Windows user). The macOS host (Phase M1) stores it in Keychain. Developer/CI may still use `config/checkmk.local.json` (gitignored) or `CHECKMK_*` / `CHECKMK_CONFIG`. Do not commit secrets.
 
 ## Architecture reminders
 
@@ -654,4 +718,4 @@ Phase 3D stores the automation secret in Windows Credential Manager (this Window
 - Do not call Checkmk ACK from the eye button.
 - Take is a separate command. It must not mark Seen.
 - Read `docs/CHECKMK_API.md` before any HTTP work. Host monitoring is verified **GET** with repeated `columns=` query parameters, not an invented POST.
-- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is RELEASED / Windows frozen. Phase M0 is COMPLETE / Windows-tested. Phase M1 is planned, not started. Do not convert the WPF app to Avalonia. Do not revert CDN Take comments to a multiline format.
+- Phase 3C is complete. Phase 3D is complete. Phase 4A is COMPLETE / Windows-tested. Phase 4B is COMPLETE / Windows-tested. Phase 4C is COMPLETE / Windows-tested. Phase 4D is COMPLETE / Windows-tested. Phase 5 is COMPLETE / V1 READY. Phase 6A is COMPLETE / Windows-tested. Phase 6B is COMPLETE / Windows-tested. Phase 7A is COMPLETE / Windows-tested. v1.2.0 is RELEASED / Windows frozen. Phase M0 is COMPLETE / Windows-tested. Phase M1 is COMPLETE / real-macOS tested. Do not convert the WPF app to Avalonia. Do not revert CDN Take comments to a multiline format.

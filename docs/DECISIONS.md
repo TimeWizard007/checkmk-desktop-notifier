@@ -213,7 +213,11 @@ REST collection items may include `rel: urn:com.checkmk:rels/show` hrefs under `
 
 ## Phase M0 — shared ports, Windows host frozen (COMPLETE / Windows-tested)
 
-Keep the released WPF app. Extract Windows-only I/O (Credential Manager, HKCU Run, shell URI, LocalAppData roots) behind Core ports so a later Avalonia macOS host can supply Keychain, login items, NSWorkspace, and Application Support paths. Do not change Take/Release/Seen/notification semantics. Phase M1 is planned, not started.
+Keep the released WPF app. Extract Windows-only I/O (Credential Manager, HKCU Run, shell URI, LocalAppData roots) behind Core ports so a later Avalonia macOS host can supply Keychain, login items, NSWorkspace, and Application Support paths. Do not change Take/Release/Seen/notification semantics.
+
+## Phase M1 — Avalonia macOS host, Keychain, shared poller (COMPLETE / real-macOS tested)
+
+Keep `CheckmkDesktopNotifier.App` as the Windows WPF host. Add `Platform.MacOS` and `App.MacOS` without converting WPF. Reuse Core + Infrastructure (client, poller, coordinator, settings, connection tester). macOS secrets go to Keychain only (no plaintext fallback, no `InMemorySecretStore` in the macOS composition root). User data lives under `~/Library/Application Support/CheckmkDesktopNotifier`. M1 UI is a minimal connection window, not the final menu-bar product. Do not advertise a macOS release.
 
 ## Host HTTP method
 

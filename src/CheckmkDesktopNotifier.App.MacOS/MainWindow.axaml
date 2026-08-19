@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CheckmkDesktopNotifier.App.MacOS"
+        x:Class="CheckmkDesktopNotifier.App.MacOS.MainWindow"
+        x:DataType="vm:MacConnectionViewModel"
+        Title="Checkmk Desktop Notifier"
+        Width="560"
+        Height="640"
+        MinWidth="480"
+        MinHeight="520">
+    <ScrollViewer>
+        <StackPanel Margin="20" Spacing="12">
+            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Checkmk Desktop Notifier" />
+            <TextBlock Opacity="0.8" TextWrapping="Wrap"
+                       Text="macOS host (Phase M1). Connection and shared polling only — not a product release." />
+
+            <TextBlock FontWeight="SemiBold" Margin="0,8,0,0" Text="Connection settings" />
+            <TextBox Watermark="Base URL (https://…)" Text="{Binding BaseUrl}"
+                     IsEnabled="{Binding CanInteract}" />
+            <TextBox Watermark="Site" Text="{Binding Site}"
+                     IsEnabled="{Binding CanInteract}" />
+            <TextBox Watermark="Automation user" Text="{Binding Username}"
+                     IsEnabled="{Binding CanInteract}" />
+            <TextBox Watermark="Automation secret" PasswordChar="*" Text="{Binding Secret}"
+                     IsEnabled="{Binding CanInteract}" />
+            <TextBlock Opacity="0.7" TextWrapping="Wrap"
+                       Text="The automation secret is stored in macOS Keychain, never in settings JSON." />
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Save" Command="{Binding SaveCommand}"
+                        IsEnabled="{Binding CanInteract}" />
+                <Button Content="Test connection" Command="{Binding TestConnectionCommand}"
+                        IsEnabled="{Binding CanInteract}" />
+                <Button Content="Open Checkmk" Command="{Binding OpenCheckmkCommand}"
+                        IsEnabled="{Binding CanInteract}" />
+            </StackPanel>
+
+            <TextBlock FontWeight="SemiBold" Margin="0,8,0,0" Text="Status" />
+            <TextBlock TextWrapping="Wrap" Text="{Binding StatusText}" />
+
+            <TextBlock FontWeight="SemiBold" Margin="0,8,0,0" Text="Poller" />
+            <TextBlock TextWrapping="Wrap" FontFamily="Menlo, Monaco, Consolas, monospace"
+                       Text="{Binding DiagnosticText}" />
+        </StackPanel>
+    </ScrollViewer>
+</Window>

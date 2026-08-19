@@ -21,6 +21,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.Conn
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.Infrastructure.Tests", "tests\CheckmkDesktopNotifier.Infrastructure.Tests\CheckmkDesktopNotifier.Infrastructure.Tests.csproj", "{7E0E8A46-37DD-4D08-B2B1-A6A4DA473EF8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.Platform.MacOS", "src\CheckmkDesktopNotifier.Platform.MacOS\CheckmkDesktopNotifier.Platform.MacOS.csproj", "{FEAA1D3C-10AA-4048-93A5-88C17B147440}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.App.MacOS", "src\CheckmkDesktopNotifier.App.MacOS\CheckmkDesktopNotifier.App.MacOS.csproj", "{E6E362CA-AC31-4226-8AB2-48F98297F92B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckmkDesktopNotifier.Platform.MacOS.Tests", "tests\CheckmkDesktopNotifier.Platform.MacOS.Tests\CheckmkDesktopNotifier.Platform.MacOS.Tests.csproj", "{D383937C-58D8-4F46-81AB-1122616594D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +64,18 @@ Global
 		{7E0E8A46-37DD-4D08-B2B1-A6A4DA473EF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E0E8A46-37DD-4D08-B2B1-A6A4DA473EF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E0E8A46-37DD-4D08-B2B1-A6A4DA473EF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FEAA1D3C-10AA-4048-93A5-88C17B147440}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FEAA1D3C-10AA-4048-93A5-88C17B147440}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FEAA1D3C-10AA-4048-93A5-88C17B147440}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FEAA1D3C-10AA-4048-93A5-88C17B147440}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6E362CA-AC31-4226-8AB2-48F98297F92B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6E362CA-AC31-4226-8AB2-48F98297F92B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6E362CA-AC31-4226-8AB2-48F98297F92B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6E362CA-AC31-4226-8AB2-48F98297F92B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D383937C-58D8-4F46-81AB-1122616594D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D383937C-58D8-4F46-81AB-1122616594D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D383937C-58D8-4F46-81AB-1122616594D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D383937C-58D8-4F46-81AB-1122616594D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{9E825EF4-40F4-4DD8-A39F-4B74250E6A5B} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
@@ -67,5 +85,8 @@ Global
 		{A3F1C8E2-9B47-4D6A-8E21-7C4F0B91D5A8} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
 		{E84EEA7A-2269-4E2F-B5A7-41AE3E527368} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
 		{7E0E8A46-37DD-4D08-B2B1-A6A4DA473EF8} = {4FE3F94D-9B8B-46C5-9E11-601F5833E36B}
+		{FEAA1D3C-10AA-4048-93A5-88C17B147440} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
+		{E6E362CA-AC31-4226-8AB2-48F98297F92B} = {86524F35-96CB-4E16-B63A-0E9554D27B60}
+		{D383937C-58D8-4F46-81AB-1122616594D7} = {4FE3F94D-9B8B-46C5-9E11-601F5833E36B}
 	EndGlobalSection
 EndGlobal

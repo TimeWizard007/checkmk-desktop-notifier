@@ -61,6 +61,15 @@ public sealed class PlatformSeamTests
         Assert.True(File.Exists(Path.Combine(
             root,
             "src/CheckmkDesktopNotifier.Platform.Windows/WindowsShellUriLauncher.cs")));
+        Assert.True(File.Exists(Path.Combine(
+            root,
+            "src/CheckmkDesktopNotifier.Platform.MacOS/MacUserDataDirectory.cs")));
+        Assert.True(File.Exists(Path.Combine(
+            root,
+            "src/CheckmkDesktopNotifier.Platform.MacOS/MacKeychainSecretStore.cs")));
+        Assert.True(File.Exists(Path.Combine(
+            root,
+            "src/CheckmkDesktopNotifier.App.MacOS/CheckmkDesktopNotifier.App.MacOS.csproj")));
     }
 
     [Fact]

@@ -114,7 +114,9 @@ User-facing 1.0.0 documentation, MIT license, sanitized screenshots, `SHA256SUMS
 
 **v1.2.0 is RELEASED (Windows frozen).** Tag `v1.2.0` exists.
 
-**Phase M0 COMPLETE / Windows-tested.** Shared platform seams for a future Avalonia macOS host. Windows v1.2.0 remains released and behavior-frozen. Phase M1 is planned, not started.
+**Phase M0 COMPLETE / Windows-tested.** Shared platform seams for a future Avalonia macOS host. Windows v1.2.0 remains released and behavior-frozen.
+
+**Phase M1 COMPLETE / real-macOS tested.** First Avalonia macOS host, Application Support paths, Keychain, connection settings, and shared poller smoke. Not a macOS product release.
 
 Phase 6A delivered:
 
@@ -139,9 +141,9 @@ Phase 6B delivered:
 - ACK metadata refreshes on every successful snapshot (Taken must clear when `acknowledged = 0`)
 - Successful Take/Release uses row waiting states (`Taking...` / `Releasing...`); no native Windows MessageBox
 
-**Future / optional (Phase M1 planned, not started):**
+**Future / optional (Phase M2+):**
 
-- macOS Avalonia menu-bar host (Phase M1+)
+- macOS menu-bar app, problem panel, notifications, login items, signing (Phase M2+)
 - Ticket workflow
 - Zoho Desk integration
 

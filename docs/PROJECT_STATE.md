@@ -4,7 +4,7 @@ Durable checkpoint for future sessions. Do not treat chat history as source of t
 
 ## Current phase
 
-**v1.2.0 RELEASED / Windows frozen.** Phase M0 COMPLETE / Windows-tested. Phase M1 (Avalonia macOS host) is planned, not started. Do not change the product version.
+**v1.2.0 RELEASED / Windows frozen.** Phase M0 COMPLETE / Windows-tested. Phase M1 COMPLETE / real-macOS tested. Do not change the product version. Do not advertise a macOS release.
 
 Phase 1 COMPLETE. Phase 2 COMPLETE. Phase 3A COMPLETE. Phase 3B COMPLETE. Phase 3C COMPLETE. Phase 3D COMPLETE. Phase 4A COMPLETE. Phase 4B COMPLETE. Phase 4C COMPLETE. Phase 4D COMPLETE. Phase 5 COMPLETE / V1 READY (`v1.0.0` tagged). Phase 6A COMPLETE / Windows-tested. Phase 6B COMPLETE / Windows-tested. v1.1.0 tagged (no GitHub Release). Phase 7A COMPLETE / Windows-tested. **v1.2.0 tagged.** GitHub Release for 1.2.0 is a separate follow-up.
 
@@ -30,7 +30,8 @@ Installer SHA-256 (`SHA256SUMS.txt`) is the **1.2.0** installer:
 - Phase 6A: COMPLETE / Windows-tested (Take / shared ACK).
 - Phase 6B: COMPLETE / Windows-tested (Open in Checkmk + Seen/Unseen). v1.1.0 tagged.
 - Phase 7A: COMPLETE / Windows-tested (safe Release / Untake). v1.2.0 tagged.
-- Phase M0: COMPLETE / Windows-tested (platform seams; Windows v1.2.0 behavior frozen). Phase M1 planned, not started.
+- Phase M0: COMPLETE / Windows-tested (platform seams; Windows v1.2.0 behavior frozen).
+- Phase M1: COMPLETE / real-macOS tested (Avalonia host, Application Support, Keychain, connection/polling). Not a macOS product release.
 
 ## Phase 1 — complete
 
@@ -358,20 +359,34 @@ Windows v1.2.0 behavior remains released and frozen. M0 added ports only.
 - `WindowsCredentialSecretStore` and `WindowsHkcuRunAutostartStore` moved to `CheckmkDesktopNotifier.Platform.Windows`
 - Single-instance remains Windows `Local\` mutex in App; macOS must plug in at its composition root later
 
-No Avalonia UI, Keychain, UserNotifications, or login items. Phase M1 is planned, not started.
+No Avalonia UI, Keychain, UserNotifications, or login items were in M0.
+
+### Phase M1 — COMPLETE / real-macOS tested (first macOS host and Checkmk connection)
+
+Windows v1.2.0 remains released and frozen. M1 added `Platform.MacOS` and `App.MacOS` without changing the WPF host.
+
+- Avalonia 11 + net8.0 host (`CheckmkDesktopNotifier.App.MacOS`) with a minimal connection window
+- `~/Library/Application Support/CheckmkDesktopNotifier` via `MacUserDataDirectory`
+- Keychain via `MacKeychainSecretStore` / `SecurityFrameworkKeychain` (no plaintext / no `InMemorySecretStore` in the macOS host)
+- `/usr/bin/open` URI launcher; `AvaloniaUiThread`
+- Shared `GuiConfigurationService`, `CheckmkConnectionTester`, `MonitoringCoordinator`, `CheckmkPoller`
+- Diagnostic poller summary (counts + last poll). No problem-list UX, Take/Release UI, notifications, login items, or notarization
+
+**Intel macOS validation: PASSED** (x86_64 self-contained host, Application Support path, login Keychain, settings.json has no secret, restart restores config, real Checkmk over VPN, shared poller + problem counts, Open Checkmk in default browser, no Windows Credential Manager / Registry at runtime).
 
 ## Tests
 
-Last automated run (Linux, Phase M0 seams):
+Last automated run (Linux, Phase M1 implementation):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 464 passed, 0 failed
-  Core.Tests:            236 passed
-  Infrastructure.Tests:  228 passed
+dotnet test  CheckmkDesktopNotifier.sln   → 487 passed, 0 failed
+  Core.Tests:              242 passed
+  Infrastructure.Tests:    228 passed
+  Platform.MacOS.Tests:     17 passed
 ```
 
-Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464).
+Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464). Phase M1 added macOS path/URI/Keychain-identifier/isolation tests (487). Linux does not call native Keychain.
 
 ## What is NOT implemented
 
@@ -382,8 +397,9 @@ Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 clos
 - `expire_on` ACK expiry (HTTP 400 on validated RAW 2.4.0p34)
 - GitHub Release for 1.2.0 (follow-up; tag `v1.2.0` exists)
 - Windows Service (out of V1 by decision)
-- macOS host / Keychain / UserNotifications / login items (Phase M1+)
+- macOS product release / menu-bar app / UserNotifications / login items / signing / notarization
+- macOS problem-list UX and Take/Release UI (Phase M2+)
 
 ## Immediate next steps
 
-Phase M1 is planned, not started: Avalonia macOS host (composition root, Application Support paths, Keychain, connection/polling). Do not start M1 in this close-out. Do not change the Windows product version. Do not revert CDN Take comments to a multiline format.
+Phase M2 is next: macOS menu-bar status item and problem panel, reusing shared filter/poller state. Do not change the Windows product version. Do not revert CDN Take comments to a multiline format. Do not ship a macOS release from M1.

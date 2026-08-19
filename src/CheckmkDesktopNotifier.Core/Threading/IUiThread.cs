@@ -2,7 +2,7 @@ namespace CheckmkDesktopNotifier.Core.Threading;
 
 /// <summary>
 /// Marshals work onto the desktop UI thread. Windows uses the WPF Dispatcher;
-/// a future macOS host supplies its own implementation.
+/// macOS uses the Avalonia dispatcher.
 /// </summary>
 public interface IUiThread
 {

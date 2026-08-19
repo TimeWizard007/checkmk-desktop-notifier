@@ -1,6 +1,6 @@
 # Architecture
 
-Checkmk Desktop Notifier is a per-user desktop companion for Checkmk. The released Windows product is a WPF host; a future macOS host will share Core and Infrastructure. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems. End-user documentation is `README.md` / `README.pl.md`. This file is the technical architecture.
+Checkmk Desktop Notifier is a per-user desktop companion for Checkmk. The released Windows product is a WPF host (`CheckmkDesktopNotifier.App`). Phase M1 added an Avalonia macOS host that shares Core and Infrastructure. It is not a replacement for the Checkmk web UI. It tracks **local** notification state for current monitoring problems. End-user documentation is `README.md` / `README.pl.md`. This file is the technical architecture. There is **no macOS product release** yet.
 
 English is the language of source code, identifiers, comments, and commit messages. User-visible UI is localizable (`en`, `pl`).
 
@@ -11,21 +11,26 @@ CheckmkDesktopNotifier.sln
   src/CheckmkDesktopNotifier.Core                 net8.0 class library
   src/CheckmkDesktopNotifier.Infrastructure       net8.0 class library (Checkmk REST, polling, settings)
   src/CheckmkDesktopNotifier.Platform.Windows     net8.0-windows (Credential Manager, HKCU Run, shell URI, LocalAppData paths)
+  src/CheckmkDesktopNotifier.Platform.MacOS       net8.0 (Application Support paths, Keychain, /usr/bin/open)
   src/CheckmkDesktopNotifier.App                  net8.0-windows WPF (WinExe) — released Windows host; do not rename
+  src/CheckmkDesktopNotifier.App.MacOS            net8.0 Avalonia (WinExe) — Phase M1 macOS host (COMPLETE / real-macOS tested); not a release
   src/CheckmkDesktopNotifier.ConnectionTest       net8.0 console (one-shot service POST or `--hosts` GET)
   tests/CheckmkDesktopNotifier.Core.Tests         xUnit, net8.0
   tests/CheckmkDesktopNotifier.Infrastructure.Tests  xUnit, net8.0
+  tests/CheckmkDesktopNotifier.Platform.MacOS.Tests  xUnit, net8.0 (no real Keychain)
 ```
 
-Core has no WPF, no `HttpClient`, and no Checkmk JSON envelope types.
+Core has no WPF, no Avalonia, no `HttpClient`, and no Checkmk JSON envelope types.
 
-Infrastructure references Core. It owns REST DTOs, authentication headers, `HttpClient`, and mapping `value[].extensions` → `MonitoredProblem`. It does **not** P/Invoke Credential Manager.
+Infrastructure references Core. It owns REST DTOs, authentication headers, `HttpClient`, and mapping `value[].extensions` → `MonitoredProblem`. It does **not** P/Invoke Credential Manager or Keychain.
 
 `Platform.Windows` references Core + Infrastructure. It owns Windows-only implementations of shared ports.
 
-App references Core, Infrastructure, and Platform.Windows. Tests: Core.Tests → Core only. Infrastructure.Tests → Core + Infrastructure.
+`Platform.MacOS` references Core + Infrastructure. It owns macOS-only implementations of shared ports. It must not reference `Platform.Windows`.
 
-A future **Avalonia** macOS host (`CheckmkDesktopNotifier.App.MacOS`) is not in this solution yet. It must not convert or replace the WPF App.
+App (Windows) references Core, Infrastructure, and Platform.Windows only. App.MacOS references Core, Infrastructure, and Platform.MacOS only. Tests: Core.Tests → Core only. Infrastructure.Tests → Core + Infrastructure. Platform.MacOS.Tests → Core + Infrastructure + Platform.MacOS.
+
+The Avalonia macOS host must not convert or replace the WPF App.
 
 ## Core responsibilities
 
@@ -35,9 +40,9 @@ A future **Avalonia** macOS host (`CheckmkDesktopNotifier.App.MacOS`) is not in 
 - Optional Checkmk write port: `ICheckmkAcknowledgementClient` (ACK create/delete; not mixed into the read client)
 - Take / Release workflow: `ITakeService` / `TakeEligibility` / `CdnTakeComment`
 - Checkmk GUI navigation: `CheckmkGuiUriBuilder` / `ICheckmkProblemNavigator` (no REST `show` hrefs)
-- URI opening port: `IUriLauncher` (Windows: `WindowsShellUriLauncher`)
-- UI thread port: `IUiThread` (Windows WPF: `WpfDispatcherUiThread` in App)
-- User-data directory port: `IUserDataDirectory` (Windows: `WindowsUserDataDirectory` → `%LocalAppData%\CheckmkDesktopNotifier`)
+- URI opening port: `IUriLauncher` (Windows: `WindowsShellUriLauncher`; macOS: `MacOpenUriLauncher`)
+- UI thread port: `IUiThread` (Windows WPF: `WpfDispatcherUiThread` in App; macOS Avalonia: `AvaloniaUiThread` in App.MacOS)
+- User-data directory port: `IUserDataDirectory` (Windows: `WindowsUserDataDirectory` → `%LocalAppData%\CheckmkDesktopNotifier`; macOS: `MacUserDataDirectory` → `~/Library/Application Support/CheckmkDesktopNotifier`)
 - Persistence port: `IAlertStateStore` (`InMemoryAlertStateStore`, `JsonAlertStateStore`)
 - Mock: `MockCheckmkClient`, `DemoSnapshotFactory`
 
@@ -81,12 +86,12 @@ Core must stay independently testable. Core does not read `%LocalAppData%` or `%
 
 App must not implement NEW / SEEN / RECOVERED itself.
 
-## Platform split (Phase M0 COMPLETE / Windows-tested)
+## Platform split (Phase M0 COMPLETE / Windows-tested; Phase M1 COMPLETE / real-macOS tested)
 
 **Shared**
 
 - Core: domain, incident engine, Take/Release eligibility, GUI URI builder, `IUiThread`, `IUriLauncher`, `IUserDataDirectory`, `IAutostartStore` policy (`AutostartService`)
-- Infrastructure: Checkmk REST, polling, settings/preferences JSON, `ISecretStore` port, notification *policy*, WAV import/validation helpers
+- Infrastructure: Checkmk REST, polling, settings/preferences JSON, `ISecretStore` port, notification *policy*, WAV import/validation helpers, `GuiConfigurationService`, `CheckmkConnectionTester`, `MonitoringCoordinator`
 
 **Windows (released v1.2.0 host — do not convert to Avalonia)**
 
@@ -103,16 +108,16 @@ Windows user-data and install paths are unchanged:
 - data: `%LocalAppData%\CheckmkDesktopNotifier`
 - binaries: `%LocalAppData%\Programs\CheckmkDesktopNotifier`
 
-**Future macOS (not implemented)**
+**macOS (Phase M1 COMPLETE / real-macOS tested — not a release)**
 
-- Avalonia menu-bar host (`CheckmkDesktopNotifier.App.MacOS`)
-- Keychain (`ISecretStore`)
-- `UserNotifications`
-- macOS sound playback (`IAlertSoundService`)
-- login item (`IAutostartStore`)
-- NSWorkspace / `open` (`IUriLauncher`)
-- `~/Library/Application Support/CheckmkDesktopNotifier` (`IUserDataDirectory`)
-- macOS single-instance at the macOS composition root (not `Local\` mutex names)
+- Avalonia host (`CheckmkDesktopNotifier.App.MacOS`) — composition root `MacDesktopHost`, minimal connection window (not the final menu-bar app)
+- `Platform.MacOS`: `MacUserDataDirectory`, `MacKeychainSecretStore` / `SecurityFrameworkKeychain`, `MacOpenUriLauncher` (`/usr/bin/open`)
+- `AvaloniaUiThread` in App.MacOS (not WPF)
+- User data: `~/Library/Application Support/CheckmkDesktopNotifier` (`settings.json`, `state/`, `last-poll.txt`)
+- Automation secret: macOS Keychain generic password, service `CheckmkDesktopNotifier`, account = `SecretStoreKeys.AutomationSecret`. No plaintext fallback. No `InMemorySecretStore` in the macOS host.
+- Not in M1: menu-bar/tray, problem-list UX, Take/Release UI, UserNotifications, login items, signing/notarization, universal `.app` packaging
+
+`CheckmkGuiUriBuilder` stays shared and unchanged. App.MacOS must not reference WPF, WinForms, Registry, Credential Manager, or the Inno installer.
 
 ## Dependency flow
 
@@ -146,12 +151,14 @@ No URL, site, username, or automation secret is hardcoded.
 
 End-user sources:
 
-- `%LocalAppData%/CheckmkDesktopNotifier/settings.json` (non-secret fields only)
+- `%LocalAppData%/CheckmkDesktopNotifier/settings.json` (non-secret fields only; Windows)
+- `~/Library/Application Support/CheckmkDesktopNotifier/settings.json` (non-secret fields only; macOS M1)
 - `%LocalAppData%/CheckmkDesktopNotifier/preferences.json` (mute, volume, Default vs Custom, Take enabled, display name; not secrets; not cleared by Reset; **not** autostart)
 - `%LocalAppData%/CheckmkDesktopNotifier/assets/custom-notification.wav` (imported custom sound copy)
-- `%LocalAppData%/CheckmkDesktopNotifier/` — user data (settings, preferences, custom WAV, alert-state). **Not** overwritten by the installer.
+- `%LocalAppData%/CheckmkDesktopNotifier/` — Windows user data (settings, preferences, custom WAV, alert-state). **Not** overwritten by the installer.
 - `%LocalAppData%/Programs/CheckmkDesktopNotifier/` — installed binaries (Phase 4D, COMPLETE / Windows-tested). Separate from user data.
 - Windows Credential Manager Generic Credential `CheckmkDesktopNotifier` (automation secret)
+- macOS Keychain generic password service `CheckmkDesktopNotifier` (automation secret; Phase M1). Never written to settings JSON.
 - Per-user autostart: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `CheckmkDesktopNotifier` (quoted exe path only; OS is source of truth; installer and Settings share this value)
 
 Developer/CI sources (do not override saved GUI settings unless `CHECKMK_CONFIG` is set):

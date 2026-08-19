@@ -1,7 +1,7 @@
 namespace CheckmkDesktopNotifier.Core.Storage;
 
 /// <summary>
-/// Per-user application data directory. Windows uses LocalAppData; macOS will use
+/// Per-user application data directory. Windows uses LocalAppData; macOS uses
 /// <c>~/Library/Application Support/CheckmkDesktopNotifier</c>.
 /// </summary>
 public interface IUserDataDirectory
