@@ -6,6 +6,8 @@ namespace CheckmkDesktopNotifier.Platform.MacOS.Tests;
 
 public sealed class MacAppBundleTests
 {
+    private const string ProductVersion = "1.3.0";
+
     [Fact]
     public void Raw_executable_is_not_a_bundle_and_must_not_call_user_notification_center()
     {
@@ -27,7 +29,7 @@ public sealed class MacAppBundleTests
         var root = Path.Combine(Path.GetTempPath(), "cdn-bundle-" + Guid.NewGuid().ToString("N"));
         var app = Path.Combine(root, MacAppBundleLayout.AppFolderName);
         Directory.CreateDirectory(Path.Combine(app, "Contents", "MacOS"));
-        File.WriteAllText(Path.Combine(app, "Contents", "Info.plist"), MacAppInfoPlist.BuildXml(MacAppBundleLayout.ProductVersion));
+        File.WriteAllText(Path.Combine(app, "Contents", "Info.plist"), MacAppInfoPlist.BuildXml(ProductVersion));
         var exe = Path.Combine(app, "Contents", "MacOS", MacAppBundleLayout.ExecutableName);
         File.WriteAllText(exe, "placeholder");
 
@@ -88,17 +90,20 @@ public sealed class MacAppBundleTests
             "src/CheckmkDesktopNotifier.App.MacOS/Bundle/Info.plist"));
         Assert.Equal(MacAppBundleLayout.Identifier, MacAppInfoPlist.TryReadIdentifier(xml));
         Assert.Contains(MacAppBundleLayout.ExecutableName, xml, StringComparison.Ordinal);
-        Assert.Contains(MacAppBundleLayout.ProductVersion, xml, StringComparison.Ordinal);
+        Assert.Contains(MacAppBundleLayout.IconFileName, xml, StringComparison.Ordinal);
+        Assert.Contains(ProductVersion, xml, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Info_plist_contains_stable_bundle_identity()
     {
-        var xml = MacAppInfoPlist.BuildXml(MacAppBundleLayout.ProductVersion);
+        var xml = MacAppInfoPlist.BuildXml(ProductVersion);
         Assert.Equal(MacAppBundleLayout.Identifier, MacAppInfoPlist.TryReadIdentifier(xml));
         Assert.Contains(MacAppBundleLayout.ExecutableName, xml, StringComparison.Ordinal);
         Assert.Contains("LSUIElement", xml, StringComparison.Ordinal);
-        Assert.Contains(MacAppBundleLayout.ProductVersion, xml, StringComparison.Ordinal);
+        Assert.Contains("CFBundleIconFile", xml, StringComparison.Ordinal);
+        Assert.Contains(MacAppBundleLayout.IconFileName, xml, StringComparison.Ordinal);
+        Assert.Contains(ProductVersion, xml, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -111,15 +116,37 @@ public sealed class MacAppBundleTests
         File.WriteAllText(Path.Combine(publish, "readme.txt"), "keep");
         Directory.CreateDirectory(Path.Combine(publish, "nested.app"));
 
-        MacAppBundlePackager.Package(publish, app, MacAppBundleLayout.ProductVersion);
+        MacAppBundlePackager.Package(publish, app, ProductVersion);
 
         Assert.True(File.Exists(Path.Combine(app, "Contents", "Info.plist")));
         Assert.True(File.Exists(Path.Combine(app, "Contents", "MacOS", MacAppBundleLayout.ExecutableName)));
         Assert.True(Directory.Exists(Path.Combine(app, "Contents", "Resources")));
+        Assert.False(File.Exists(Path.Combine(app, "Contents", "Resources", MacAppBundleLayout.IconFileName)));
+        Assert.Contains(
+            "CFBundleIconFile",
+            File.ReadAllText(Path.Combine(app, "Contents", "Info.plist")),
+            StringComparison.Ordinal);
         Assert.False(Directory.Exists(Path.Combine(app, "Contents", "MacOS", "nested.app")));
         Assert.Equal(
             MacAppBundleLayout.Identifier,
             MacAppInfoPlist.TryReadIdentifier(File.ReadAllText(Path.Combine(app, "Contents", "Info.plist"))));
+    }
+
+    [Fact]
+    public void Packager_copies_icns_into_resources_when_provided()
+    {
+        var publish = Path.Combine(Path.GetTempPath(), "cdn-pub-icon-" + Guid.NewGuid().ToString("N"));
+        var app = Path.Combine(publish, MacAppBundleLayout.AppFolderName);
+        Directory.CreateDirectory(publish);
+        File.WriteAllText(Path.Combine(publish, MacAppBundleLayout.ExecutableName), "exe");
+        var icon = Path.Combine(publish, "source.icns");
+        File.WriteAllBytes(icon, "icns"u8.ToArray());
+
+        MacAppBundlePackager.Package(publish, app, ProductVersion, icon);
+
+        var copied = Path.Combine(app, "Contents", "Resources", MacAppBundleLayout.IconFileName);
+        Assert.True(File.Exists(copied));
+        Assert.Equal("icns"u8.ToArray(), File.ReadAllBytes(copied));
     }
 
     [Fact]

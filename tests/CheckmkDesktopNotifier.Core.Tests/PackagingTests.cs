@@ -115,7 +115,9 @@ public sealed class PackagingTests
                  {
                      "docs/RELEASE_NOTES_1.3.0.md",
                      "scripts/build-macos-release.sh",
-                     "scripts/create-macos-dmg.sh"
+                     "scripts/create-macos-dmg.sh",
+                     "scripts/generate-macos-icon.sh",
+                     "scripts/generate-macos-icon.py"
                  })
         {
             Assert.True(File.Exists(Path.Combine(root, relative)), relative);
@@ -135,7 +137,12 @@ public sealed class PackagingTests
         Assert.DoesNotContain("1.3.0-beta.1", macosHost, StringComparison.Ordinal);
         var plist = File.ReadAllText(Path.Combine(root, "src/CheckmkDesktopNotifier.App.MacOS/Bundle/Info.plist"));
         Assert.Contains("<string>1.3.0</string>", plist, StringComparison.Ordinal);
+        Assert.Contains("CFBundleIconFile", plist, StringComparison.Ordinal);
+        Assert.Contains("CheckmkDesktopNotifier.icns", plist, StringComparison.Ordinal);
         Assert.DoesNotContain("1.3.0-beta.1", plist, StringComparison.Ordinal);
+        var packager = File.ReadAllText(Path.Combine(root, "scripts/package-macos-app.sh"));
+        Assert.Contains("generate-macos-icon.py", packager, StringComparison.Ordinal);
+        Assert.Contains("CheckmkDesktopNotifier.icns", packager, StringComparison.Ordinal);
         var historical = File.ReadAllText(Path.Combine(root, "SHA256SUMS.txt"));
         Assert.Contains(
             "8B880CB7EE363A135DACECDEF8A90FF6AA806315EA33D5028D327F0D3B8362BB",
@@ -268,7 +275,9 @@ public sealed class PackagingTests
                      "scripts/package-macos-app.sh",
                      "scripts/build-macos-beta.sh",
                      "scripts/build-macos-release.sh",
-                     "scripts/create-macos-dmg.sh"
+                     "scripts/create-macos-dmg.sh",
+                     "scripts/generate-macos-icon.sh",
+                     "scripts/generate-macos-icon.py"
                  })
         {
             var text = File.ReadAllText(Path.Combine(root, relative));

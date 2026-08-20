@@ -36,9 +36,9 @@ First normal macOS release. Menu-bar application (`Checkmk Desktop Notifier.app`
 
 ## Validation
 
-- **Windows:** v1.2.0 behavior was real-Windows validated. v1.3.0 must pass the automated build/test gate and a short Windows 11 install smoke test before the GitHub Release is published. Do not treat this document as a substitute for that smoke test.
-- **macOS Intel:** real-device validated for M0–M4 (bundled `.app`). The x64 **DMG** install path must still be smoke-tested on a real Intel Mac before the release is finalized.
-- **macOS Apple Silicon:** published as arm64 `.app` / DMG; not yet validated on a physical Apple Silicon Mac.
+- **Windows 11 x64:** real-machine smoke tested. FileVersion **1.3.0.0**, ProductVersion **1.3.0**.
+- **macOS Intel x64:** real-machine DMG installation and application startup tested (drag to Applications, application icon, menu-bar start).
+- **macOS Apple Silicon arm64:** build/package available; not yet validated on a physical Apple Silicon Mac.
 
 ## Installation
 

@@ -20,7 +20,7 @@ Product version **1.3.0**. Historical v1.2.0 installer SHA-256 (`SHA256SUMS.txt`
 8B880CB7EE363A135DACECDEF8A90FF6AA806315EA33D5028D327F0D3B8362BB  CheckmkDesktopNotifier-Setup-x64.exe
 ```
 
-v1.3.0 checksums belong in `SHA256SUMS-v1.3.0.txt` after the Windows EXE, macOS DMGs, and tagged source ZIP exist. Do not invent hashes.
+v1.3.0 checksums belong in `SHA256SUMS-v1.3.0.txt` on the GitHub Release (Windows EXE, both macOS DMGs, tagged source ZIP). Do not overwrite historical `SHA256SUMS.txt`.
 
 ## Git checkpoint
 
@@ -425,22 +425,22 @@ Broader beta still required: native notification delivery across real-world usag
 
 ### macOS v1.3.0 (unified release)
 
-First normal macOS distribution: `Checkmk Desktop Notifier.app` inside architecture-specific DMGs. Intel x64 real-device validated (M0–M4). Apple Silicon arm64 build/package validated. Unsigned / not notarized. LaunchAgent Start at Login. Secrets in Keychain. Do not move `v1.2.0` or `v1.3.0-beta.1`.
+First normal macOS distribution: `Checkmk Desktop Notifier.app` inside architecture-specific DMGs. Application icon is generated from `src/CheckmkDesktopNotifier.App/Assets/app.ico` into `Contents/Resources/CheckmkDesktopNotifier.icns` (`CFBundleIconFile`). Intel x64 DMG real-machine install tested. Apple Silicon arm64 packaged; physical-device validation pending. Unsigned / not notarized. LaunchAgent Start at Login. Secrets in Keychain. Do not move `v1.2.0` or `v1.3.0-beta.1`.
 
 ## Tests
 
-Last automated run (Linux, v1.3.0 close-out source):
+Last automated run (Linux, v1.3.0 icon packaging close-out):
 
 ```
 dotnet build CheckmkDesktopNotifier.sln   → 0 errors, 0 warnings
-dotnet test  CheckmkDesktopNotifier.sln   → 546 passed, 0 failed
+dotnet test  CheckmkDesktopNotifier.sln   → 547 passed, 0 failed
   Core.Tests:              246 passed
   Infrastructure.Tests:    228 passed
-  Platform.MacOS.Tests:     34 passed
+  Platform.MacOS.Tests:     35 passed
   App.MacOS.Tests:          38 passed
 ```
 
-Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464). Phase M1 added macOS path/URI/Keychain-identifier/isolation tests (487). Phase M2 added menu-bar/filter/startup projection tests (501), then status-item crash-hotfix tests (512). Phase M3/M4 added Take/Settings/notification/sound/login/single-instance, UI, and `.app` bundle tests. v1.3.0-beta.1 packaging/docs tests brought the Linux suite to 545. v1.3.0 unified-version tests bring it to 546. Linux does not call native Keychain or AppKit.
+Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 close-out was 457 passed. Phase M0 added seam tests (464). Phase M1 added macOS path/URI/Keychain-identifier/isolation tests (487). Phase M2 added menu-bar/filter/startup projection tests (501), then status-item crash-hotfix tests (512). Phase M3/M4 added Take/Settings/notification/sound/login/single-instance, UI, and `.app` bundle tests. v1.3.0-beta.1 packaging/docs tests brought the Linux suite to 545. v1.3.0 unified-version tests brought it to 546. Icon packaging adds the icns copy test (547). Linux does not call native Keychain or AppKit.
 
 ## What is NOT implemented
 
@@ -456,4 +456,4 @@ Phase 6A close-out was 382 passed. Phase 6B / v1.1.0 was 415 passed. v1.2.0 clos
 
 ## Immediate next steps
 
-**v1.3.0 FEATURE COMPLETE / FEATURE FREEZE.** Finish remaining packaging on real machines (Windows Inno installer, macOS `hdiutil` DMGs, smoke tests), then tag `v1.3.0` and publish the GitHub Release. Do not start a new feature phase. Do not move `v1.2.0` or `v1.3.0-beta.1`. Do not revert CDN Take comments to a multiline format.
+**v1.3.0 FEATURE COMPLETE. CURRENT DEVELOPMENT CYCLE CLOSED. FEATURE FREEZE.** Do not start a new feature phase. Do not start M5. Do not move `v1.2.0` or `v1.3.0-beta.1`. Do not revert CDN Take comments to a multiline format.

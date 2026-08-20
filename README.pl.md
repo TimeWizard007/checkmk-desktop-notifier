@@ -6,7 +6,7 @@ Lekki monitor i powiadamiacz pulpitu dla Checkmk (Windows + macOS).
 
 To **niezależny projekt open source**. **Nie jest powiązany z Checkmk GmbH**, nie jest przez nią sponsorowany ani nie jest jej produktem. Nazwa „Checkmk” opisuje wyłącznie system monitoringu, z którym współpracuje ta aplikacja.
 
-Aktualna wersja: **1.3.0** — pierwsze wspólne wydanie Windows + macOS. Zamrożenie funkcji w tym cyklu. Zob. [docs/RELEASE_NOTES_1.3.0.md](docs/RELEASE_NOTES_1.3.0.md).
+Aktualna wersja: **1.3.0** — pierwsze wspólne wydanie Windows + macOS. **FEATURE COMPLETE. CURRENT DEVELOPMENT CYCLE CLOSED. FEATURE FREEZE.** Zob. [docs/RELEASE_NOTES_1.3.0.md](docs/RELEASE_NOTES_1.3.0.md).
 
 Historyczne tagi `v1.2.0` i `v1.3.0-beta.1` pozostają bez zmian.
 
@@ -109,7 +109,7 @@ polecenie: ścieżka do `CheckmkDesktopNotifier.exe` w cudzysłowie
 
 Dla tej opcji nie ma skrótu w folderze Autostart, zadania Harmonogramu zadań ani wpisu HKLM.
 
-Przed uruchomieniem porównaj sumę instalatora z `SHA256SUMS-v1.3.0.txt` z GitHub Release (plik powstaje razem z binariami v1.3.0). Historyczna suma instalatora v1.2.0 pozostaje w [SHA256SUMS.txt](SHA256SUMS.txt).
+Przed uruchomieniem porównaj sumę instalatora z `SHA256SUMS-v1.3.0.txt` z GitHub Release. Historyczna suma instalatora v1.2.0 pozostaje w [SHA256SUMS.txt](SHA256SUMS.txt).
 
 ## macOS
 

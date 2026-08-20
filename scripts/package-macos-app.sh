@@ -67,6 +67,12 @@ for key in ("CFBundleShortVersionString", "CFBundleVersion"):
         raise SystemExit(f"Failed to write {key}={version} into Info.plist")
 path.write_text(text, encoding="utf-8")
 PY
+icns="$resources/CheckmkDesktopNotifier.icns"
+python3 "$root/scripts/generate-macos-icon.py" --icns "$icns"
+if [[ ! -f "$icns" ]]; then
+  echo "Failed to generate $icns" >&2
+  exit 1
+fi
 find "$macos" -name '*.pdb' -delete
 executable="$macos/CheckmkDesktopNotifier.MacOS"
 if [[ -f "$executable" ]]; then

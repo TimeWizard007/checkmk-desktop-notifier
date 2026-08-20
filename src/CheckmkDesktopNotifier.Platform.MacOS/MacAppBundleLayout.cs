@@ -14,7 +14,7 @@ public sealed class MacAppBundleLayout
 
     public const string ExecutableName = "CheckmkDesktopNotifier.MacOS";
 
-    public const string ProductVersion = "1.3.0";
+    public const string IconFileName = "CheckmkDesktopNotifier.icns";
 
     public static MacAppBundleLayout None { get; } = new(false, null, null, null);
 
@@ -151,6 +151,8 @@ public static class MacAppInfoPlist
             + "\t<string>Checkmk Desktop Notifier</string>\n"
             + "\t<key>CFBundlePackageType</key>\n"
             + "\t<string>APPL</string>\n"
+            + "\t<key>CFBundleIconFile</key>\n"
+            + "\t<string>" + MacAppBundleLayout.IconFileName + "</string>\n"
             + "\t<key>CFBundleShortVersionString</key>\n"
             + "\t<string>" + version + "</string>\n"
             + "\t<key>CFBundleVersion</key>\n"
@@ -198,7 +200,7 @@ public static class MacAppInfoPlist
 
 public static class MacAppBundlePackager
 {
-    public static string Package(string publishDirectory, string appPath, string version)
+    public static string Package(string publishDirectory, string appPath, string version, string? iconPath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(publishDirectory);
         ArgumentException.ThrowIfNullOrWhiteSpace(appPath);
@@ -235,6 +237,10 @@ public static class MacAppBundlePackager
         }
 
         File.WriteAllText(Path.Combine(contents, "Info.plist"), MacAppInfoPlist.BuildXml(version));
+        if (!string.IsNullOrWhiteSpace(iconPath) && File.Exists(iconPath))
+        {
+            File.Copy(iconPath, Path.Combine(resources, MacAppBundleLayout.IconFileName), overwrite: true);
+        }
         var executable = Path.Combine(macos, MacAppBundleLayout.ExecutableName);
         if (File.Exists(executable) && !OperatingSystem.IsWindows())
         {

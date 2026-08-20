@@ -147,7 +147,7 @@ Phase 6B delivered:
 
 **Phase M4 COMPLETE / Intel macOS tested:** macOS UI/UX polish of the M3 surface. Light-mode polish across different Macs still needs broader beta coverage.
 
-**v1.3.0 FEATURE COMPLETE / FEATURE FREEZE.** First unified Windows + macOS release. Windows v1.2.0 behavior preserved under product version 1.3.0. macOS menu-bar `.app` for Intel x64 (real-device validated) and Apple Silicon arm64 (packaged). Historical tags `v1.2.0` and `v1.3.0-beta.1` must not move.
+**v1.3.0 FEATURE COMPLETE. CURRENT DEVELOPMENT CYCLE CLOSED. FEATURE FREEZE.** First unified Windows + macOS release. Windows 11 x64 installer real-machine smoke tested. macOS menu-bar `.app` / DMG for Intel x64 (physical install validated) and Apple Silicon arm64 (packaged; physical-device validation pending). Historical tags `v1.2.0` and `v1.3.0-beta.1` must not move.
 
 **Future / optional (after user feedback; not a new phase now):**
 

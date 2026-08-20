@@ -6,7 +6,7 @@ A lightweight desktop monitor and notifier for Checkmk (Windows + macOS).
 
 This is an **independent open-source project**. It is **not affiliated with Checkmk GmbH**, and is not endorsed by or a product of Checkmk GmbH. “Checkmk” is used only to name the monitoring system this companion talks to.
 
-Current version: **1.3.0** — first unified Windows + macOS release. Feature freeze for this development cycle. See [docs/RELEASE_NOTES_1.3.0.md](docs/RELEASE_NOTES_1.3.0.md).
+Current version: **1.3.0** — first unified Windows + macOS release. **FEATURE COMPLETE. CURRENT DEVELOPMENT CYCLE CLOSED. FEATURE FREEZE.** See [docs/RELEASE_NOTES_1.3.0.md](docs/RELEASE_NOTES_1.3.0.md).
 
 Historical tags `v1.2.0` and `v1.3.0-beta.1` are unchanged.
 
@@ -109,7 +109,7 @@ command: quoted path to `CheckmkDesktopNotifier.exe`
 
 There is no Startup-folder shortcut, scheduled task, or HKLM entry for this option.
 
-Verify the installer hash against `SHA256SUMS-v1.3.0.txt` published with the GitHub Release (created when the v1.3.0 binaries exist). The historical v1.2.0 installer hash remains in [SHA256SUMS.txt](SHA256SUMS.txt).
+Verify the installer hash against `SHA256SUMS-v1.3.0.txt` published with the GitHub Release. The historical v1.2.0 installer hash remains in [SHA256SUMS.txt](SHA256SUMS.txt).
 
 ## macOS
 
